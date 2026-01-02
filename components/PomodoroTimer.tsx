@@ -1,16 +1,17 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { 
-  Play, Pause, RotateCcw, CheckCircle2, Star, 
-  Maximize2, Minimize2, Sparkles, Trophy, BrainCircuit, Loader2
+  Play, Pause, RotateCcw, Star, 
+  Maximize2, Minimize2, Sparkles, Trophy, BrainCircuit, Loader2,
+  Info, AlertTriangle
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
 const PomodoroTimer: React.FC = () => {
   const { 
     theme, activeProfileId, profiles, settings, tasks, 
-    subjects, exams, examTopics, materials, addSession 
+    subjects, examTopics, materials, addSession 
   } = useAppStore();
   
   const activeProfile = profiles.find(p => p.id === activeProfileId);
@@ -26,18 +27,19 @@ const PomodoroTimer: React.FC = () => {
   const [rating, setRating] = useState(0);
   const [motivation, setMotivation] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [aiTip, setAiTip] = useState<string | null>(null);
 
   const timerRef = useRef<any>(null);
   const startTimeRef = useRef<string | null>(null);
 
   const getMotivationalPhrase = () => {
-    const noun = activeProfile?.gender === 'femenino' ? 'mi reina' : activeProfile?.gender === 'masculino' ? 'mi rey' : 'estudiante';
+    const noun = activeProfile?.gender === 'femenino' ? 'reina' : activeProfile?.gender === 'masculino' ? 'rey' : 'estudiante';
     const phrases = [
-      `¡Nada de teléfono, a estudiar ${noun}! 👑`,
-      `¡Concéntrate ${noun}! 💪`,
-      `¡Tú puedes con esto, ${activeProfile?.user_name}! 🚀`,
-      "¡El éxito está cerca! 🌟",
-      "¡Enfócate en tu meta! ✨"
+      `¡Deja el móvil, ${noun}! 👑`,
+      `¡Tu futuro te lo agradecerá! 💪`,
+      `¡Enfoque láser, ${activeProfile?.user_name}! 🚀`,
+      "¡Casi llegamos a la meta! 🌟",
+      "¡Demuestra de lo que eres capaz! ✨"
     ];
     return phrases[Math.floor(Math.random() * phrases.length)];
   };
@@ -45,7 +47,8 @@ const PomodoroTimer: React.FC = () => {
   const getAiSuggestion = async () => {
     const apiKey = process.env.API_KEY;
     if (!apiKey) {
-      alert("Configura tu API_KEY en Vercel para activar las sugerencias inteligentes.");
+      setAiTip("Configura tu API_KEY para activar la IA.");
+      setTimeout(() => setAiTip(null), 5000);
       return;
     }
 
@@ -53,18 +56,19 @@ const PomodoroTimer: React.FC = () => {
     try {
       const pendingTasks = tasks.filter(t => t.status !== 'completed');
       const ai = new GoogleGenAI({ apiKey });
-      const prompt = `Tengo estas tareas pendientes: ${JSON.stringify(pendingTasks.map(t => ({ title: t.title, priority: t.priority, due: t.due_date })))}.
-      ¿Cuál debería priorizar ahora mismo? Responde SOLO con el título exacto de la tarea y una razón de 5 palabras.`;
+      // Fix: Properly close the template literal interpolation after JSON.stringify.
+      const prompt = `Tengo estas tareas: ${JSON.stringify(pendingTasks.map(t => ({ title: t.title, priority: t.priority })))}. Small tip (max 8 words) on what to focus on based on priority. Tone: Encouraging mentor. Language: Spanish.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
       });
 
-      const suggestion = response.text || "";
-      alert(`Sugerencia IA: ${suggestion}`);
+      setAiTip(response.text || "Prioriza lo más urgente hoy.");
+      setTimeout(() => setAiTip(null), 8000);
     } catch (error) {
       console.error(error);
+      setAiTip("Error al conectar con la IA.");
     } finally {
       setIsSuggesting(false);
     }
@@ -75,7 +79,7 @@ const PomodoroTimer: React.FC = () => {
       const interval = setInterval(() => {
         setMotivation(getMotivationalPhrase());
         setTimeout(() => setMotivation(null), 5000);
-      }, 60000); 
+      }, 90000); 
       return () => clearInterval(interval);
     }
   }, [isActive, mode]);
@@ -100,7 +104,8 @@ const PomodoroTimer: React.FC = () => {
 
   const handleStart = () => {
     if (mode === 'work' && !selectedItem) {
-      alert('Selecciona una tarea o material para empezar.');
+      setAiTip("Elige un tema antes de arrancar.");
+      setTimeout(() => setAiTip(null), 3000);
       return;
     }
     setIsActive(true);
@@ -156,91 +161,99 @@ const PomodoroTimer: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col items-center py-10 transition-all duration-700 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-900 justify-center p-8' : 'max-w-xl mx-auto'}`}>
+    <div className={`flex flex-col items-center py-10 transition-all duration-700 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 justify-center p-12' : 'max-w-xl mx-auto'}`}>
       
       {motivation && (
-        <div className="fixed top-20 animate-bounce bg-indigo-600 text-white px-8 py-4 rounded-3xl shadow-2xl z-[110] font-black border-2 border-white/20">
+        <div className="fixed top-24 animate-bounce bg-indigo-600 text-white px-10 py-5 rounded-[2.5rem] shadow-2xl z-[110] font-black border-4 border-white/20 text-xl">
           <Sparkles className="inline mr-2" /> {motivation}
         </div>
       )}
 
+      {aiTip && (
+        <div className={`fixed bottom-10 animate-in slide-in-from-bottom duration-500 px-8 py-4 rounded-3xl border shadow-2xl z-[120] font-black flex items-center gap-3 ${theme === 'dark' ? 'bg-indigo-900 border-indigo-500 text-white' : 'bg-white border-indigo-100 text-indigo-700'}`}>
+          <BrainCircuit className="text-indigo-500" />
+          {aiTip}
+        </div>
+      )}
+
       {isFullscreen && (
-        <button onClick={() => setIsFullscreen(false)} className="absolute top-10 right-10 text-white/40 hover:text-white flex items-center gap-2">
-          <Minimize2 /> <span className="text-xs font-black uppercase tracking-widest">Salir</span>
+        <button onClick={() => setIsFullscreen(false)} className="absolute top-12 right-12 text-white/30 hover:text-white flex items-center gap-3 transition-colors">
+          <Minimize2 size={32} /> <span className="text-sm font-black uppercase tracking-[0.3em]">Cerrar Foco</span>
         </button>
       )}
 
       {!isFullscreen && (
-        <div className={`flex gap-2 mb-12 p-2 rounded-3xl border shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`flex gap-3 mb-16 p-2 rounded-[2rem] border-2 shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
           {(['work', 'short_break', 'long_break'] as const).map(m => (
             <button
               key={m}
               onClick={() => { setMode(m); setIsActive(false); }}
-              className={`px-6 py-2 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                mode === m ? 'bg-indigo-600 text-white shadow-lg' : theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-50'
+              className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                mode === m ? 'bg-indigo-600 text-white shadow-xl scale-105' : theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              {m === 'work' ? 'Pomodoro' : m === 'short_break' ? 'D. Corto' : 'D. Largo'}
+              {m === 'work' ? 'Productividad' : m === 'short_break' ? 'D. Corto' : 'D. Largo'}
             </button>
           ))}
         </div>
       )}
 
-      <div className="relative mb-16">
-        <svg className={`${isFullscreen ? 'w-[32rem] h-[32rem]' : 'w-80 h-80'} -rotate-90 transition-all duration-1000`}>
-          <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="6" fill="transparent" className={theme === 'dark' || isFullscreen ? "text-slate-800" : "text-slate-100"} />
+      <div className="relative mb-20 group">
+        <div className={`absolute -inset-8 bg-indigo-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${isActive ? 'animate-pulse' : ''}`} />
+        <svg className={`${isFullscreen ? 'w-[38rem] h-[38rem]' : 'w-96 h-96'} -rotate-90 transition-all duration-1000 relative z-10`}>
+          <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="4" fill="transparent" className={theme === 'dark' || isFullscreen ? "text-slate-800" : "text-slate-100"} />
           <circle 
             cx="50%" cy="50%" r="45%" 
-            stroke="currentColor" strokeWidth="6" fill="transparent" 
-            className="text-indigo-500 transition-all duration-300"
+            stroke="currentColor" strokeWidth="8" fill="transparent" 
+            className="text-indigo-500 transition-all duration-300 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
             strokeDasharray="283%"
             strokeDashoffset={`${283 - (timeLeft / ((mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? 5 : 15) * 60)) * 283}%`}
             strokeLinecap="round"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`${isFullscreen ? 'text-[12rem]' : 'text-8xl'} font-black tracking-tighter leading-none ${theme === 'dark' || isFullscreen ? 'text-white' : 'text-slate-900'}`}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+          <span className={`${isFullscreen ? 'text-[14rem]' : 'text-9xl'} font-black tracking-tighter leading-none ${theme === 'dark' || isFullscreen ? 'text-white' : 'text-slate-950'}`}>
             {formatTime(timeLeft)}
           </span>
           {selectedItem && (
-            <div className="mt-8 text-center px-6">
-              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-1">Enfoque Actual</p>
-              <p className={`text-xl font-bold truncate max-w-[280px] ${theme === 'dark' || isFullscreen ? 'text-slate-300' : 'text-slate-600'}`}>{selectedItem.title}</p>
+            <div className="mt-12 text-center px-10 animate-in fade-in duration-500">
+              <p className="text-[12px] font-black uppercase tracking-[0.4em] text-indigo-500 mb-2">Meta de Enfoque</p>
+              <p className={`text-2xl font-black truncate max-w-[320px] ${theme === 'dark' || isFullscreen ? 'text-slate-200' : 'text-slate-900'}`}>{selectedItem.title}</p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-12">
-        <button onClick={() => { setIsActive(false); setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60); }} className={`p-6 rounded-full border transition-all ${theme === 'dark' || isFullscreen ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}>
-          <RotateCcw size={28} />
+      <div className="flex items-center gap-16 relative z-30">
+        <button onClick={() => { setIsActive(false); setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60); }} className={`p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 ${theme === 'dark' || isFullscreen ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-400'}`}>
+          <RotateCcw size={32} />
         </button>
         <button 
           onClick={isActive ? () => setIsActive(false) : handleStart}
-          className={`w-32 h-32 rounded-full flex items-center justify-center text-white shadow-2xl transition-all hover:scale-105 active:scale-95 ${isActive ? 'bg-amber-500' : 'bg-indigo-600'}`}
+          className={`w-40 h-40 rounded-full flex items-center justify-center text-white shadow-[0_30px_60px_-15px_rgba(79,70,229,0.5)] transition-all hover:scale-110 active:scale-95 ${isActive ? 'bg-amber-500' : 'bg-indigo-600'}`}
         >
-          {isActive ? <Pause size={64} fill="currentColor" /> : <Play size={64} fill="currentColor" className="ml-2" />}
+          {isActive ? <Pause size={80} fill="currentColor" /> : <Play size={80} fill="currentColor" className="ml-4" />}
         </button>
-        <button onClick={() => setIsFullscreen(!isFullscreen)} className={`p-6 rounded-full border transition-all ${theme === 'dark' || isFullscreen ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}>
-          {isFullscreen ? <Minimize2 size={28} /> : <Maximize2 size={28} />}
+        <button onClick={() => setIsFullscreen(!isFullscreen)} className={`p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 ${theme === 'dark' || isFullscreen ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-400'}`}>
+          {isFullscreen ? <Minimize2 size={32} /> : <Maximize2 size={32} />}
         </button>
       </div>
 
       {!isActive && !isFullscreen && (
-        <div className={`mt-12 w-full p-8 rounded-[3rem] border shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <div className="flex items-center justify-between mb-6">
-               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Asignar Sesión</h3>
+        <div className={`mt-16 w-full p-10 rounded-[3.5rem] border-2 shadow-2xl animate-in slide-in-from-bottom duration-700 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-50'}`}>
+            <div className="flex items-center justify-between mb-8">
+               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">¿Qué vamos a lograr?</h3>
                <button 
                 onClick={getAiSuggestion}
                 disabled={isSuggesting}
-                className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50"
+                className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
                >
-                 {isSuggesting ? <Loader2 className="animate-spin" size={14} /> : <BrainCircuit size={14} />}
-                 Sugerencia IA
+                 {isSuggesting ? <Loader2 className="animate-spin" size={16} /> : <BrainCircuit size={16} />}
+                 Asesor IA
                </button>
             </div>
             <select 
-              className={`w-full p-5 rounded-2xl font-bold outline-none border-none transition-all ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900'}`}
+              className={`w-full p-6 rounded-3xl font-black text-lg outline-none border-none transition-all shadow-inner ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-950'}`}
               onChange={(e) => {
                 const [type, id] = e.target.value.split(':');
                 if (!id) { setSelectedItem(null); return; }
@@ -248,31 +261,40 @@ const PomodoroTimer: React.FC = () => {
                 setSelectedItem({ type: type as any, id, title: (item as any).title || (item as any).name });
               }}
             >
-              <option value="">-- Elige qué trabajar hoy --</option>
-              {tasks.filter(t => t.status !== 'completed').map(t => <option key={t.id} value={`task:${t.id}`}>[Tarea] {t.title}</option>)}
-              {examTopics.filter(et => et.status !== 'completed').map(et => <option key={et.id} value={`topic:${et.id}`}>[Tema] {et.title}</option>)}
-              {materials.filter(m => m.status !== 'completed').map(m => <option key={m.id} value={`material:${m.id}`}>[Material] {m.title}</option>)}
+              <option value="">-- Elige un desafío para hoy --</option>
+              <optgroup label="Tareas Críticas">
+                {tasks.filter(t => t.status !== 'completed').map(t => <option key={t.id} value={`task:${t.id}`}>🔥 {t.title}</option>)}
+              </optgroup>
+              <optgroup label="Materiales de Estudio">
+                {materials.filter(m => m.status !== 'completed').map(m => {
+                  const sub = subjects.find(s => s.id === m.subject_id);
+                  return <option key={m.id} value={`material:${m.id}`}>📚 {m.title} ({sub?.name || 'Gral'})</option>
+                })}
+              </optgroup>
+              <optgroup label="Temas de Examen">
+                {examTopics.filter(et => et.status !== 'completed').map(et => <option key={et.id} value={`topic:${et.id}`}>🎯 {et.title}</option>)}
+              </optgroup>
             </select>
         </div>
       )}
 
       {showCompletionModal && (
-        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-6 z-[200]">
-          <div className={`w-full max-w-md rounded-[3.5rem] p-12 shadow-2xl animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800' : 'bg-white'}`}>
-            <div className="w-24 h-24 bg-indigo-600 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl">
-              <Trophy size={48} />
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-3xl flex items-center justify-center p-8 z-[300]">
+          <div className={`w-full max-w-xl rounded-[4rem] p-16 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] animate-in zoom-in duration-500 ${theme === 'dark' ? 'bg-slate-900 border border-white/5' : 'bg-white'}`}>
+            <div className="w-32 h-32 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-2xl rotate-3">
+              <Trophy size={64} />
             </div>
-            <h2 className={`text-4xl font-black text-center mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>¡Sesión Lograda!</h2>
-            <p className="text-center text-slate-400 font-medium mb-10">¿Cómo calificarías tu nivel de enfoque esta vez?</p>
-            <div className="flex justify-center gap-3 mb-12">
+            <h2 className={`text-5xl font-black text-center mb-4 tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>¡Misión Cumplida!</h2>
+            <p className="text-center text-slate-500 font-bold mb-12 text-lg">Tu cerebro te agradece el enfoque. ¿Cómo fue la calidad?</p>
+            <div className="flex justify-center gap-4 mb-16">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} onClick={() => setRating(s)} className={`transition-all hover:scale-125 ${rating >= s ? 'text-yellow-400' : 'text-slate-200'}`}>
-                  <Star size={44} fill={rating >= s ? "currentColor" : "none"} />
+                  <Star size={54} fill={rating >= s ? "currentColor" : "none"} strokeWidth={3} />
                 </button>
               ))}
             </div>
-            <button onClick={saveSession} className="w-full bg-indigo-600 text-white font-black py-6 rounded-3xl shadow-2xl hover:bg-indigo-700 transition-all uppercase tracking-widest text-sm">
-              Guardar Log y Continuar
+            <button onClick={saveSession} className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl hover:bg-indigo-700 transition-all uppercase tracking-[0.2em] text-lg active:scale-95">
+              Registrar Esfuerzo
             </button>
           </div>
         </div>

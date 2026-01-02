@@ -30,7 +30,6 @@ export interface Subject {
   color: string;
   professor_name?: string;
   classroom?: string;
-  // Added properties used in SubjectManager
   start_date?: string;
   end_date?: string;
   code?: string;
@@ -67,7 +66,6 @@ export interface Exam {
   name: string;
   exam_date: string;
   status: 'upcoming' | 'completed' | 'missed';
-  // Added properties used in ExamManager
   duration_minutes: number;
   weight_percentage: number;
   alert_days_before: number;
@@ -86,6 +84,7 @@ export type MaterialType = 'libro' | 'articulo' | 'video' | 'curso' | 'documento
 export interface Material {
   id: string;
   profile_id: string;
+  subject_id: string; // Vínculo obligatorio
   title: string;
   type: MaterialType;
   total_units: number;
@@ -110,16 +109,13 @@ export interface PomodoroSession {
   material_id?: string;
   session_type: 'work' | 'short_break' | 'long_break';
   planned_duration_minutes: number;
-  // Changed property name to duration_seconds as expected by views
   duration_seconds: number;
-  // Added status to track completed sessions
   status: 'completed' | 'interrupted';
   focus_rating?: number;
   started_at: string;
   completed_at: string;
 }
 
-// Added Alert interface for Dashboard
 export interface Alert {
   id: string;
   profile_id: string;
