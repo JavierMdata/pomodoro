@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -7,10 +7,15 @@ import {
 } from 'recharts';
 import { format, startOfDay, eachDayOfInterval, subDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock, Zap, Calendar, Star, TrendingUp } from 'lucide-react';
+import { Clock, Zap, Calendar, Star, TrendingUp, Sparkles, BrainCircuit, Loader2 } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 const StatisticsView: React.FC = () => {
-  const { theme, activeProfileId, sessions, tasks, materials } = useAppStore();
+  const { theme, activeProfileId, profiles, sessions, tasks, materials } = useAppStore();
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const activeProfile = profiles.find(p => p.id === activeProfileId);
   
   const profileSessions = useMemo(() => 
     sessions.filter(s => s.profile_id === activeProfileId && s.status === 'completed'),
@@ -29,6 +34,55 @@ const StatisticsView: React.FC = () => {
       avgFocus: avgFocus.toFixed(1)
     };
   }, [profileSessions]);
+
+  const generateAiInsight = async () => {
+    const apiKey = process.env.API_KEY;
+
+    if (!apiKey) {
+      setAiInsight("Por favor, configura la variable 'API_KEY' en Vercel para activar el análisis inteligente.");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      
+      // Construimos un resumen de las tareas más trabajadas para darle contexto a la IA
+      const topItems = Object.entries(
+        profileSessions.reduce((acc: Record<string, number>, s) => {
+          const name = s.task_id ? tasks.find(t => t.id === s.task_id)?.title : 
+                       s.material_id ? materials.find(m => m.id === s.material_id)?.title : 'General';
+          if (name) acc[name] = (acc[name] || 0) + 1;
+          return acc;
+        }, {})
+      ).sort((a, b) => b[1] - a[1]).slice(0, 2).map(i => i[0]).join(", ");
+
+      const prompt = `Actúa como un mentor de productividad de élite. Analiza este perfil académico:
+      - Usuario: ${activeProfile?.user_name} (${activeProfile?.type})
+      - Género: ${activeProfile?.gender}
+      - Horas trabajadas: ${stats.totalHours}h en ${stats.totalPomodoros} sesiones.
+      - Enfoque promedio: ${stats.avgFocus}/5.
+      - Temas principales: ${topItems || "Varios"}.
+
+      Instrucciones:
+      1. Da un diagnóstico de su estado actual.
+      2. Proporciona un consejo accionable basado en sus datos.
+      3. Mantén un tono motivador pero firme, adecuado a su género (${activeProfile?.gender}).
+      Máximo 60 palabras.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+
+      setAiInsight(response.text || "Tu rendimiento es sólido, sigue así.");
+    } catch (error) {
+      console.error("AI Error:", error);
+      setAiInsight("Error al procesar el análisis. Verifica que tu API_KEY sea válida y tengas cuota disponible.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const dailyData = useMemo(() => {
     const last7Days = eachDayOfInterval({
@@ -69,15 +123,45 @@ const StatisticsView: React.FC = () => {
 
   return (
     <div className={`max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg">
-          <TrendingUp size={32} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg">
+            <TrendingUp size={32} />
+          </div>
+          <div>
+            <h1 className="text-4xl font-black tracking-tight">Estadísticas de Rendimiento</h1>
+            <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-medium`}>Visualiza tu evolución y optimiza tus sesiones.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-4xl font-black tracking-tight">Estadísticas de Rendimiento</h1>
-          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-medium`}>Visualiza tu evolución y optimiza tus sesiones.</p>
-        </div>
+        
+        <button 
+          onClick={generateAiInsight}
+          disabled={isGenerating}
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-3xl font-black shadow-xl hover:shadow-indigo-500/20 transition-all hover:-translate-y-1 disabled:opacity-50"
+        >
+          {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <BrainCircuit size={20} />}
+          Análisis Smart IA
+        </button>
       </div>
+
+      {aiInsight && (
+        <div className={`p-8 rounded-[2.5rem] border-2 border-dashed border-indigo-500/30 animate-in slide-in-from-top duration-500 relative overflow-hidden ${theme === 'dark' ? 'bg-indigo-500/5' : 'bg-indigo-50'}`}>
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Sparkles size={100} />
+          </div>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-indigo-600 rounded-2xl text-white">
+              <Sparkles size={24} />
+            </div>
+            <div>
+              <h4 className="font-black text-indigo-600 uppercase tracking-widest text-xs mb-2">Consejo de tu Coach IA</h4>
+              <p className={`text-lg font-bold leading-relaxed ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+                "{aiInsight}"
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -98,7 +182,6 @@ const StatisticsView: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Bar Chart */}
         <div className={`p-10 rounded-[3rem] border ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
           <h3 className="text-xl font-black mb-8">Horas de Estudio (Últimos 7 días)</h3>
           <div className="h-[300px] w-full relative">
@@ -133,7 +216,6 @@ const StatisticsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Pie Chart */}
         <div className={`p-10 rounded-[3rem] border ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
           <h3 className="text-xl font-black mb-8">Distribución por Ítem</h3>
           <div className="h-[300px] w-full flex flex-col sm:flex-row items-center justify-center gap-8">
