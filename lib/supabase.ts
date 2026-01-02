@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // En Vercel/Vite, las variables de entorno se acceden vía process.env
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Validamos que existan antes de crear el cliente para evitar errores fatales en el navegador
 if (!supabaseUrl || !supabaseAnonKey) {
