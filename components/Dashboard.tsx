@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import { 
-  Bell, Calendar, Clock, AlertCircle, ChevronRight, 
-  CheckCircle2, BookOpen, GraduationCap, Sparkles
+import {
+  Bell, Calendar, Clock, AlertCircle, ChevronRight,
+  CheckCircle2, BookOpen, GraduationCap, Sparkles, Trophy
 } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -42,26 +42,50 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className={`max-w-6xl mx-auto space-y-10 pb-12 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="animate-in slide-in-from-left duration-700">
-          <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="text-indigo-500" size={24} />
-            <span className="text-xs font-black uppercase tracking-widest text-indigo-500">Panel de Control</span>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="relative">
+              <Sparkles className="text-indigo-500 animate-pulse" size={28} />
+              <div className="absolute inset-0 blur-md bg-indigo-500/30 rounded-full" />
+            </div>
+            <span className="text-xs font-black uppercase tracking-[0.3em] bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+              Panel de Control
+            </span>
           </div>
-          <h1 className="text-5xl font-black tracking-tight leading-none mb-4">Hola, {activeProfile.user_name}</h1>
-          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-medium text-lg`}>
+          <h1 className="text-6xl font-black tracking-tight leading-none mb-4 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+            Hola, {activeProfile.user_name}
+          </h1>
+          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-bold text-lg flex items-center gap-2`}>
+            <Calendar size={18} className="text-indigo-500" />
             {format(today, "EEEE d 'de' MMMM", { locale: es })}
           </p>
         </div>
-        
-        <div className={`flex items-center gap-6 p-6 rounded-[2.5rem] border shadow-sm animate-in slide-in-from-right duration-700 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-          <div className={`text-center pr-6 border-r ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
-            <p className="text-3xl font-black text-indigo-500">{statsToday.length}</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Pomodoros</p>
+
+        <div className={`relative flex items-center gap-8 p-8 rounded-[2.5rem] border-2 shadow-2xl animate-in slide-in-from-right duration-700 overflow-hidden card-hover-effect ${theme === 'dark' ? 'bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border-slate-700' : 'bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/20 border-slate-200'}`}>
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-50" />
+
+          <div className={`relative text-center pr-8 border-r-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-100'}`}>
+            <div className="relative inline-block">
+              <p className="text-4xl font-black bg-gradient-to-br from-indigo-500 to-purple-600 bg-clip-text text-transparent">
+                {statsToday.length}
+              </p>
+              <div className="absolute -inset-2 bg-indigo-500/10 rounded-full blur-xl" />
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-2">Pomodoros</p>
           </div>
-          <div className="text-center">
-            <p className={`text-3xl font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>{totalHoursToday.toFixed(1)}h</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Horas Hoy</p>
+
+          <div className="relative text-center">
+            <p className={`text-4xl font-black ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
+              {totalHoursToday.toFixed(1)}h
+            </p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-2">Horas Hoy</p>
+          </div>
+
+          {/* Glow effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 blur-xl" />
           </div>
         </div>
       </header>
@@ -170,23 +194,61 @@ const Dashboard: React.FC = () => {
             </div>
           </section>
 
-          <section className="bg-indigo-600 p-10 rounded-[3.5rem] text-white shadow-2xl shadow-indigo-600/30 overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                <BookOpen size={160} />
+          <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-10 rounded-[3.5rem] text-white shadow-2xl shadow-indigo-600/40 overflow-hidden group card-hover-effect">
+            {/* Animated background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/50 via-transparent to-pink-600/30 opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
+
+            {/* Floating particles effect */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full blur-2xl float-animation" style={{ animationDelay: '0s' }} />
+              <div className="absolute top-1/2 right-10 w-32 h-32 bg-purple-300/10 rounded-full blur-2xl float-animation" style={{ animationDelay: '2s' }} />
+              <div className="absolute bottom-10 left-1/3 w-24 h-24 bg-pink-300/10 rounded-full blur-2xl float-animation" style={{ animationDelay: '4s' }} />
             </div>
-            <h3 className="text-xl font-black mb-6 uppercase tracking-widest text-indigo-200">Meta Diaria</h3>
-            <div className="mb-8">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-6xl font-black">{statsToday.length}</span>
-                  <span className="text-2xl font-bold opacity-50">/ 8 poms</span>
+
+            {/* Icon decoration */}
+            <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-all duration-700">
+              <BookOpen size={180} />
+            </div>
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <Trophy className="text-yellow-300" size={28} />
+                <h3 className="text-xl font-black uppercase tracking-[0.3em] text-white/90">Meta Diaria</h3>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-baseline gap-3 mb-4">
+                  <span className="text-7xl font-black tracking-tight">{statsToday.length}</span>
+                  <span className="text-3xl font-bold opacity-60">/ 8 poms</span>
                 </div>
-                <p className="text-sm text-indigo-100 font-medium mt-3 leading-relaxed">
-                  Has completado el {Math.round((statsToday.length / 8) * 100)}% de tu objetivo de enfoque de hoy.
+                <p className="text-sm text-indigo-100 font-bold mt-3 leading-relaxed">
+                  Has completado el <span className="text-xl font-black text-white">{Math.round((statsToday.length / 8) * 100)}%</span> de tu objetivo de enfoque de hoy.
                 </p>
+              </div>
+
+              {/* Enhanced progress bar */}
+              <div className="relative w-full h-5 bg-white/10 rounded-full overflow-hidden backdrop-blur-md border border-white/20 shadow-inner">
+                <div
+                  className="h-full bg-gradient-to-r from-white via-yellow-200 to-white shadow-[0_0_20px_rgba(255,255,255,0.6)] transition-all duration-1000 relative overflow-hidden"
+                  style={{ width: `${Math.min((statsToday.length / 8) * 100, 100)}%` }}
+                >
+                  {/* Shimmer effect on progress bar */}
+                  <div className="absolute inset-0 shimmer" />
+                </div>
+
+                {/* Percentage label */}
+                {statsToday.length > 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs font-black text-white drop-shadow-lg">
+                      {Math.round((statsToday.length / 8) * 100)}%
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="w-full h-4 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-                <div className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)] transition-all duration-1000" style={{ width: `${Math.min((statsToday.length / 8) * 100, 100)}%` }} />
-            </div>
+
+            {/* Bottom glow effect */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-purple-900/50 to-transparent opacity-50" />
           </section>
         </div>
       </div>
