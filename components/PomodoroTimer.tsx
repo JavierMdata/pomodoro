@@ -11,11 +11,38 @@ import { GoogleGenAI } from "@google/genai";
 const PomodoroTimer: React.FC = () => {
   const {
     theme, activeProfileId, profiles, settings, tasks,
-    subjects, examTopics, materials, addSession
+    subjects, examTopics, materials, exams, addSession
   } = useAppStore();
 
   const activeProfile = profiles.find(p => p.id === activeProfileId);
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
+
+  // Filtrar tareas, materiales y temas por perfil activo
+  const filteredTasks = useMemo(() => {
+    if (!activeProfileId) return [];
+    return tasks.filter(t => {
+      const taskSubject = subjects.find(s => s.id === t.subject_id);
+      return taskSubject?.profile_id === activeProfileId;
+    });
+  }, [tasks, subjects, activeProfileId]);
+
+  const filteredMaterials = useMemo(() => {
+    if (!activeProfileId) return [];
+    return materials.filter(m => {
+      const materialSubject = subjects.find(s => s.id === m.subject_id);
+      return materialSubject?.profile_id === activeProfileId;
+    });
+  }, [materials, subjects, activeProfileId]);
+
+  const filteredExamTopics = useMemo(() => {
+    if (!activeProfileId) return [];
+    return examTopics.filter(et => {
+      const exam = exams.find(e => e.id === et.exam_id);
+      if (!exam) return false;
+      const examSubject = subjects.find(s => s.id === exam.subject_id);
+      return examSubject?.profile_id === activeProfileId;
+    });
+  }, [examTopics, exams, subjects, activeProfileId]);
 
   const [mode, setMode] = useState<'work' | 'short_break' | 'long_break'>('work');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -108,7 +135,7 @@ const PomodoroTimer: React.FC = () => {
 
     setIsSuggesting(true);
     try {
-      const pendingTasks = tasks.filter(t => t.status !== 'completed');
+      const pendingTasks = filteredTasks.filter(t => t.status !== 'completed');
       const ai = new GoogleGenAI({ apiKey });
       // Fix: Properly close the template literal interpolation after JSON.stringify.
       const prompt = `Tengo estas tareas: ${JSON.stringify(pendingTasks.map(t => ({ title: t.title, priority: t.priority })))}. Small tip (max 8 words) on what to focus on based on priority. Tone: Encouraging mentor. Language: Spanish.`;
@@ -407,27 +434,27 @@ const PomodoroTimer: React.FC = () => {
                  Asesor IA
                </button>
             </div>
-            <select 
+            <select
               className={`w-full p-6 rounded-3xl font-black text-lg outline-none border-none transition-all shadow-inner ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-950'}`}
               onChange={(e) => {
                 const [type, id] = e.target.value.split(':');
                 if (!id) { setSelectedItem(null); return; }
-                const item = [...tasks, ...materials, ...examTopics].find(i => i.id === id);
+                const item = [...filteredTasks, ...filteredMaterials, ...filteredExamTopics].find(i => i.id === id);
                 setSelectedItem({ type: type as any, id, title: (item as any).title || (item as any).name });
               }}
             >
               <option value="">-- Elige un desafío para hoy --</option>
               <optgroup label="Tareas Críticas">
-                {tasks.filter(t => t.status !== 'completed').map(t => <option key={t.id} value={`task:${t.id}`}>🔥 {t.title}</option>)}
+                {filteredTasks.filter(t => t.status !== 'completed').map(t => <option key={t.id} value={`task:${t.id}`}>🔥 {t.title}</option>)}
               </optgroup>
               <optgroup label="Materiales de Estudio">
-                {materials.filter(m => m.status !== 'completed').map(m => {
+                {filteredMaterials.filter(m => m.status !== 'completed').map(m => {
                   const sub = subjects.find(s => s.id === m.subject_id);
                   return <option key={m.id} value={`material:${m.id}`}>📚 {m.title} ({sub?.name || 'Gral'})</option>
                 })}
               </optgroup>
               <optgroup label="Temas de Examen">
-                {examTopics.filter(et => et.status !== 'completed').map(et => <option key={et.id} value={`topic:${et.id}`}>🎯 {et.title}</option>)}
+                {filteredExamTopics.filter(et => et.status !== 'completed').map(et => <option key={et.id} value={`topic:${et.id}`}>🎯 {et.title}</option>)}
               </optgroup>
             </select>
         </div>
