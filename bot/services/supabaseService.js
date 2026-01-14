@@ -50,6 +50,25 @@ export class SupabaseService {
     return data || [];
   }
 
+  async updateProfileName(profileId, newName) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        user_name: newName,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', profileId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating profile name:', error);
+      return null;
+    }
+
+    return data;
+  }
+
   // ========== MATERIAS ==========
 
   async getSubjectsByProfile(profileId) {

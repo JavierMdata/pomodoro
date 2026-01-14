@@ -1,0 +1,269 @@
+═══════════════════════════════════════════════
+   📱 POMOSMART ASSISTANT - LISTA DE COMANDOS
+═══════════════════════════════════════════════
+
+🎯 PROYECTO: PomoSmart Productivity
+🤖 BOT: PomoSmart Assistant
+📦 SISTEMA: Gestión de productividad con Pomodoro
+
+═══════════════════════════════════════════════
+   🔐 AUTENTICACIÓN Y CONFIGURACIÓN
+═══════════════════════════════════════════════
+
+/start
+   → Iniciar el bot y ver bienvenida
+   → Si ya estás vinculado, muestra resumen
+
+/vincular <email>
+   → Vincular tu Telegram con tu perfil de PomoSmart
+   → Ejemplo: /vincular leo@universidad.com
+
+/perfil
+   → Ver información de tu perfil
+   → Estadísticas: materias, tareas, tiempo estudiado
+   → Perfil activo y configuración
+
+═══════════════════════════════════════════════
+   📝 GESTIÓN DE TAREAS Y MATERIAS
+═══════════════════════════════════════════════
+
+/tareas
+   → Ver todas tus tareas pendientes
+   → Agrupadas por prioridad (Alta, Media, Baja)
+   → Muestra fechas de entrega
+
+/examenes
+   → Ver exámenes próximos
+   → Ordenados por fecha
+   → Incluye hora y ubicación
+
+/materiales
+   → Ver materiales de estudio guardados
+   → Videos, documentos, apuntes, enlaces
+   → Estado de revisión (pendiente, en progreso, completado)
+
+═══════════════════════════════════════════════
+   ⏱️ CONTROL DE POMODORO
+═══════════════════════════════════════════════
+
+/pomo
+   → Iniciar una sesión Pomodoro
+   → Selecciona tarea/material/tema
+   → Temporizador en vivo con actualizaciones
+   → Sincronización automática con la web
+
+/parar
+   → Detener la sesión Pomodoro actual
+   → Guarda el progreso parcial
+   → Registra tiempo trabajado
+
+/stats
+   → Ver estadísticas de la semana
+   → Total de sesiones completadas
+   → Tiempo total de estudio
+   → Concentración promedio
+   → Sesiones de hoy
+
+═══════════════════════════════════════════════
+   💬 LENGUAJE NATURAL (IA)
+═══════════════════════════════════════════════
+
+El bot entiende mensajes en español natural:
+
+CREAR TAREAS:
+   "Agregar tarea de Física para mañana"
+   "Tengo que hacer ejercicios de Cálculo urgente"
+   "Pendiente: leer capítulo 5 de Historia"
+
+AGENDAR EXÁMENES:
+   "Tengo examen de Matemáticas el martes a las 10"
+   "Examen de Química el 15/03"
+   "Prueba de Inglés mañana en el Aula 302"
+
+GUARDAR MATERIALES:
+   "Guarda este enlace: https://ejemplo.com/apuntes"
+   "Material de Biología: Ciclo de Krebs"
+   Envía un enlace directamente (auto-detecta)
+
+INICIAR POMODORO:
+   "Vamos a estudiar"
+   "Quiero concentrarme"
+   "Empecemos con un Pomodoro"
+
+CONSULTAS:
+   "¿Qué tengo pendiente?"
+   "¿Cuándo es mi próximo examen?"
+   "¿Cómo voy esta semana?"
+   "Muéstrame mis estadísticas"
+
+═══════════════════════════════════════════════
+   ℹ️ AYUDA Y SOPORTE
+═══════════════════════════════════════════════
+
+/ayuda
+   → Mostrar guía completa de comandos
+   → Ejemplos de uso
+   → Tips y trucos
+
+═══════════════════════════════════════════════
+   🔔 NOTIFICACIONES AUTOMÁTICAS
+═══════════════════════════════════════════════
+
+El bot te enviará mensajes proactivos:
+
+🌅 RECORDATORIO MATUTINO (9:00 AM)
+   → Tareas del día
+   → Exámenes próximos
+   → Sugerencia de por dónde empezar
+
+☀️ SUGERENCIA DE TARDE (2:00 PM)
+   → Solo si llevas pocas sesiones hoy
+   → Qué estudiar ahora (IA)
+   → Motivación personalizada
+
+🌙 ALERTA DE EXÁMENES (8:00 PM)
+   → Si tienes examen mañana
+   → Recordatorio con hora y lugar
+   → Última oportunidad de preparación
+
+💪 MOTIVACIÓN ALEATORIA (10 AM, 2 PM, 6 PM)
+   → Mensajes motivacionales con IA
+   → Solo para usuarios activos
+   → Contextualizados a tu progreso
+
+═══════════════════════════════════════════════
+   🎨 PERSONALIZACIÓN POR GÉNERO
+═══════════════════════════════════════════════
+
+El bot adapta su personalidad según tu perfil:
+
+MASCULINO:
+   "¡Qué onda rey! 👑"
+   "¡Vamos carajo, una tarea menos! 💪"
+   "¡Enfoque láser, papá! 🚀"
+
+FEMENINO:
+   "¡Hola reina! 👑"
+   "¡Excelente trabajo! 💪"
+   "¡Eres imparable! 🌟"
+
+OTRO/NEUTRAL:
+   "¡Hola campeón! 👋"
+   "¡Genial, una tarea menos! 🎉"
+   "¡Sigue así! 💪"
+
+═══════════════════════════════════════════════
+   🔗 INTEGRACIÓN CON POMOSMART WEB
+═══════════════════════════════════════════════
+
+TODO lo que hagas en el bot se refleja en tiempo real:
+
+✅ Tareas creadas → Aparecen en Dashboard
+✅ Exámenes agendados → Calendario actualizado
+✅ Materiales guardados → Biblioteca sincronizada
+✅ Sesiones Pomodoro → Estadísticas en vivo
+✅ Progreso → Gráficas actualizadas
+
+Y viceversa: cambios en la web se ven en el bot
+
+═══════════════════════════════════════════════
+   💡 TIPS RÁPIDOS
+═══════════════════════════════════════════════
+
+• No necesitas escribir comandos, habla natural
+• El bot entiende fechas: hoy, mañana, lunes, 15/03
+• Prioridades automáticas: urgente → alta, importante → alta
+• Envía enlaces directamente para guardarlos
+• Las notificaciones se adaptan a tu actividad
+• Funciona 24/7, siempre disponible
+
+═══════════════════════════════════════════════
+   🚀 PRIMEROS PASOS
+═══════════════════════════════════════════════
+
+1. Escribe /start
+2. Vincula tu cuenta con /vincular TU_EMAIL
+3. ¡Listo! Empieza a chatear naturalmente
+
+Ejemplo de primera conversación:
+   Tú: /start
+   Bot: ¡Hola rey! Bienvenido a PomoSmart...
+   Tú: /vincular leo@universidad.com
+   Bot: ✅ ¡Vinculado como Leo!
+   Tú: ¿Qué tengo pendiente?
+   Bot: 📝 Tienes 3 tareas...
+
+═══════════════════════════════════════════════
+   📚 MATERIAS SOPORTADAS
+═══════════════════════════════════════════════
+
+El bot trabaja con TODAS las materias que tengas
+configuradas en tu perfil de PomoSmart:
+
+• Matemáticas, Física, Química
+• Historia, Literatura, Filosofía
+• Programación, Bases de Datos, Redes
+• Contabilidad, Derecho, Economía
+• Y cualquier otra que agregues
+
+═══════════════════════════════════════════════
+   🔧 VARIABLES DE ENTORNO (DEPLOY)
+═══════════════════════════════════════════════
+
+Para desplegar el bot:
+
+VARIABLES OBLIGATORIAS:
+   TELEGRAM_BOT_TOKEN    → Token de @BotFather
+   SUPABASE_URL          → URL del proyecto Supabase
+   SUPABASE_ANON_KEY     → Public key de Supabase
+
+VARIABLES OPCIONALES:
+   GEMINI_API_KEY        → Para IA avanzada
+
+MÚLTIPLES BOTS (opcional):
+   CHATBOT_1_TOKEN       → Token bot Universidad
+   CHATBOT_1_NAME        → "Universidad Bot"
+   CHATBOT_1_PROFILE     → universidad
+
+   CHATBOT_2_TOKEN       → Token bot Trabajo
+   CHATBOT_2_NAME        → "Trabajo Bot"
+   CHATBOT_2_PROFILE     → trabajo
+
+Ver VERCEL.md para instrucciones completas
+
+═══════════════════════════════════════════════
+   📊 ESTADÍSTICAS QUE REGISTRA
+═══════════════════════════════════════════════
+
+• Sesiones Pomodoro completadas
+• Tiempo total de estudio (minutos)
+• Concentración promedio (1-5 estrellas)
+• Sesiones por día
+• Racha de días consecutivos
+• Tareas completadas
+• Materiales revisados
+• Progreso por materia
+
+═══════════════════════════════════════════════
+   ✨ FUNCIONES INTELIGENTES (CON GEMINI)
+═══════════════════════════════════════════════
+
+Si configuras GEMINI_API_KEY:
+
+✅ Parseo avanzado de lenguaje natural
+✅ Sugerencias personalizadas de qué estudiar
+✅ Mensajes motivacionales únicos
+✅ Detección automática de materias y fechas
+✅ Resumen de contenido de enlaces
+✅ Contexto de conversación
+
+Sin Gemini:
+   Funciona con parsers básicos (menos preciso)
+
+═══════════════════════════════════════════════
+
+🤖 Hecho con ❤️ para PomoSmart Productivity
+📱 Bot siempre disponible 24/7
+💬 Soporte: Contacta al administrador
+
+═══════════════════════════════════════════════

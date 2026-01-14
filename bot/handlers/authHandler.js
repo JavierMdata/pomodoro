@@ -13,31 +13,16 @@ export class AuthHandler {
     const profile = await supabaseService.getProfileByTelegramId(chatId);
 
     if (profile) {
-      const gender = profile.gender || 'otro';
-      const greeting = config.MOTIVATION[gender].greeting;
-
-      await bot.sendMessage(
-        chatId,
-        `${greeting}\n\n¡Ya estás conectado como *${profile.user_name}*! 🎉\n\n` +
-        `Puedo ayudarte con:\n` +
-        `📝 Gestionar tus tareas\n` +
-        `📚 Organizar materiales de estudio\n` +
-        `🎯 Recordarte exámenes\n` +
-        `⏱️ Iniciar sesiones Pomodoro\n` +
-        `📊 Ver tus estadísticas\n\n` +
-        `Escribe /ayuda para ver todos los comandos.\n` +
-        `O simplemente chatea conmigo, ¡entiendo lenguaje natural! 😊`,
-        { parse_mode: 'Markdown' }
-      );
+      // Usuario ya vinculado - saludo personalizado
+      await this.greetUser(bot, chatId, profile);
     } else {
+      // Usuario nuevo - pedir vinculación
       await bot.sendMessage(
         chatId,
-        `👋 ¡Hola! Soy tu asistente de PomoSmart.\n\n` +
-        `Para empezar, necesito vincular tu Telegram con tu perfil.\n\n` +
-        `*Opción 1:* Envía tu código de vinculación\n` +
-        `*Opción 2:* Usa /vincular <código>\n\n` +
-        `¿Dónde encuentro mi código?\n` +
-        `👉 Ve a tu perfil en PomoSmart Web y copia el código de vinculación.`,
+        `👋 ¡Hola! Soy *${config.BOT_NAME}*\n\n` +
+        `Para empezar, vincúlate con tu perfil de PomoSmart:\n\n` +
+        `/vincular TU_EMAIL\n\n` +
+        `_Ejemplo: /vincular leo@universidad.com_`,
         { parse_mode: 'Markdown' }
       );
     }
@@ -101,23 +86,8 @@ export class AuthHandler {
     );
 
     if (linked) {
-      const gender = profile.gender || 'otro';
-      const greeting = config.MOTIVATION[gender].greeting;
-
-      await bot.sendMessage(
-        chatId,
-        `${greeting}\n\n` +
-        `✅ ¡Vinculación exitosa!\n\n` +
-        `Ahora estás conectado como *${profile.user_name}*.\n\n` +
-        `Ya puedes:\n` +
-        `💬 Chatear conmigo en lenguaje natural\n` +
-        `📝 Crear tareas: "Agregar tarea de Física para mañana"\n` +
-        `🎯 Agendar exámenes: "Tengo examen de Cálculo el viernes"\n` +
-        `⏱️ Iniciar Pomodoros: "Vamos a estudiar"\n` +
-        `📊 Ver stats: /stats\n\n` +
-        `Escribe /ayuda para ver más opciones.`,
-        { parse_mode: 'Markdown' }
-      );
+      // Vinculación exitosa - saludar al usuario
+      await this.greetUser(bot, chatId, linked);
     } else {
       await bot.sendMessage(
         chatId,
@@ -133,49 +103,85 @@ export class AuthHandler {
   static async handleHelp(bot, msg) {
     const chatId = msg.chat.id;
 
-    const helpText = `🤖 *Guía de PomoSmart Bot*\n\n` +
-      `*Comandos básicos:*\n` +
-      `/start - Iniciar el bot\n` +
-      `/vincular <código> - Vincular tu perfil\n` +
-      `/ayuda - Mostrar esta ayuda\n` +
-      `/perfil - Ver tu perfil\n\n` +
-      `*Gestión de tareas:*\n` +
-      `/tareas - Ver tareas pendientes\n` +
-      `/examenes - Ver exámenes próximos\n` +
-      `/materiales - Ver materiales de estudio\n\n` +
-      `*Pomodoro:*\n` +
-      `/pomo - Iniciar sesión Pomodoro\n` +
-      `/parar - Detener Pomodoro actual\n` +
+    const helpText = `🤖 *${config.BOT_NAME} - Guía*\n\n` +
+      `*🔐 Configuración:*\n` +
+      `/start - Iniciar\n` +
+      `/vincular <email> - Vincular perfil\n` +
+      `/perfil - Ver info\n` +
+      `/cambiar_nombre <nombre> - Cambiar tu nombre\n\n` +
+      `*📝 Gestión:*\n` +
+      `/tareas - Ver pendientes\n` +
+      `/examenes - Ver exámenes\n` +
+      `/materiales - Ver materiales\n\n` +
+      `*⏱️ Pomodoro:*\n` +
+      `/pomo - Iniciar sesión\n` +
+      `/parar - Detener sesión\n` +
       `/stats - Ver estadísticas\n\n` +
-      `*💡 Lenguaje Natural:*\n` +
-      `También puedo entender mensajes como:\n` +
-      `• "Agregar tarea de Matemáticas para mañana"\n` +
-      `• "Tengo examen de Física el martes a las 10"\n` +
+      `*💬 Lenguaje Natural:*\n` +
+      `Habla conmigo naturalmente:\n` +
+      `• "Agregar tarea de Física para mañana"\n` +
+      `• "Tengo examen de Cálculo el martes a las 10"\n` +
       `• "Vamos a estudiar"\n` +
       `• "¿Qué tengo pendiente?"\n` +
-      `• "Guarda este enlace: [url]"\n\n` +
-      `¡Solo escríbeme naturalmente! 😊`;
+      `• Envía enlaces para guardarlos\n\n` +
+      `💡 Entiendo fechas, prioridades y materias automáticamente.`;
 
     await bot.sendMessage(chatId, helpText, { parse_mode: 'Markdown' });
   }
 
   /**
    * Verifica si el usuario está autenticado
+   * Si no lo está, le da la bienvenida automáticamente
    */
-  static async requireAuth(bot, msg) {
+  static async requireAuth(bot, msg, autoGreet = true) {
     const chatId = msg.chat.id;
     const profile = await supabaseService.getProfileByTelegramId(chatId);
 
-    if (!profile) {
+    if (!profile && autoGreet) {
+      // Saludo automático para usuarios nuevos
+      await bot.sendMessage(
+        chatId,
+        `👋 ¡Hola! Soy *${config.BOT_NAME}*\n\n` +
+        `Veo que es tu primera vez aquí. Para comenzar, necesito vincular tu Telegram con tu perfil de PomoSmart.\n\n` +
+        `Envíame tu email o usa:\n` +
+        `/vincular TU_EMAIL\n\n` +
+        `_Ejemplo: /vincular leo@universidad.com_`,
+        { parse_mode: 'Markdown' }
+      );
+      return null;
+    }
+
+    if (!profile && !autoGreet) {
       await bot.sendMessage(
         chatId,
         '⚠️ Primero necesitas vincular tu cuenta.\n\n' +
-        'Usa /start para comenzar.',
+        'Usa /vincular TU_EMAIL para comenzar.',
         { parse_mode: 'Markdown' }
       );
       return null;
     }
 
     return profile;
+  }
+
+  /**
+   * Saluda al usuario de forma personalizada cuando ya está vinculado
+   */
+  static async greetUser(bot, chatId, profile) {
+    const gender = profile.gender || 'otro';
+    const greeting = config.MOTIVATION[gender].greeting;
+    const name = profile.user_name || 'amigo';
+
+    await bot.sendMessage(
+      chatId,
+      `${greeting} Hola *${name}*\n\n` +
+      `¿En qué puedo ayudarte hoy?\n\n` +
+      `💡 Puedes:\n` +
+      `• Ver tus tareas: /tareas\n` +
+      `• Iniciar un Pomodoro: /pomo\n` +
+      `• Ver estadísticas: /stats\n` +
+      `• O simplemente escríbeme lo que necesitas`,
+      { parse_mode: 'Markdown' }
+    );
   }
 }

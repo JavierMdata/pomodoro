@@ -13,6 +13,7 @@ export const config = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 
   // Configuración del bot
+  BOT_NAME: 'PomoSmart Assistant',
   BOT_USERNAME: 'PomoSmartBot',
 
   // Mensajes motivacionales por género

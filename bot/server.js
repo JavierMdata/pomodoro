@@ -66,6 +66,45 @@ bot.onText(/\/perfil/, async (msg) => {
   await bot.sendMessage(msg.chat.id, message, { parse_mode: 'Markdown' });
 });
 
+bot.onText(/\/cambiar_nombre(?:\s+(.+))?/, async (msg, match) => {
+  const profile = await AuthHandler.requireAuth(bot, msg);
+  if (!profile) return;
+
+  const newName = match[1]?.trim();
+
+  if (!newName) {
+    await bot.sendMessage(
+      msg.chat.id,
+      `Tu nombre actual es: *${profile.user_name}*\n\n` +
+      `Para cambiarlo, usa:\n` +
+      `/cambiar_nombre NUEVO_NOMBRE\n\n` +
+      `Ejemplo: /cambiar_nombre Leo`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  const updated = await supabaseService.updateProfileName(profile.id, newName);
+
+  if (updated) {
+    const gender = profile.gender || 'otro';
+    const greeting = config.MOTIVATION[gender].greeting;
+
+    await bot.sendMessage(
+      msg.chat.id,
+      `${greeting}\n\n✅ Nombre actualizado correctamente.\n\n` +
+      `Ahora te llamaré *${newName}*`,
+      { parse_mode: 'Markdown' }
+    );
+  } else {
+    await bot.sendMessage(
+      msg.chat.id,
+      '❌ Error al actualizar el nombre. Intenta de nuevo.',
+      { parse_mode: 'Markdown' }
+    );
+  }
+});
+
 // ========== GESTIÓN DE TAREAS ==========
 
 bot.onText(/\/tareas/, async (msg) => {
