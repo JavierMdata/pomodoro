@@ -1,0 +1,21 @@
+{
+  "name": "pomosmart-telegram-bot",
+  "version": "1.0.0",
+  "description": "Bot de Telegram inteligente para PomoSmart Productivity",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["telegram", "bot", "pomodoro", "productivity"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.48.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
+  }
+}
