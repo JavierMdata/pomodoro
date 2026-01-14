@@ -63,9 +63,105 @@ export const useAppStore = create<AppState>()(
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
       syncWithSupabase: async () => {
-        // Esta función intentaría hacer SELECT de todas las tablas
-        // Por ahora mantenemos la estructura para que el usuario sepa dónde escalar
         console.log("Intentando sincronizar con Supabase...");
+
+        try {
+          // Cargar perfiles
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+          if (!profilesError && profilesData) {
+            console.log(`✅ Cargados ${profilesData.length} perfiles de Supabase`);
+
+            // Cargar configuraciones de pomodoro
+            const { data: settingsData } = await supabase
+              .from('pomodoro_default_settings')
+              .select('*');
+
+            const settingsMap: Record<string, PomodoroSettings> = {};
+            settingsData?.forEach(s => {
+              settingsMap[s.profile_id] = s;
+            });
+
+            // Cargar períodos escolares
+            const { data: periodsData } = await supabase
+              .from('school_periods')
+              .select('*')
+              .order('start_date', { ascending: false });
+
+            // Cargar materias
+            const { data: subjectsData } = await supabase
+              .from('subjects')
+              .select('*')
+              .order('name', { ascending: true });
+
+            // Cargar horarios
+            const { data: schedulesData } = await supabase
+              .from('class_schedule')
+              .select('*')
+              .order('day_of_week', { ascending: true });
+
+            // Cargar tareas
+            const { data: tasksData } = await supabase
+              .from('tasks')
+              .select('*')
+              .order('due_date', { ascending: true });
+
+            // Cargar exámenes
+            const { data: examsData } = await supabase
+              .from('exams')
+              .select('*')
+              .order('exam_date', { ascending: true });
+
+            // Cargar temas de examen
+            const { data: topicsData } = await supabase
+              .from('exam_topics')
+              .select('*');
+
+            // Cargar materiales
+            const { data: materialsData } = await supabase
+              .from('study_materials')
+              .select('*')
+              .order('created_at', { ascending: false });
+
+            // Cargar sesiones (últimas 100)
+            const { data: sessionsData } = await supabase
+              .from('pomodoro_sessions')
+              .select('*')
+              .order('started_at', { ascending: false })
+              .limit(100);
+
+            // Cargar alertas no leídas
+            const { data: alertsData } = await supabase
+              .from('alerts')
+              .select('*')
+              .eq('is_read', false)
+              .order('created_at', { ascending: false });
+
+            set({
+              profiles: profilesData || [],
+              settings: settingsMap,
+              periods: periodsData || [],
+              subjects: subjectsData || [],
+              schedules: schedulesData || [],
+              tasks: tasksData || [],
+              exams: examsData || [],
+              examTopics: topicsData || [],
+              materials: materialsData || [],
+              sessions: sessionsData || [],
+              alerts: alertsData || []
+            });
+
+            console.log("✅ Sincronización con Supabase completada");
+          } else {
+            console.log("ℹ️ No hay datos en Supabase o trabajando en modo offline");
+          }
+        } catch (error) {
+          console.error("Error al sincronizar con Supabase:", error);
+          console.log("ℹ️ Continuando en modo offline con datos locales");
+        }
       },
 
       addProfile: async (profile) => {
