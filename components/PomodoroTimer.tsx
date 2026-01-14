@@ -199,43 +199,136 @@ const PomodoroTimer: React.FC = () => {
       )}
 
       <div className="relative mb-20 group">
-        <div className={`absolute -inset-8 bg-indigo-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000 ${isActive ? 'animate-pulse' : ''}`} />
-        <svg className={`${isFullscreen ? 'w-[38rem] h-[38rem]' : 'w-96 h-96'} -rotate-90 transition-all duration-1000 relative z-10`}>
-          <circle cx="50%" cy="50%" r="45%" stroke="currentColor" strokeWidth="4" fill="transparent" className={theme === 'dark' || isFullscreen ? "text-slate-800" : "text-slate-100"} />
-          <circle 
-            cx="50%" cy="50%" r="45%" 
-            stroke="currentColor" strokeWidth="8" fill="transparent" 
-            className="text-indigo-500 transition-all duration-300 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+        {/* Enhanced glow effects */}
+        <div className={`absolute -inset-12 rounded-full blur-3xl transition-all duration-1000 ${
+          isActive
+            ? 'bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 opacity-100 animate-pulse'
+            : 'bg-indigo-500/10 opacity-0 group-hover:opacity-100'
+        }`} />
+
+        {/* Multiple layered glows */}
+        {isActive && (
+          <>
+            <div className="absolute -inset-8 bg-indigo-500/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <div className="absolute -inset-4 bg-purple-500/20 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1s' }} />
+          </>
+        )}
+
+        <svg className={`${isFullscreen ? 'w-[38rem] h-[38rem]' : 'w-96 h-96'} -rotate-90 transition-all duration-1000 relative z-10 drop-shadow-2xl`}>
+          {/* Background circle with gradient */}
+          <defs>
+            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={theme === 'dark' || isFullscreen ? "#1e293b" : "#f1f5f9"} />
+              <stop offset="100%" stopColor={theme === 'dark' || isFullscreen ? "#0f172a" : "#e2e8f0"} />
+            </linearGradient>
+            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#818cf8" />
+              <stop offset="50%" stopColor="#a855f7" />
+              <stop offset="100%" stopColor="#ec4899" />
+            </linearGradient>
+          </defs>
+
+          <circle cx="50%" cy="50%" r="45%" stroke="url(#bgGradient)" strokeWidth="6" fill="transparent" />
+
+          {/* Progress circle with gradient */}
+          <circle
+            cx="50%" cy="50%" r="45%"
+            stroke="url(#progressGradient)" strokeWidth="12" fill="transparent"
+            className="transition-all duration-300 drop-shadow-[0_0_20px_rgba(99,102,241,0.8)]"
             strokeDasharray="283%"
             strokeDashoffset={`${283 - (timeLeft / ((mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? 5 : 15) * 60)) * 283}%`}
             strokeLinecap="round"
+            style={{
+              filter: 'drop-shadow(0 0 15px rgba(168, 85, 247, 0.6))'
+            }}
           />
         </svg>
+
         <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-          <span className={`${isFullscreen ? 'text-[14rem]' : 'text-9xl'} font-black tracking-tighter leading-none ${theme === 'dark' || isFullscreen ? 'text-white' : 'text-slate-950'}`}>
-            {formatTime(timeLeft)}
-          </span>
+          <div className="relative">
+            <span className={`${isFullscreen ? 'text-[14rem]' : 'text-9xl'} font-black tracking-tighter leading-none bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white bg-clip-text text-transparent ${
+              isActive ? 'animate-pulse' : ''
+            }`} style={isFullscreen ? { WebkitTextStroke: '2px rgba(99, 102, 241, 0.1)' } : {}}>
+              {formatTime(timeLeft)}
+            </span>
+            {/* Time glow effect */}
+            {isActive && (
+              <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20" />
+            )}
+          </div>
+
           {selectedItem && (
-            <div className="mt-12 text-center px-10 animate-in fade-in duration-500">
-              <p className="text-[12px] font-black uppercase tracking-[0.4em] text-indigo-500 mb-2">Meta de Enfoque</p>
-              <p className={`text-2xl font-black truncate max-w-[320px] ${theme === 'dark' || isFullscreen ? 'text-slate-200' : 'text-slate-900'}`}>{selectedItem.title}</p>
+            <div className="mt-12 text-center px-10 animate-in fade-in duration-500 relative">
+              <div className="relative inline-block">
+                <p className="text-[12px] font-black uppercase tracking-[0.4em] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-3">
+                  Meta de Enfoque
+                </p>
+                <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
+              </div>
+              <p className={`text-2xl font-black truncate max-w-[320px] mt-3 ${theme === 'dark' || isFullscreen ? 'text-slate-200' : 'text-slate-900'}`}>
+                {selectedItem.title}
+              </p>
             </div>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-16 relative z-30">
-        <button onClick={() => { setIsActive(false); setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60); }} className={`p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 ${theme === 'dark' || isFullscreen ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-400'}`}>
-          <RotateCcw size={32} />
-        </button>
-        <button 
-          onClick={isActive ? () => setIsActive(false) : handleStart}
-          className={`w-40 h-40 rounded-full flex items-center justify-center text-white shadow-[0_30px_60px_-15px_rgba(79,70,229,0.5)] transition-all hover:scale-110 active:scale-95 ${isActive ? 'bg-amber-500' : 'bg-indigo-600'}`}
+        <button
+          onClick={() => { setIsActive(false); setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60); }}
+          className={`relative p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 group ${
+            theme === 'dark' || isFullscreen
+              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700'
+              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:bg-indigo-50'
+          }`}
         >
-          {isActive ? <Pause size={80} fill="currentColor" /> : <Play size={80} fill="currentColor" className="ml-4" />}
+          <RotateCcw size={32} className="group-hover:rotate-180 transition-transform duration-500" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
         </button>
-        <button onClick={() => setIsFullscreen(!isFullscreen)} className={`p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 ${theme === 'dark' || isFullscreen ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-400'}`}>
+
+        <button
+          onClick={isActive ? () => setIsActive(false) : handleStart}
+          className={`relative w-40 h-40 rounded-full flex items-center justify-center text-white shadow-2xl transition-all hover:scale-110 active:scale-95 group overflow-hidden ${
+            isActive
+              ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 shadow-amber-500/50'
+              : 'bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 shadow-indigo-500/50'
+          }`}
+        >
+          {/* Animated background on hover */}
+          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+            isActive
+              ? 'bg-gradient-to-tr from-orange-600 to-amber-500'
+              : 'bg-gradient-to-tr from-purple-700 to-indigo-600'
+          }`} />
+
+          {/* Glow effect */}
+          <div className={`absolute -inset-2 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity ${
+            isActive ? 'bg-amber-500' : 'bg-indigo-500'
+          }`} />
+
+          {/* Icon */}
+          <div className="relative z-10">
+            {isActive ? (
+              <Pause size={80} fill="currentColor" className="drop-shadow-2xl" />
+            ) : (
+              <Play size={80} fill="currentColor" className="ml-4 drop-shadow-2xl" />
+            )}
+          </div>
+
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 shimmer opacity-30" />
+        </button>
+
+        <button
+          onClick={() => setIsFullscreen(!isFullscreen)}
+          className={`relative p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 group ${
+            theme === 'dark' || isFullscreen
+              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700'
+              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:bg-indigo-50'
+          }`}
+        >
           {isFullscreen ? <Minimize2 size={32} /> : <Maximize2 size={32} />}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
         </button>
       </div>
 

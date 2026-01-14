@@ -40,24 +40,55 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
             setActiveTab(item.id);
             setIsMobileMenuOpen(false);
           }}
-          className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 ${
-            activeTab === item.id 
-              ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/30 scale-[1.02]' 
-              : theme === 'dark' ? 'text-slate-400 hover:bg-slate-700/50 hover:text-white' : 'text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'
+          className={`group relative w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all duration-300 overflow-hidden ${
+            activeTab === item.id
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-500/30 scale-[1.02]'
+              : theme === 'dark'
+                ? 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                : 'text-slate-500 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-600'
           }`}
         >
-          <item.icon size={20} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-          {item.label}
+          {/* Active indicator */}
+          {activeTab === item.id && (
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full shadow-lg shadow-white/50" />
+          )}
+
+          {/* Hover glow effect */}
+          {activeTab !== item.id && (
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
+
+          <item.icon
+            size={20}
+            strokeWidth={activeTab === item.id ? 2.5 : 2}
+            className={`relative z-10 transition-transform ${activeTab === item.id ? '' : 'group-hover:scale-110'}`}
+          />
+          <span className="relative z-10">{item.label}</span>
+
+          {/* Shimmer effect on active */}
+          {activeTab === item.id && (
+            <div className="absolute inset-0 shimmer opacity-20" />
+          )}
         </button>
       ))}
     </nav>
   );
 
   return (
-    <div className={`flex min-h-screen transition-colors duration-500 ${theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-[#F8FAFF] text-slate-900'}`}>
-      
+    <div className={`flex min-h-screen transition-colors duration-500 relative ${theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-gradient-to-br from-slate-50 via-indigo-50/20 to-purple-50/20 text-slate-900'}`}>
+      {/* Animated background particles */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl float-animation" style={{ animationDelay: '0s' }} />
+        <div className="absolute top-1/2 right-40 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl float-animation" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-500/5 rounded-full blur-3xl float-animation" style={{ animationDelay: '4s' }} />
+      </div>
+
       {/* Sidebar para Escritorio */}
-      <aside className={`hidden lg:flex w-72 flex-col sticky top-0 h-screen border-r transition-all duration-500 ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+      <aside className={`hidden lg:flex w-72 flex-col sticky top-0 h-screen border-r transition-all duration-500 backdrop-blur-xl ${
+        theme === 'dark'
+          ? 'bg-slate-900/95 border-slate-800'
+          : 'bg-white/80 border-slate-200/50'
+      }`}>
         <div className="p-8 flex flex-col gap-6">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-[1.25rem] flex items-center justify-center text-white font-black text-2xl shadow-2xl transition-transform hover:rotate-3" style={{ backgroundColor: activeProfile.color }}>
@@ -92,7 +123,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
       </aside>
 
       {/* Mobile Nav Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-20 px-6 flex items-center justify-between z-50 backdrop-blur-md border-b bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800">
+      <div className={`lg:hidden fixed top-0 left-0 right-0 h-20 px-6 flex items-center justify-between z-50 backdrop-blur-xl border-b shadow-lg ${
+        theme === 'dark'
+          ? 'bg-slate-900/90 border-slate-800'
+          : 'bg-white/90 border-slate-200/50'
+      }`}>
         <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg" style={{ backgroundColor: activeProfile.color }}>
               {activeProfile.name.charAt(0)}

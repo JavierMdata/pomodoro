@@ -68,20 +68,43 @@ const App: React.FC = () => {
   // Profile Selector View
   if (!activeProfileId) {
     return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-500 ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-        
-        <div className="absolute top-6 right-6">
-            <button onClick={toggleTheme} className={`p-4 rounded-full border transition-all ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-slate-600'}`}>
-                {theme === 'dark' ? <Sun size={24} /> : <Moon size={24} />}
-            </button>
+      <div className={`relative min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-500 overflow-hidden ${theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 text-slate-900'}`}>
+        {/* Animated gradient border */}
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-indigo-500/50" />
+
+        {/* Animated background particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '0s' }} />
+          <div className="absolute top-1/2 right-40 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '2s' }} />
+          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '4s' }} />
         </div>
 
-        <div className="text-center mb-16 max-w-2xl animate-in fade-in slide-in-from-bottom duration-700">
-          <h1 className="text-7xl font-black mb-6 tracking-tight">PomoSmart<span className="text-indigo-600">.</span></h1>
-          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} text-xl font-medium leading-relaxed`}>
+        <div className="absolute top-8 right-8">
+          <button
+            onClick={toggleTheme}
+            className={`relative p-5 rounded-full border-2 transition-all hover:scale-110 active:scale-95 group ${
+              theme === 'dark'
+                ? 'bg-slate-800/80 border-slate-700 text-amber-400 hover:bg-slate-700'
+                : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'
+            } backdrop-blur-xl shadow-lg`}
+          >
+            {theme === 'dark' ? <Sun size={24} className="group-hover:rotate-180 transition-transform duration-500" /> : <Moon size={24} className="group-hover:-rotate-12 transition-transform duration-300" />}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
+          </button>
+        </div>
+
+        <div className="relative text-center mb-20 max-w-3xl animate-in fade-in slide-in-from-bottom duration-700">
+          <div className="relative inline-block mb-8">
+            <h1 className="text-8xl md:text-9xl font-black tracking-tight bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              PomoSmart
+            </h1>
+            <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-2xl opacity-50" />
+          </div>
+          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} text-2xl font-bold leading-relaxed`}>
             Tu centro de comando académico definitivo. <br className="hidden md:block" />
-            Organiza, enfoca y domina tu semestre.
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Organiza, enfoca y domina tu semestre.
+            </span>
           </p>
         </div>
 
@@ -101,12 +124,31 @@ const App: React.FC = () => {
           {!showCreateProfile && (
             <button
               onClick={() => setShowCreateProfile(true)}
-              className={`flex flex-col items-center justify-center p-8 border-4 border-dashed rounded-[2.5rem] transition-all w-full max-w-xs aspect-square group ${theme === 'dark' ? 'bg-slate-800 border-slate-700 hover:border-indigo-500 hover:bg-slate-700/50' : 'bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'}`}
+              className={`relative flex flex-col items-center justify-center p-10 border-4 border-dashed rounded-[2.5rem] transition-all w-full max-w-xs aspect-square group overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-slate-800/50 border-slate-700 hover:border-indigo-500 hover:bg-slate-700/70'
+                  : 'bg-white/50 border-slate-200 hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/50'
+              } backdrop-blur-sm`}
             >
-              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all ${theme === 'dark' ? 'bg-slate-700 text-slate-500 group-hover:bg-indigo-900 group-hover:text-indigo-400' : 'bg-slate-100 text-slate-300 group-hover:bg-indigo-100 group-hover:text-indigo-400'}`}>
-                <Plus size={48} strokeWidth={3} />
+              {/* Animated gradient background on hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+              <div className={`relative w-24 h-24 rounded-full flex items-center justify-center mb-6 transition-all group-hover:scale-110 ${
+                theme === 'dark'
+                  ? 'bg-slate-700 text-slate-500 group-hover:bg-gradient-to-br group-hover:from-indigo-900 group-hover:to-purple-900 group-hover:text-indigo-400'
+                  : 'bg-slate-100 text-slate-300 group-hover:bg-gradient-to-br group-hover:from-indigo-100 group-hover:to-purple-100 group-hover:text-indigo-500'
+              }`}>
+                <Plus size={56} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
+                {/* Glow effect */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
               </div>
-              <h3 className={`text-xl font-black ${theme === 'dark' ? 'text-slate-500 group-hover:text-indigo-400' : 'text-slate-300 group-hover:text-indigo-400'}`}>Nuevo Perfil</h3>
+              <h3 className={`relative text-xl font-black transition-colors ${
+                theme === 'dark'
+                  ? 'text-slate-500 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-purple-400 group-hover:bg-clip-text'
+                  : 'text-slate-400 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:bg-clip-text'
+              }`}>
+                Nuevo Perfil
+              </h3>
             </button>
           )}
 

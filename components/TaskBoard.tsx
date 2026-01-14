@@ -45,12 +45,19 @@ const TaskBoard: React.FC = () => {
     urgent: 'bg-red-100 text-red-700',
   };
 
+  const { theme } = useAppStore();
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Mis Tareas</h1>
-          <p className="text-slate-500 font-medium mt-1">Organiza tus materias y entregas académicas.</p>
+          <h1 className={`text-5xl font-black tracking-tight bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-300 bg-clip-text text-transparent`}>
+            Mis Tareas
+          </h1>
+          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-bold mt-2 flex items-center gap-2`}>
+            <ClipboardList size={18} className="text-indigo-500" />
+            Organiza tus materias y entregas académicas.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-sm">
@@ -152,46 +159,98 @@ const TaskBoard: React.FC = () => {
           profileTasks.map(task => {
             const subject = subjects.find(s => s.id === task.subject_id);
             return (
-              <div 
+              <div
                 key={task.id}
-                className={`flex items-center gap-6 p-6 bg-white border-2 rounded-[2rem] transition-all hover:shadow-xl hover:-translate-y-1 ${task.status === 'completed' ? 'opacity-60 bg-slate-50 grayscale border-slate-100' : 'border-slate-100'}`}
+                className={`group relative flex items-center gap-6 p-6 rounded-[2rem] border-2 transition-all duration-300 overflow-hidden card-hover-effect ${
+                  task.status === 'completed'
+                    ? theme === 'dark'
+                      ? 'opacity-60 bg-slate-800/50 grayscale border-slate-700'
+                      : 'opacity-60 bg-slate-50 grayscale border-slate-100'
+                    : theme === 'dark'
+                      ? 'bg-slate-800 border-slate-700 hover:border-indigo-500/50'
+                      : 'bg-white border-slate-100 hover:border-indigo-300'
+                }`}
               >
-                <button 
+                {/* Background gradient on hover */}
+                {task.status !== 'completed' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+
+                {/* Left accent bar */}
+                <div
+                  className="absolute left-0 top-0 bottom-0 w-1 transition-all group-hover:w-2"
+                  style={{ backgroundColor: subject?.color }}
+                />
+
+                <button
                   onClick={() => updateTask(task.id, { status: task.status === 'completed' ? 'pending' : 'completed' })}
-                  className={`flex-shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
-                    task.status === 'completed' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 text-transparent hover:border-indigo-400'
+                  className={`relative flex-shrink-0 w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 ${
+                    task.status === 'completed'
+                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                      : theme === 'dark'
+                        ? 'border-slate-600 text-transparent hover:border-indigo-400 hover:bg-indigo-500/10'
+                        : 'border-slate-200 text-transparent hover:border-indigo-400 hover:bg-indigo-50'
                   }`}
                 >
                   <CheckCircle2 size={24} />
                 </button>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-2">
-                    <h4 className={`text-lg font-black truncate max-w-md ${task.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+
+                <div className="flex-1 min-w-0 relative z-10">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h4 className={`text-lg font-black truncate max-w-md ${
+                      task.status === 'completed'
+                        ? 'line-through text-slate-400'
+                        : theme === 'dark'
+                          ? 'text-slate-200'
+                          : 'text-slate-800'
+                    }`}>
                       {task.title}
                     </h4>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${priorityColors[task.priority]}`}>
+                    <span
+                      className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${priorityColors[task.priority]}`}
+                    >
                       {task.priority}
                     </span>
                   </div>
-                  <div className="flex items-center gap-6 text-xs font-bold text-slate-500">
+                  <div className={`flex items-center gap-6 text-xs font-bold ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: subject?.color }} />
-                      <span className="text-slate-800">{subject?.name}</span>
+                      <div
+                        className="w-3 h-3 rounded-full shadow-md"
+                        style={{ backgroundColor: subject?.color, boxShadow: `0 0 10px ${subject?.color}40` }}
+                      />
+                      <span className={theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}>{subject?.name}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 bg-indigo-500/10 px-3 py-1 rounded-full">
                       <Timer size={14} className="text-indigo-500" />
-                      <span>{task.completed_pomodoros} / {task.estimated_pomodoros} poms</span>
+                      <span className={theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}>
+                        {task.completed_pomodoros} / {task.estimated_pomodoros} poms
+                      </span>
                     </div>
-                    <p className="text-slate-400">Vence: {format(new Date(task.due_date), "d MMM, HH:mm", { locale: es })}</p>
+                    <p className="text-slate-400">
+                      Vence: {format(new Date(task.due_date), "d MMM, HH:mm", { locale: es })}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                   <button className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all">
-                      <Timer size={20} />
-                   </button>
+                <div className="flex items-center gap-2 relative z-10">
+                  <button className={`p-3 rounded-xl transition-all hover:scale-110 ${
+                    theme === 'dark'
+                      ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500 hover:text-white'
+                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'
+                  }`}>
+                    <Timer size={20} />
+                  </button>
                 </div>
+
+                {/* Progress indicator */}
+                {task.status !== 'completed' && task.estimated_pomodoros > 0 && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100 dark:bg-slate-700">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
+                      style={{ width: `${(task.completed_pomodoros / task.estimated_pomodoros) * 100}%` }}
+                    />
+                  </div>
+                )}
               </div>
             )
           })

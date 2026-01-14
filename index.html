@@ -32,6 +32,8 @@
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
       }
+
+      /* Scrollbar Styles */
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
@@ -48,6 +50,120 @@
       .scrollbar-dark::-webkit-scrollbar-thumb {
         background: #334155;
         border-radius: 10px;
+      }
+
+      /* Advanced Animations */
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+      }
+
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); }
+      }
+
+      @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+      }
+
+      @keyframes gradient-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+
+      @keyframes scale-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+
+      /* Glassmorphism Effect */
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .glass-effect-dark {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      /* Gradient Text */
+      .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* Animated Gradient Background */
+      .animated-gradient {
+        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+        background-size: 400% 400%;
+        animation: gradient-shift 15s ease infinite;
+      }
+
+      /* Card Hover Effects */
+      .card-hover-effect {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .card-hover-effect:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Floating Animation */
+      .float-animation {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      /* Glow Effect */
+      .glow-effect {
+        animation: glow 3s ease-in-out infinite;
+      }
+
+      /* Shimmer Effect */
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite;
+      }
+
+      /* Custom Shadows */
+      .shadow-glow-indigo {
+        box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.4);
+      }
+
+      .shadow-glow-purple {
+        box-shadow: 0 10px 40px -10px rgba(139, 92, 246, 0.4);
+      }
+
+      .shadow-glow-pink {
+        box-shadow: 0 10px 40px -10px rgba(236, 72, 153, 0.4);
+      }
+
+      /* Animated Border Gradient */
+      .border-gradient {
+        position: relative;
+        background: linear-gradient(white, white) padding-box,
+                    linear-gradient(135deg, #667eea, #764ba2, #f093fb) border-box;
+        border: 2px solid transparent;
+      }
+
+      /* Smooth Transitions */
+      * {
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
       }
     </style>
     <script type="importmap">
