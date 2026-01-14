@@ -9,14 +9,14 @@ import {
 import { GoogleGenAI } from "@google/genai";
 
 const PomodoroTimer: React.FC = () => {
-  const { 
-    theme, activeProfileId, profiles, settings, tasks, 
-    subjects, examTopics, materials, addSession 
+  const {
+    theme, activeProfileId, profiles, settings, tasks,
+    subjects, examTopics, materials, addSession
   } = useAppStore();
-  
+
   const activeProfile = profiles.find(p => p.id === activeProfileId);
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
-  
+
   const [mode, setMode] = useState<'work' | 'short_break' | 'long_break'>('work');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -31,6 +31,60 @@ const PomodoroTimer: React.FC = () => {
 
   const timerRef = useRef<any>(null);
   const startTimeRef = useRef<string | null>(null);
+
+  // Funciones de sonido usando Web Audio API
+  const playStartSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Sonido ascendente energético
+      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {
+      console.log('Audio no soportado', e);
+    }
+  };
+
+  const playCompleteSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+      // Crear múltiples tonos para un sonido más celebratorio
+      const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+
+      frequencies.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + index * 0.15);
+        oscillator.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + index * 0.15);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.3);
+
+        oscillator.start(audioContext.currentTime + index * 0.15);
+        oscillator.stop(audioContext.currentTime + index * 0.15 + 0.3);
+      });
+    } catch (e) {
+      console.log('Audio no soportado', e);
+    }
+  };
 
   const getMotivationalPhrase = () => {
     const noun = activeProfile?.gender === 'femenino' ? 'reina' : activeProfile?.gender === 'masculino' ? 'rey' : 'estudiante';
@@ -108,12 +162,20 @@ const PomodoroTimer: React.FC = () => {
       setTimeout(() => setAiTip(null), 3000);
       return;
     }
+
+    // Reproducir sonido de inicio
+    playStartSound();
+
     setIsActive(true);
     if (!startTimeRef.current) startTimeRef.current = new Date().toISOString();
   };
 
   const handleComplete = () => {
     setIsActive(false);
+
+    // Reproducir sonido de finalización
+    playCompleteSound();
+
     if (mode === 'work') {
       setShowCompletionModal(true);
     } else {
