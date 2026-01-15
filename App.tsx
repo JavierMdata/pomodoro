@@ -300,7 +300,7 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
-      </Layout>
+      </ModernLayout>
     </div>
   );
 };
