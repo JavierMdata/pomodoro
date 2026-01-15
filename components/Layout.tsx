@@ -19,6 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
   const menuItems = [
+    { id: 'schedule', label: 'Horario', icon: LayoutGrid },
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
     { id: 'subjects', label: 'Materias', icon: GraduationCap },
     { id: 'exams', label: 'Exámenes', icon: FileText },
