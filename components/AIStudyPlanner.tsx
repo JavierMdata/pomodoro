@@ -21,6 +21,7 @@ const AIStudyPlanner: React.FC = () => {
     subjects,
     exams,
     examTopics,
+    schedules,
     sessions,
     addSession
   } = useAppStore();
@@ -28,8 +29,6 @@ const AIStudyPlanner: React.FC = () => {
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 
   // Filtrar datos por perfil activo
   const activeSubjects = useMemo(() =>
@@ -54,29 +53,40 @@ const AIStudyPlanner: React.FC = () => {
     [examTopics, exams, subjects, activeProfileId]
   );
 
-  const generatePlan = async (useAI: boolean = false) => {
+  const activeSchedules = useMemo(() =>
+    schedules.filter(sch => {
+      const subject = subjects.find(s => s.id === sch.subject_id);
+      return subject?.profile_id === activeProfileId;
+    }),
+    [schedules, subjects, activeProfileId]
+  );
+
+  const generatePlan = async (useAI: boolean = true) => {
     setIsGenerating(true);
     try {
       let plan: StudyPlan | null = null;
 
-      if (useAI && geminiApiKey) {
+      if (useAI) {
+        // Intenta usar IA automáticamente con API key de entorno
         plan = await generateStudyPlanWithAI(
           activeSubjects,
           activeExams,
           activeTopics,
-          geminiApiKey
+          activeSchedules
         );
       }
 
       if (!plan) {
         // Fallback al plan básico
-        plan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics);
+        plan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics, activeSchedules);
       }
 
       setStudyPlan(plan);
-      setShowApiKeyInput(false);
     } catch (error) {
       console.error('Error generando plan:', error);
+      // Si falla, usar plan básico
+      const basicPlan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics, activeSchedules);
+      setStudyPlan(basicPlan);
     } finally {
       setIsGenerating(false);
     }
@@ -104,8 +114,11 @@ const AIStudyPlanner: React.FC = () => {
     const info = {
       pomodoro: { label: 'Pomodoro', icon: Flame, color: '#EF4444', bgColor: 'bg-red-500/10' },
       'deep-focus': { label: 'Enfoque Profundo', icon: Target, color: '#8B5CF6', bgColor: 'bg-purple-500/10' },
-      revision: { label: 'Repaso', icon: RefreshCw, color: '#10B981', bgColor: 'bg-green-500/10' },
-      practice: { label: 'Práctica', icon: BookOpen, color: '#F59E0B', bgColor: 'bg-amber-500/10' }
+      'active-recall': { label: 'Recuperación Activa', icon: Brain, color: '#EC4899', bgColor: 'bg-pink-500/10' },
+      feynman: { label: 'Técnica Feynman', icon: Sparkles, color: '#06B6D4', bgColor: 'bg-cyan-500/10' },
+      interleaving: { label: 'Intercalado', icon: TrendingUp, color: '#F59E0B', bgColor: 'bg-amber-500/10' },
+      revision: { label: 'Repaso Espaciado', icon: RefreshCw, color: '#10B981', bgColor: 'bg-green-500/10' },
+      practice: { label: 'Práctica Deliberada', icon: BookOpen, color: '#F97316', bgColor: 'bg-orange-500/10' }
     };
     return info[technique as keyof typeof info] || info.pomodoro;
   };
@@ -161,53 +174,23 @@ const AIStudyPlanner: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex gap-3">
-              {!showApiKeyInput ? (
+            <button
+              onClick={() => generatePlan(true)}
+              disabled={isGenerating}
+              className="px-8 py-5 bg-white text-indigo-600 hover:bg-indigo-50 rounded-2xl font-black transition-all flex items-center gap-3 shadow-2xl disabled:opacity-50 hover:scale-105 active:scale-95"
+            >
+              {isGenerating ? (
                 <>
-                  <button
-                    onClick={() => setShowApiKeyInput(true)}
-                    className="px-6 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-2xl font-bold transition-all flex items-center gap-2 border border-white/20"
-                  >
-                    <Sparkles size={20} />
-                    Con IA
-                  </button>
-                  <button
-                    onClick={() => generatePlan(false)}
-                    disabled={isGenerating}
-                    className="px-6 py-4 bg-white text-indigo-600 hover:bg-indigo-50 rounded-2xl font-black transition-all flex items-center gap-2 shadow-xl disabled:opacity-50"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw size={20} className="animate-spin" />
-                        Generando...
-                      </>
-                    ) : (
-                      <>
-                        <Zap size={20} />
-                        Generar Plan
-                      </>
-                    )}
-                  </button>
+                  <RefreshCw size={24} className="animate-spin" />
+                  Generando Plan Inteligente...
                 </>
               ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
-                    placeholder="API Key de Gemini"
-                    className="px-4 py-3 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder-white/50 font-bold outline-none focus:ring-2 focus:ring-white/30"
-                  />
-                  <button
-                    onClick={() => generatePlan(true)}
-                    disabled={!geminiApiKey || isGenerating}
-                    className="px-6 py-3 bg-white text-indigo-600 hover:bg-indigo-50 rounded-2xl font-black transition-all disabled:opacity-50"
-                  >
-                    Generar
-                  </button>
-                </div>
+                <>
+                  <Sparkles size={24} />
+                  Generar Plan con IA
+                </>
               )}
-            </div>
+            </button>
           </div>
 
           {studyPlan && (

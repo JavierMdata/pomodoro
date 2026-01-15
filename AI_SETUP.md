@@ -1,8 +1,13 @@
 # Configuración de IA para PomoSmart
 
+## 🎉 ¡API Key Ya Configurada!
+
+La API Key de Gemini ya está configurada en Vercel como `GEMINI_API_KEY`.
+**¡Solo click en "Generar Plan con IA" y listo!**
+
 ## Características de IA Integradas
 
-PomoSmart ahora incluye un sistema de planificación inteligente que utiliza Google Gemini AI para:
+PomoSmart utiliza Google Gemini AI para generar planes de estudio científicamente optimizados:
 
 1. **Generación Automática de Planes de Estudio**
    - Análisis de exámenes próximos y materias
@@ -19,44 +24,42 @@ PomoSmart ahora incluye un sistema de planificación inteligente que utiliza Goo
    - Priorización automática según fechas de examen
    - Estrategias de aprendizaje efectivo
 
-## Cómo Obtener tu API Key de Gemini
+## 🚀 Uso del Plan de Estudio IA
 
-1. **Ir a Google AI Studio**
-   - Visita: https://makersuite.google.com/app/apikey
-   - Inicia sesión con tu cuenta de Google
-
-2. **Crear una API Key**
-   - Click en "Create API Key"
-   - Selecciona o crea un proyecto de Google Cloud
-   - Copia la API Key generada
-
-3. **Configurar en PomoSmart**
-   - Ve a la pestaña "Plan IA" 🧠
-   - Click en "Con IA"
-   - Pega tu API Key
-   - Click en "Generar"
-
-## Uso del Plan de Estudio IA
-
-### Generar un Plan
+### Generar un Plan (3 pasos)
 
 ```
-1. Asegúrate de tener materias y exámenes configurados
-2. Ve a la pestaña "Plan IA"
-3. Opción 1: Click en "Generar Plan" (sin IA, básico)
-4. Opción 2: Click en "Con IA", ingresa tu API Key y "Generar" (recomendado)
+1. Configura tus materias y exámenes en las pestañas correspondientes
+2. Ve a la pestaña "Plan IA" 🧠
+3. Click en "Generar Plan con IA"
 ```
+
+**¡Eso es todo!** La IA analizará:
+- ✅ Tus materias y exámenes
+- ✅ Tu horario de clases
+- ✅ Fechas de exámenes
+- ✅ Temas por estudiar
+
+Y generará un plan optimizado con:
+- 📅 Fechas y horas exactas
+- 🧠 Técnicas de estudio específicas
+- ⏰ Sesiones de 25-50 minutos
+- 🔄 Repetición espaciada automática
+- 🎯 Priorización inteligente
 
 ### Entender el Plan Generado
 
 El plan incluye:
 
 - **Sesiones de Estudio**: Cuándo y qué estudiar
-- **Técnicas Recomendadas**:
-  - 🎯 **Deep Focus**: Primera exposición al tema (50 min)
-  - 🔄 **Revision**: Repaso activo con resúmenes (25 min)
-  - 📖 **Practice**: Ejercicios y consolidación (25 min)
-  - 🍅 **Pomodoro**: Sesión estándar (25 min)
+- **7 Técnicas Científicas Validadas**:
+  - 🎯 **Deep Focus**: Primera exposición, contenido nuevo (40-50 min)
+  - 🧠 **Active Recall**: Recuperar información sin notas (25-30 min)
+  - ✨ **Feynman**: Explicar conceptos en términos simples (30 min)
+  - 📈 **Interleaving**: Mezclar múltiples temas relacionados (50 min)
+  - 🔥 **Practice**: Ejercicios y problemas deliberados (30-40 min)
+  - 🔄 **Revision**: Repaso espaciado de resúmenes (20-25 min)
+  - 🍅 **Pomodoro**: Sesión estándar enfocada (25 min)
 
 - **Prioridades**:
   - 🔴 **Urgent**: Menos de 3 días para el examen
@@ -126,23 +129,48 @@ Retención óptima = Estudio inicial + Repasos espaciados
 
 ## Mejores Prácticas
 
-1. **Configura exámenes con anticipación**
-   - Mínimo 2 semanas antes
-   - Máximo aprovechamiento de repetición espaciada
+### 1. Antes de Generar el Plan
 
-2. **Sigue el plan generado**
-   - Las sesiones están optimizadas
-   - Respetar los intervalos mejora retención
+✅ **Configura tus materias** en la pestaña "Materias"
+✅ **Agrega exámenes** con fechas reales en "Exámenes"
+✅ **Define temas** por cada examen (mínimo 3-5 temas)
+✅ **Registra tu horario** de clases en "Horario"
 
-3. **Usa las técnicas recomendadas**
-   - Deep Focus para temas nuevos
-   - Revision para consolidar
-   - Practice para dominar
+### 2. Usando el Plan Generado
 
-4. **Combina con Pomodoro**
-   - Cada sesión usa la técnica Pomodoro
-   - Descansos programados automáticamente
-   - Mejor concentración y productividad
+🎯 **Sigue las horas recomendadas**
+- La IA considera tu horario de clases
+- Respeta los horarios óptimos cognitivos
+- Mañanas para contenido complejo
+
+🧠 **Aplica las técnicas correctamente**
+- **Deep Focus**: Sin distracciones, full concentración
+- **Active Recall**: Cierra el libro, escribe lo que recuerdas
+- **Feynman**: Explica como si enseñaras a un niño
+- **Interleaving**: Alterna temas (no estudies 3h seguidas de matemáticas)
+- **Practice**: Resuelve problemas SIN mirar la solución
+
+🔄 **Respeta la Repetición Espaciada**
+- **Día 1**: Primera exposición
+- **Día 3**: Primera revisión (CRÍTICO)
+- **Día 7**: Consolidación a largo plazo
+- **Día 14+**: Mantenimiento
+
+### 3. Maximiza Retención
+
+📊 **Estrategias comprobadas**:
+1. Estudia en sesiones cortas (25-50 min máximo)
+2. Toma descansos de 5-15 minutos
+3. Varía las materias (no monotonía)
+4. Duerme bien (la consolidación ocurre dormido)
+5. Haz ejercicio ligero (mejora cognición)
+
+❌ **Evita**:
+- Estudiar 4+ horas seguidas
+- "Atracones" la noche antes
+- Saltarte las revisiones espaciadas
+- Estudiar con sueño o hambre
+- Multitasking (música con letra, redes sociales)
 
 ## Privacidad y Datos
 
