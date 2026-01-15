@@ -10,12 +10,13 @@ import PomodoroTimer from './components/PomodoroTimer';
 import StatisticsView from './components/StatisticsView';
 import SubjectsManager from './components/SubjectsManager';
 import ExamManager from './components/ExamManager';
+import WeeklySchedule from './components/WeeklySchedule';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
 const App: React.FC = () => {
   const { theme, toggleTheme, profiles, activeProfileId, setActiveProfile, addProfile, deleteProfile, settings, updateSettings, syncWithSupabase } = useAppStore();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('schedule');
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [newProfileType, setNewProfileType] = useState<ProfileType>('universidad');
   const [newProfileName, setNewProfileName] = useState('');
@@ -211,6 +212,7 @@ const App: React.FC = () => {
       <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
         <div className="animate-in fade-in duration-500">
           {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'schedule' && <WeeklySchedule />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <TaskBoard />}
