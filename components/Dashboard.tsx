@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import MiniPomodoro from './MiniPomodoro';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -196,9 +197,15 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Columna derecha - Meta diaria */}
-        <div>
-          <section className="sticky top-6 relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-10 rounded-[3.5rem] text-white shadow-2xl shadow-indigo-600/40 overflow-hidden group card-hover-effect">
+        {/* Columna derecha - Meta diaria y Pomodoro */}
+        <div className="space-y-6">
+          {/* Mini Pomodoro Widget */}
+          <div className="sticky top-6">
+            <MiniPomodoro duration={25} theme={theme} compact={false} />
+          </div>
+
+          {/* Meta Diaria */}
+          <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 p-10 rounded-[3.5rem] text-white shadow-2xl shadow-indigo-600/40 overflow-hidden group card-hover-effect">
             {/* Animated background gradient */}
             <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/50 via-transparent to-pink-600/30 opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
 
