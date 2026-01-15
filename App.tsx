@@ -8,7 +8,7 @@ import TaskBoard from './components/TaskBoard';
 import MaterialManager from './components/MaterialManager';
 import PomodoroTimer from './components/PomodoroTimer';
 import StatisticsView from './components/StatisticsView';
-import SubjectManager from './components/SubjectManager';
+import SubjectsManager from './components/SubjectsManager';
 import ExamManager from './components/ExamManager';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
@@ -211,7 +211,7 @@ const App: React.FC = () => {
       <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
         <div className="animate-in fade-in duration-500">
           {activeTab === 'dashboard' && <Dashboard />}
-          {activeTab === 'subjects' && <SubjectManager />}
+          {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <TaskBoard />}
           {activeTab === 'materials' && <MaterialManager />}
