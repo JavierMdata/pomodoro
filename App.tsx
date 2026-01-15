@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from './stores/useAppStore';
-import Layout from './components/Layout';
+import ModernLayout from './components/ModernLayout';
 import ProfileCard from './components/ProfileCard';
 import Dashboard from './components/Dashboard';
 import TaskBoard from './components/TaskBoard';
@@ -11,6 +11,8 @@ import StatisticsView from './components/StatisticsView';
 import SubjectsManager from './components/SubjectsManager';
 import ExamManager from './components/ExamManager';
 import WeeklySchedule from './components/WeeklySchedule';
+import AIStudyPlanner from './components/AIStudyPlanner';
+import EnhancedTaskProgress from './components/EnhancedTaskProgress';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -209,13 +211,14 @@ const App: React.FC = () => {
   // Active Profile Main View
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+      <ModernLayout activeTab={activeTab} setActiveTab={setActiveTab}>
         <div className="animate-in fade-in duration-500">
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'schedule' && <WeeklySchedule />}
+          {activeTab === 'ai-plan' && <AIStudyPlanner />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'exams' && <ExamManager />}
-          {activeTab === 'tasks' && <TaskBoard />}
+          {activeTab === 'tasks' && <EnhancedTaskProgress />}
           {activeTab === 'materials' && <MaterialManager />}
           {activeTab === 'pomodoro' && <PomodoroTimer />}
           {activeTab === 'statistics' && <StatisticsView />}
