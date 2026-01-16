@@ -19,11 +19,46 @@ const WeeklySchedule: React.FC = () => {
 
   // Filtrar horarios del perfil activo
   const activeSchedules = useMemo(() => {
-    if (!activeProfileId) return [];
-    return schedules.filter(s => {
+    console.log('🔍 WeeklySchedule Debug:');
+    console.log('  📋 Total schedules in store:', schedules.length);
+    console.log('  📚 Total subjects in store:', subjects.length);
+    console.log('  👤 Active profile ID:', activeProfileId);
+
+    if (schedules.length > 0) {
+      console.log('  📅 First schedule sample:', schedules[0]);
+    }
+    if (subjects.length > 0) {
+      console.log('  📖 First subject sample:', subjects[0]);
+    }
+
+    if (!activeProfileId) {
+      console.log('  ❌ No active profile ID');
+      return [];
+    }
+
+    const filtered = schedules.filter(s => {
       const subj = subjects.find(sub => sub.id === s.subject_id);
-      return subj?.profile_id === activeProfileId;
+      const matches = subj?.profile_id === activeProfileId;
+
+      if (schedules.indexOf(s) < 3) { // Log first 3 for debugging
+        console.log(`  🔎 Schedule ${s.id}:`, {
+          subject_id: s.subject_id,
+          day_of_week: s.day_of_week,
+          foundSubject: subj ? subj.name : '❌ NOT FOUND',
+          subjectProfileId: subj?.profile_id,
+          matchesActiveProfile: matches
+        });
+      }
+
+      return matches;
     });
+
+    console.log('  ✅ Filtered schedules count:', filtered.length);
+    if (filtered.length > 0) {
+      console.log('  📊 Filtered schedules:', filtered);
+    }
+
+    return filtered;
   }, [schedules, subjects, activeProfileId]);
 
   // Organizar clases por día y hora
@@ -104,6 +139,29 @@ const WeeklySchedule: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Debug Info */}
+      {schedules.length > 0 && activeSchedules.length === 0 && (
+        <div className={`p-6 rounded-[2.5rem] border-2 ${
+          theme === 'dark'
+            ? 'bg-yellow-900/20 border-yellow-500/30 text-yellow-200'
+            : 'bg-yellow-50 border-yellow-300 text-yellow-800'
+        }`}>
+          <div className="flex items-start gap-4">
+            <div className="text-2xl">⚠️</div>
+            <div>
+              <h3 className="font-bold text-lg mb-2">Horarios cargados pero no visibles</h3>
+              <p className="text-sm mb-2">
+                Se encontraron <strong>{schedules.length} horarios</strong> en total y <strong>{subjects.length} materias</strong>,
+                pero ninguno coincide con el perfil activo.
+              </p>
+              <p className="text-xs opacity-80">
+                Abre la consola del navegador (F12) para ver más detalles de depuración.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Schedule Grid */}
       <div className={`rounded-[3.5rem] backdrop-blur-xl border-2 shadow-2xl overflow-hidden ${
