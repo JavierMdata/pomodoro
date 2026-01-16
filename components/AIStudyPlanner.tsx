@@ -53,20 +53,36 @@ const AIStudyPlanner: React.FC = () => {
     [examTopics, exams, subjects, activeProfileId]
   );
 
-  const activeSchedules = useMemo(() =>
-    schedules.filter(sch => {
+  const activeSchedules = useMemo(() => {
+    const filtered = schedules.filter(sch => {
       const subject = subjects.find(s => s.id === sch.subject_id);
       return subject?.profile_id === activeProfileId;
-    }),
-    [schedules, subjects, activeProfileId]
-  );
+    });
+
+    console.log('🧠 AIStudyPlanner - Schedules Debug:', {
+      totalSchedules: schedules.length,
+      filteredSchedules: filtered.length,
+      activeProfileId
+    });
+
+    return filtered;
+  }, [schedules, subjects, activeProfileId]);
 
   const generatePlan = async (useAI: boolean = true) => {
+    console.log('🤖 Generando plan de estudio con IA:', {
+      subjects: activeSubjects.length,
+      exams: activeExams.length,
+      topics: activeTopics.length,
+      schedules: activeSchedules.length,
+      useAI
+    });
+
     setIsGenerating(true);
     try {
       let plan: StudyPlan | null = null;
 
       if (useAI) {
+        console.log('🔑 Intentando usar Gemini AI...');
         // Intenta usar IA automáticamente con API key de entorno
         plan = await generateStudyPlanWithAI(
           activeSubjects,
@@ -77,15 +93,24 @@ const AIStudyPlanner: React.FC = () => {
       }
 
       if (!plan) {
+        console.log('⚠️ IA no generó plan, usando plan básico');
         // Fallback al plan básico
         plan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics, activeSchedules);
+      } else {
+        console.log('✅ Plan generado con IA exitosamente:', {
+          totalSessions: plan.sessions.length,
+          daysSpan: plan.sessions.length > 0 ?
+            Math.ceil((new Date(plan.sessions[plan.sessions.length - 1].date).getTime() - new Date(plan.sessions[0].date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+        });
       }
 
+      console.log('📊 Plan final:', plan);
       setStudyPlan(plan);
     } catch (error) {
-      console.error('Error generando plan:', error);
+      console.error('❌ Error generando plan:', error);
       // Si falla, usar plan básico
       const basicPlan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics, activeSchedules);
+      console.log('🔄 Usando plan básico de fallback:', basicPlan);
       setStudyPlan(basicPlan);
     } finally {
       setIsGenerating(false);

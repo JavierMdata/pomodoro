@@ -155,6 +155,21 @@ export const useAppStore = create<AppState>()(
             });
 
             console.log("✅ Sincronización con Supabase completada");
+            console.log("📊 Datos cargados:", {
+              profiles: (profilesData || []).length,
+              subjects: (subjectsData || []).length,
+              schedules: (schedulesData || []).length,
+              tasks: (tasksData || []).length,
+              exams: (examsData || []).length,
+              examTopics: (topicsData || []).length
+            });
+
+            if ((schedulesData || []).length > 0) {
+              console.log("📅 Primer horario de ejemplo:", schedulesData![0]);
+            }
+            if ((subjectsData || []).length > 0) {
+              console.log("📚 Primera materia de ejemplo:", subjectsData![0]);
+            }
           } else {
             console.log("ℹ️ No hay datos en Supabase o trabajando en modo offline");
           }
