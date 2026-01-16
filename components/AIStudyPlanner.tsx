@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format, isSameDay, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import MiniPomodoro from './MiniPomodoro';
 import {
   generateStudyPlanWithAI,
   generateBasicStudyPlan,
@@ -178,7 +179,12 @@ const AIStudyPlanner: React.FC = () => {
   if (!activeProfileId) return null;
 
   return (
-    <div className={`max-w-7xl mx-auto space-y-8 pb-12 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+    <div className={`max-w-7xl mx-auto space-y-8 pb-12 relative ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+      {/* Mini Pomodoro Widget */}
+      <div className="fixed bottom-8 right-8 z-30">
+        <MiniPomodoro duration={25} theme={theme} compact={false} />
+      </div>
+
       {/* Header con IA */}
       <div className="relative overflow-hidden rounded-[3rem] p-10 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 text-white shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/20 via-transparent to-cyan-500/20" />

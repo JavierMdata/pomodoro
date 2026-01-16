@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { Clock, MapPin, User, ChevronRight, Plus } from 'lucide-react';
+import MiniPomodoro from './MiniPomodoro';
 
 const WeeklySchedule: React.FC = () => {
   const { theme, activeProfileId, subjects, schedules } = useAppStore();
@@ -107,7 +108,11 @@ const WeeklySchedule: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 pb-12 relative">
+      {/* Mini Pomodoro Widget */}
+      <div className="fixed bottom-8 right-8 z-30">
+        <MiniPomodoro duration={25} theme={theme} compact={false} />
+      </div>
       {/* Header */}
       <div className="relative">
         <div className="absolute inset-0 -z-10 overflow-hidden rounded-[4rem]">

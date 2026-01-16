@@ -1,12 +1,13 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import { 
-  Plus, ClipboardList, BookOpen, AlertCircle, 
+import {
+  Plus, ClipboardList, BookOpen, AlertCircle,
   ChevronRight, Calendar, Trash2, CheckCircle2, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import MiniPomodoro from './MiniPomodoro';
 
 const ExamManager: React.FC = () => {
   const { 
@@ -50,7 +51,12 @@ const ExamManager: React.FC = () => {
   };
 
   return (
-    <div className={`max-w-5xl mx-auto space-y-8 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+    <div className={`max-w-5xl mx-auto space-y-8 relative ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+      {/* Mini Pomodoro Widget */}
+      <div className="fixed bottom-8 right-8 z-30">
+        <MiniPomodoro duration={25} theme={theme} compact={false} />
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black tracking-tight">Evaluaciones</h1>
