@@ -239,9 +239,12 @@ export const generateStudyPlanWithAI = async (
     const geminiKey = apiKey || import.meta.env.VITE_GEMINI_API_KEY;
 
     if (!geminiKey) {
-      console.warn('No Gemini API key available, using basic plan');
+      console.warn('⚠️ No Gemini API key available, using basic plan');
+      console.warn('💡 Configura VITE_GEMINI_API_KEY en Vercel o .env local');
       return null;
     }
+
+    console.log('🔑 API Key detectada, generando plan con IA Gemini...');
 
     const currentDate = new Date();
     const prompt = generateStudyPlanPrompt(subjects, exams, topics, schedules, currentDate);
