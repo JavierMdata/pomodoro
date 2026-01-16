@@ -164,11 +164,34 @@ export const useAppStore = create<AppState>()(
               examTopics: (topicsData || []).length
             });
 
-            if ((schedulesData || []).length > 0) {
-              console.log("📅 Primer horario de ejemplo:", schedulesData![0]);
-            }
-            if ((subjectsData || []).length > 0) {
+            // Validar si hay materias
+            if ((subjectsData || []).length === 0) {
+              console.error("❌ ERROR: No se encontraron materias en Supabase");
+              console.error("   → La tabla 'subjects' está vacía");
+              console.error("   → Debes agregar materias primero para poder crear horarios");
+            } else {
               console.log("📚 Primera materia de ejemplo:", subjectsData![0]);
+            }
+
+            // Validar si hay horarios
+            if ((schedulesData || []).length === 0) {
+              console.error("❌ ERROR: No se encontraron horarios en Supabase");
+              console.error("   → La tabla 'class_schedule' está vacía");
+              console.error("   → Agrega horarios a tus materias para verlos en el calendario");
+            } else {
+              console.log("📅 Primer horario de ejemplo:", schedulesData![0]);
+
+              // Validar que los horarios tengan materias asociadas
+              const orphanSchedules = (schedulesData || []).filter(schedule =>
+                !(subjectsData || []).some(subject => subject.id === schedule.subject_id)
+              );
+
+              if (orphanSchedules.length > 0) {
+                console.error("⚠️ ADVERTENCIA: Se encontraron horarios sin materia asociada");
+                console.error(`   → ${orphanSchedules.length} horario(s) no tienen una materia válida`);
+                console.error("   → Estos horarios no se mostrarán en el calendario");
+                console.error("   → Horarios huérfanos:", orphanSchedules);
+              }
             }
           } else {
             console.log("ℹ️ No hay datos en Supabase o trabajando en modo offline");

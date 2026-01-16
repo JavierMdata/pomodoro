@@ -25,6 +25,28 @@ const WeeklySchedule: React.FC = () => {
     console.log('  📚 Total subjects in store:', subjects.length);
     console.log('  👤 Active profile ID:', activeProfileId);
 
+    // Validar si no hay datos en absoluto
+    if (schedules.length === 0 && subjects.length === 0) {
+      console.error('❌ ERROR CRÍTICO: No hay materias ni horarios cargados');
+      console.error('   → Verifica que la sincronización con Supabase haya funcionado');
+      console.error('   → Revisa la consola para ver los mensajes de sincronización');
+      return [];
+    }
+
+    if (subjects.length === 0) {
+      console.error('❌ ERROR: No hay materias cargadas');
+      console.error('   → Sin materias, no es posible mostrar horarios');
+      console.error('   → Agrega materias primero usando el botón "Nueva Materia"');
+      return [];
+    }
+
+    if (schedules.length === 0) {
+      console.error('❌ ERROR: No hay horarios cargados');
+      console.error('   → Tienes materias pero sin horarios asignados');
+      console.error('   → Agrega horarios a tus materias para verlos aquí');
+      return [];
+    }
+
     if (schedules.length > 0) {
       console.log('  📅 First schedule sample:', schedules[0]);
     }
@@ -57,6 +79,11 @@ const WeeklySchedule: React.FC = () => {
     console.log('  ✅ Filtered schedules count:', filtered.length);
     if (filtered.length > 0) {
       console.log('  📊 Filtered schedules:', filtered);
+    } else if (schedules.length > 0) {
+      console.error('⚠️ ADVERTENCIA: Hay horarios pero ninguno coincide con el perfil activo');
+      console.error(`   → Total de horarios: ${schedules.length}`);
+      console.error(`   → Horarios que coinciden con perfil ${activeProfileId}: 0`);
+      console.error('   → Verifica que los horarios estén asociados al perfil correcto');
     }
 
     return filtered;
