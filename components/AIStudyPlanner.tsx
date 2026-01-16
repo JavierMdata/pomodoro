@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format, isSameDay, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import MiniPomodoro from './MiniPomodoro';
 import {
   generateStudyPlanWithAI,
   generateBasicStudyPlan,
@@ -53,20 +54,36 @@ const AIStudyPlanner: React.FC = () => {
     [examTopics, exams, subjects, activeProfileId]
   );
 
-  const activeSchedules = useMemo(() =>
-    schedules.filter(sch => {
+  const activeSchedules = useMemo(() => {
+    const filtered = schedules.filter(sch => {
       const subject = subjects.find(s => s.id === sch.subject_id);
       return subject?.profile_id === activeProfileId;
-    }),
-    [schedules, subjects, activeProfileId]
-  );
+    });
+
+    console.log('🧠 AIStudyPlanner - Schedules Debug:', {
+      totalSchedules: schedules.length,
+      filteredSchedules: filtered.length,
+      activeProfileId
+    });
+
+    return filtered;
+  }, [schedules, subjects, activeProfileId]);
 
   const generatePlan = async (useAI: boolean = true) => {
+    console.log('🤖 Generando plan de estudio con IA:', {
+      subjects: activeSubjects.length,
+      exams: activeExams.length,
+      topics: activeTopics.length,
+      schedules: activeSchedules.length,
+      useAI
+    });
+
     setIsGenerating(true);
     try {
       let plan: StudyPlan | null = null;
 
       if (useAI) {
+        console.log('🔑 Intentando usar Gemini AI...');
         // Intenta usar IA automáticamente con API key de entorno
         plan = await generateStudyPlanWithAI(
           activeSubjects,
@@ -77,15 +94,24 @@ const AIStudyPlanner: React.FC = () => {
       }
 
       if (!plan) {
+        console.log('⚠️ IA no generó plan, usando plan básico');
         // Fallback al plan básico
         plan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics, activeSchedules);
+      } else {
+        console.log('✅ Plan generado con IA exitosamente:', {
+          totalSessions: plan.sessions.length,
+          daysSpan: plan.sessions.length > 0 ?
+            Math.ceil((new Date(plan.sessions[plan.sessions.length - 1].date).getTime() - new Date(plan.sessions[0].date).getTime()) / (1000 * 60 * 60 * 24)) : 0
+        });
       }
 
+      console.log('📊 Plan final:', plan);
       setStudyPlan(plan);
     } catch (error) {
-      console.error('Error generando plan:', error);
+      console.error('❌ Error generando plan:', error);
       // Si falla, usar plan básico
       const basicPlan = generateBasicStudyPlan(activeSubjects, activeExams, activeTopics, activeSchedules);
+      console.log('🔄 Usando plan básico de fallback:', basicPlan);
       setStudyPlan(basicPlan);
     } finally {
       setIsGenerating(false);
@@ -153,7 +179,12 @@ const AIStudyPlanner: React.FC = () => {
   if (!activeProfileId) return null;
 
   return (
-    <div className={`max-w-7xl mx-auto space-y-8 pb-12 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+    <div className={`max-w-7xl mx-auto space-y-8 pb-12 relative ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+      {/* Mini Pomodoro Widget */}
+      <div className="fixed bottom-8 right-8 z-30">
+        <MiniPomodoro duration={25} theme={theme} compact={false} />
+      </div>
+
       {/* Header con IA */}
       <div className="relative overflow-hidden rounded-[3rem] p-10 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600 text-white shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/20 via-transparent to-cyan-500/20" />
