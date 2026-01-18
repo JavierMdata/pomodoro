@@ -134,6 +134,87 @@ const WeeklySchedule: React.FC = () => {
     );
   }
 
+  // Mostrar mensaje útil si no hay horarios
+  if (schedules.length === 0 && subjects.length > 0) {
+    return (
+      <div className="space-y-8 pb-12 relative">
+        {/* Mini Pomodoro Widget */}
+        <div className="fixed bottom-8 right-8 z-30">
+          <MiniPomodoro duration={25} theme={theme} compact={false} />
+        </div>
+
+        {/* Header */}
+        <div className={`p-12 rounded-[3.5rem] backdrop-blur-xl border-2 shadow-2xl ${
+          theme === 'dark'
+            ? 'bg-slate-900/60 border-white/10'
+            : 'bg-white/60 border-slate-200/50'
+        }`}>
+          <h1 className="text-6xl font-black tracking-tight bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            Mi Horario
+          </h1>
+        </div>
+
+        {/* Mensaje de ayuda */}
+        <div className={`p-10 rounded-[3rem] border-2 ${
+          theme === 'dark'
+            ? 'bg-gradient-to-br from-orange-900/30 to-red-900/30 border-orange-500/30 text-orange-100'
+            : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-300 text-orange-900'
+        }`}>
+          <div className="flex items-start gap-6">
+            <div className="text-5xl">📅</div>
+            <div className="flex-1">
+              <h2 className="text-3xl font-black mb-4">¡Tienes materias pero sin horarios asignados!</h2>
+              <p className="text-lg mb-6 font-medium">
+                Encontramos <strong>{subjects.length} materias</strong> en tu perfil, pero no tienen horarios de clase configurados.
+              </p>
+
+              <div className={`p-6 rounded-2xl mb-6 ${
+                theme === 'dark' ? 'bg-black/30' : 'bg-white/50'
+              }`}>
+                <h3 className="font-black text-xl mb-3">🚀 Solución Rápida:</h3>
+                <ol className="space-y-3 text-base font-medium">
+                  <li className="flex items-start gap-3">
+                    <span className="font-black text-orange-500">1.</span>
+                    <span>Abre <strong>Supabase SQL Editor</strong> (supabase.com → tu proyecto → SQL Editor)</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="font-black text-orange-500">2.</span>
+                    <span>Ejecuta el script <code className="px-2 py-1 bg-black/20 rounded font-mono text-sm">supabase/add_sample_schedules.sql</code></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="font-black text-orange-500">3.</span>
+                    <span>El script creará automáticamente 2 horarios por semana para cada materia</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="font-black text-orange-500">4.</span>
+                    <span>Recarga esta página (F5)</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div className={`p-6 rounded-2xl ${
+                theme === 'dark' ? 'bg-black/30' : 'bg-white/50'
+              }`}>
+                <h3 className="font-black text-xl mb-3">📝 Instrucciones Detalladas:</h3>
+                <p className="font-medium">
+                  Lee el archivo <code className="px-2 py-1 bg-black/20 rounded font-mono text-sm">supabase/COMO_AÑADIR_HORARIOS.md</code> en tu proyecto
+                  para instrucciones paso a paso.
+                </p>
+              </div>
+
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30">
+                <p className="font-black text-sm">
+                  💡 <strong>Tip:</strong> Una vez tengas horarios, la IA los usará para generar planes de estudio
+                  inteligentes que no choquen con tus clases.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 pb-12 relative">
       {/* Mini Pomodoro Widget */}
