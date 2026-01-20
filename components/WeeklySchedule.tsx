@@ -149,66 +149,21 @@ const WeeklySchedule: React.FC = () => {
           </h1>
         </div>
 
-        {/* Mensaje de ayuda */}
-        <div className={`p-10 rounded-[3rem] border-2 ${
+                {/* Mensaje simple */}
+        <div className={`p-8 rounded-3xl border ${
           theme === 'dark'
-            ? 'bg-gradient-to-br from-orange-900/30 to-red-900/30 border-orange-500/30 text-orange-100'
-            : 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-300 text-orange-900'
+            ? 'bg-slate-800/50 border-slate-700 text-slate-300'
+            : 'bg-slate-50 border-slate-200 text-slate-600'
         }`}>
-          <div className="flex items-start gap-6">
-            <div className="text-5xl">📅</div>
-            <div className="flex-1">
-              <h2 className="text-3xl font-black mb-4">¡Tienes materias pero sin horarios asignados!</h2>
-              <p className="text-lg mb-6 font-medium">
-                Encontramos <strong>{subjects.length} materias</strong> en tu perfil, pero no tienen horarios de clase configurados.
-              </p>
-
-              <div className={`p-6 rounded-2xl mb-6 ${
-                theme === 'dark' ? 'bg-black/30' : 'bg-white/50'
-              }`}>
-                <h3 className="font-black text-xl mb-3">🚀 Solución Rápida:</h3>
-                <ol className="space-y-3 text-base font-medium">
-                  <li className="flex items-start gap-3">
-                    <span className="font-black text-orange-500">1.</span>
-                    <span>Abre <strong>Supabase SQL Editor</strong> (supabase.com → tu proyecto → SQL Editor)</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="font-black text-orange-500">2.</span>
-                    <span>Ejecuta el script <code className="px-2 py-1 bg-black/20 rounded font-mono text-sm">supabase/add_sample_schedules.sql</code></span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="font-black text-orange-500">3.</span>
-                    <span>El script creará automáticamente 2 horarios por semana para cada materia</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="font-black text-orange-500">4.</span>
-                    <span>Recarga esta página (F5)</span>
-                  </li>
-                </ol>
-              </div>
-
-              <div className={`p-6 rounded-2xl ${
-                theme === 'dark' ? 'bg-black/30' : 'bg-white/50'
-              }`}>
-                <h3 className="font-black text-xl mb-3">📝 Instrucciones Detalladas:</h3>
-                <p className="font-medium">
-                  Lee el archivo <code className="px-2 py-1 bg-black/20 rounded font-mono text-sm">supabase/COMO_AÑADIR_HORARIOS.md</code> en tu proyecto
-                  para instrucciones paso a paso.
-                </p>
-              </div>
-
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30">
-                <p className="font-black text-sm">
-                  💡 <strong>Tip:</strong> Una vez tengas horarios, la IA los usará para generar planes de estudio
-                  inteligentes que no choquen con tus clases.
-                </p>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="text-3xl">📅</div>
+            <div>
+              <p className="font-bold text-lg">No hay horarios configurados</p>
+              <p className="text-sm">Agrega horarios a tus {subjects.length} materias desde la sección de Materias.</p>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="space-y-8 pb-12 relative">
