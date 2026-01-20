@@ -141,11 +141,6 @@ const SubjectsManager: React.FC = () => {
 
   return (
     <div className="min-h-screen p-8 relative">
-      {/* Mini Pomodoro Widget */}
-      <div className="fixed bottom-8 right-8 z-30">
-        <MiniPomodoro duration={25} theme={theme} compact={false} />
-      </div>
-
       {/* Header con glassmorphism */}
       <div className="relative mb-12">
         {/* Animated background gradient */}

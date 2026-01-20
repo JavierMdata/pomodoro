@@ -161,31 +161,21 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
         </div>
       </main>
 
-      {/* Mini Pomodoro Floating Button */}
-      <button
-        onClick={() => setActiveTab('pomodoro')}
-        className={`fixed bottom-8 right-8 z-50 w-16 h-16 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center group ${
-          activeTab === 'pomodoro'
-            ? 'bg-gradient-to-br from-red-500 to-orange-500'
-            : 'bg-gradient-to-br from-indigo-600 to-purple-600'
-        }`}
-        style={{
-          boxShadow: activeTab === 'pomodoro'
-            ? '0 20px 60px rgba(239, 68, 68, 0.4)'
-            : '0 20px 60px rgba(99, 102, 241, 0.4)'
-        }}
-      >
-        {activeTab === 'pomodoro' ? (
-          <Flame size={28} className="text-white animate-pulse" />
-        ) : (
+      {/* Mini Pomodoro Floating Button - Solo visible cuando NO estás en pomodoro */}
+      {activeTab !== 'pomodoro' && (
+        <button
+          onClick={() => setActiveTab('pomodoro')}
+          className="fixed bottom-8 right-8 z-50 w-16 h-16 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center group bg-gradient-to-br from-indigo-600 to-purple-600"
+          style={{
+            boxShadow: '0 20px 60px rgba(99, 102, 241, 0.4)'
+          }}
+        >
           <Timer size={28} className="text-white group-hover:rotate-12 transition-transform" />
-        )}
 
-        {/* Pulse effect */}
-        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${
-          activeTab === 'pomodoro' ? 'bg-red-500' : 'bg-indigo-500'
-        }`} />
-      </button>
+          {/* Pulse effect */}
+          <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-indigo-500" />
+        </button>
+      )}
 
       {/* Quick Stats Floating Widget */}
       <div className={`hidden lg:block fixed bottom-8 left-8 z-50 p-6 rounded-3xl backdrop-blur-2xl border shadow-2xl transition-all ${

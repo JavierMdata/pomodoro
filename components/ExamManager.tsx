@@ -52,11 +52,6 @@ const ExamManager: React.FC = () => {
 
   return (
     <div className={`max-w-5xl mx-auto space-y-8 relative ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-      {/* Mini Pomodoro Widget */}
-      <div className="fixed bottom-8 right-8 z-30">
-        <MiniPomodoro duration={25} theme={theme} compact={false} />
-      </div>
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black tracking-tight">Evaluaciones</h1>

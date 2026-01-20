@@ -138,11 +138,6 @@ const WeeklySchedule: React.FC = () => {
   if (schedules.length === 0 && subjects.length > 0) {
     return (
       <div className="space-y-8 pb-12 relative">
-        {/* Mini Pomodoro Widget */}
-        <div className="fixed bottom-8 right-8 z-30">
-          <MiniPomodoro duration={25} theme={theme} compact={false} />
-        </div>
-
         {/* Header */}
         <div className={`p-12 rounded-[3.5rem] backdrop-blur-xl border-2 shadow-2xl ${
           theme === 'dark'
@@ -217,10 +212,6 @@ const WeeklySchedule: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-12 relative">
-      {/* Mini Pomodoro Widget */}
-      <div className="fixed bottom-8 right-8 z-30">
-        <MiniPomodoro duration={25} theme={theme} compact={false} />
-      </div>
       {/* Header */}
       <div className="relative">
         <div className="absolute inset-0 -z-10 overflow-hidden rounded-[4rem]">
