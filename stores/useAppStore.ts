@@ -77,7 +77,7 @@ export const useAppStore = create<AppState>()(
 
             // Cargar configuraciones de pomodoro
             const { data: settingsData } = await supabase
-              .from('pomodoro_default_settings')
+              .from('pomodoro_settings')
               .select('*');
 
             const settingsMap: Record<string, PomodoroSettings> = {};
@@ -122,7 +122,7 @@ export const useAppStore = create<AppState>()(
 
             // Cargar materiales
             const { data: materialsData } = await supabase
-              .from('study_materials')
+              .from('materials')
               .select('*')
               .order('created_at', { ascending: false });
 
@@ -294,7 +294,7 @@ export const useAppStore = create<AppState>()(
         }
         
         // Guardar sesión en Supabase para analíticas
-        supabase.from('sessions').insert([{ ...session, id }]).then();
+        supabase.from('pomodoro_sessions').insert([{ ...session, id }]).then();
 
         set((state) => ({ sessions: [...state.sessions, { ...session, id }] }));
       },
