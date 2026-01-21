@@ -109,6 +109,7 @@ export interface PomodoroSession {
   task_id?: string;
   exam_topic_id?: string;
   material_id?: string;
+  book_id?: string; // NUEVO: Libro asociado a la sesión
   session_type: 'work' | 'short_break' | 'long_break';
   planned_duration_minutes: number;
   duration_seconds: number;
@@ -160,7 +161,8 @@ export type EntityType =
   | 'exam'
   | 'exam_topic'
   | 'material'
-  | 'focus_journal';
+  | 'focus_journal'
+  | 'book'; // NUEVO: Libros como nodos del grafo
 
 // Referencia a una entidad (para enlaces)
 export interface EntityRef {
@@ -303,4 +305,210 @@ export interface GraphData {
     weight: number;
     color?: string;
   }>;
+}
+
+// ================================================================
+// SISTEMA DE GESTIÓN DE LIBROS Y LECTURA
+// ================================================================
+
+// Estado de lectura del libro
+export type BookStatus = 'not_started' | 'reading' | 'paused' | 'completed' | 'abandoned';
+
+// Géneros de libros
+export type BookGenre = 'ficcion' | 'no_ficcion' | 'academico' | 'tecnico' | 'autoayuda' | 'biografia' | 'historia' | 'ciencia' | 'filosofia' | 'otro';
+
+// Libro
+export interface Book {
+  id: string;
+  profile_id: string;
+  subject_id?: string; // Opcional: para libros académicos vinculados a una materia
+
+  // Información del libro
+  title: string;
+  author?: string;
+  isbn?: string;
+  publisher?: string;
+  publication_year?: number;
+  genre?: BookGenre;
+  language?: string;
+
+  // Estructura del libro
+  total_pages: number;
+  total_chapters?: number;
+
+  // Progreso de lectura
+  current_page: number;
+  current_chapter?: number;
+
+  // Fechas importantes (calculadas automáticamente)
+  start_date?: string;
+  halfway_date?: string;
+  completion_date?: string;
+  last_read_date?: string;
+
+  // Estado
+  status: BookStatus;
+
+  // Objetivos
+  daily_pages_goal?: number;
+  target_completion_date?: string;
+
+  // Estadísticas (calculadas automáticamente)
+  total_reading_time_minutes: number;
+  pages_per_hour?: number;
+  reading_streak_days: number;
+  active_reading_days: number;
+
+  // Metadata
+  cover_url?: string;
+  notes?: string;
+  rating?: number; // 1-5 estrellas
+  is_favorite: boolean;
+  tags?: string[];
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+// Sesión de lectura
+export interface BookReadingSession {
+  id: string;
+  book_id: string;
+  profile_id: string;
+  pomodoro_session_id?: string; // Vinculación con pomodoro
+
+  // Progreso de la sesión
+  start_page: number;
+  end_page: number;
+  pages_read: number; // Calculado automáticamente
+
+  chapter_number?: number;
+  chapter_name?: string;
+
+  // Tiempo y duración
+  session_date: string;
+  duration_minutes: number;
+  started_at?: string;
+  completed_at?: string;
+
+  // Evaluación de la sesión
+  focus_rating?: number; // 1-5
+  enjoyment_rating?: number; // 1-5
+  comprehension_rating?: number; // 1-5
+
+  // Notas
+  session_notes?: string;
+  quick_summary?: string;
+
+  created_at: string;
+}
+
+// Citas y highlights del libro
+export interface BookQuote {
+  id: string;
+  book_id: string;
+  profile_id: string;
+
+  // Contenido de la cita
+  quote_text: string;
+  page_number?: number;
+  chapter_number?: number;
+  chapter_name?: string;
+
+  // Contexto
+  context?: string;
+  personal_note?: string;
+
+  // Categorización
+  category?: string;
+  tags?: string[];
+  is_favorite: boolean;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+}
+
+// Tipo de objetivo de lectura
+export type ReadingGoalType = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
+// Unidad del objetivo
+export type ReadingGoalUnit = 'pages' | 'chapters' | 'books' | 'minutes';
+
+// Objetivo de lectura
+export interface ReadingGoal {
+  id: string;
+  profile_id: string;
+
+  // Tipo de objetivo
+  goal_type: ReadingGoalType;
+  goal_unit: ReadingGoalUnit;
+  target_amount: number;
+
+  // Período
+  start_date: string;
+  end_date: string;
+
+  // Progreso
+  current_progress: number;
+  progress_percentage: number;
+
+  // Estado
+  is_active: boolean;
+  is_completed: boolean;
+  completed_at?: string;
+
+  // Metadata
+  title?: string;
+  description?: string;
+
+  created_at: string;
+  updated_at: string;
+}
+
+// Estadísticas de libros por perfil (vista)
+export interface BookStatistics {
+  profile_id: string;
+  total_books: number;
+  books_completed: number;
+  books_in_progress: number;
+  books_not_started: number;
+  total_pages_read: number;
+  total_reading_time_minutes: number;
+  avg_reading_speed_pages_per_hour: number;
+  avg_book_rating: number;
+  longest_reading_streak: number;
+}
+
+// Progreso de lectura actual (vista)
+export interface CurrentReadingProgress {
+  book_id: string;
+  profile_id: string;
+  title: string;
+  author?: string;
+  total_pages: number;
+  current_page: number;
+  progress_percentage: number;
+  pages_remaining: number;
+  start_date?: string;
+  last_read_date?: string;
+  target_completion_date?: string;
+  pages_per_hour?: number;
+  estimated_minutes_remaining?: number;
+  estimated_completion_date?: string;
+  reading_streak_days: number;
+  status: BookStatus;
+}
+
+// Actividad de lectura por mes (vista)
+export interface ReadingActivityByMonth {
+  profile_id: string;
+  month: string;
+  books_read: number;
+  total_sessions: number;
+  total_pages_read: number;
+  total_minutes_read: number;
+  avg_focus_rating: number;
+  avg_enjoyment_rating: number;
 }
