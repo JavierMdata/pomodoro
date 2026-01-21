@@ -2,8 +2,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
-import { 
-  Profile, SchoolPeriod, Subject, ClassSchedule, Task, Exam, 
+import {
+  Profile, SchoolPeriod, Subject, Task, Exam,
   ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert
 } from '../types';
 
@@ -13,7 +13,6 @@ interface AppState {
   activeProfileId: string | null;
   periods: SchoolPeriod[];
   subjects: Subject[];
-  schedules: ClassSchedule[];
   tasks: Task[];
   exams: Exam[];
   examTopics: ExamTopic[];
@@ -28,11 +27,16 @@ interface AppState {
   setActiveProfile: (id: string | null) => void;
   addPeriod: (period: Omit<SchoolPeriod, 'id'>) => void;
   addSubject: (subject: Omit<Subject, 'id'>) => void;
-  addSchedule: (schedule: Omit<ClassSchedule, 'id'>) => void;
+  updateSubject: (id: string, updates: Partial<Subject>) => void;
+  deleteSubject: (id: string) => void;
   addTask: (task: Omit<Task, 'id' | 'completed_pomodoros'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   addExam: (exam: Omit<Exam, 'id'>) => void;
+  updateExam: (id: string, updates: Partial<Exam>) => void;
+  deleteExam: (id: string) => void;
   addExamTopic: (topic: Omit<ExamTopic, 'id' | 'completed_pomodoros'>) => void;
+  updateExamTopic: (id: string, updates: Partial<ExamTopic>) => void;
+  deleteExamTopic: (id: string) => void;
   addMaterial: (material: Omit<Material, 'id'>) => void;
   updateMaterial: (id: string, updates: Partial<Material>) => void;
   addSession: (session: Omit<PomodoroSession, 'id'>) => void;
@@ -51,7 +55,6 @@ export const useAppStore = create<AppState>()(
       activeProfileId: null,
       periods: [],
       subjects: [],
-      schedules: [],
       tasks: [],
       exams: [],
       examTopics: [],
@@ -97,12 +100,6 @@ export const useAppStore = create<AppState>()(
               .select('*')
               .order('name', { ascending: true });
 
-            // Cargar horarios
-            const { data: schedulesData } = await supabase
-              .from('class_schedule')
-              .select('*')
-              .order('day_of_week', { ascending: true });
-
             // Cargar tareas
             const { data: tasksData } = await supabase
               .from('tasks')
@@ -145,7 +142,6 @@ export const useAppStore = create<AppState>()(
               settings: settingsMap,
               periods: periodsData || [],
               subjects: subjectsData || [],
-              schedules: schedulesData || [],
               tasks: tasksData || [],
               exams: examsData || [],
               examTopics: topicsData || [],
@@ -158,7 +154,6 @@ export const useAppStore = create<AppState>()(
             console.log("📊 Datos cargados:", {
               profiles: (profilesData || []).length,
               subjects: (subjectsData || []).length,
-              schedules: (schedulesData || []).length,
               tasks: (tasksData || []).length,
               exams: (examsData || []).length,
               examTopics: (topicsData || []).length
@@ -168,30 +163,9 @@ export const useAppStore = create<AppState>()(
             if ((subjectsData || []).length === 0) {
               console.error("❌ ERROR: No se encontraron materias en Supabase");
               console.error("   → La tabla 'subjects' está vacía");
-              console.error("   → Debes agregar materias primero para poder crear horarios");
+              console.error("   → Debes agregar materias primero");
             } else {
               console.log("📚 Primera materia de ejemplo:", subjectsData![0]);
-            }
-
-            // Validar si hay horarios
-            if ((schedulesData || []).length === 0) {
-              console.error("❌ ERROR: No se encontraron horarios en Supabase");
-              console.error("   → La tabla 'class_schedule' está vacía");
-              console.error("   → Agrega horarios a tus materias para verlos en el calendario");
-            } else {
-              console.log("📅 Primer horario de ejemplo:", schedulesData![0]);
-
-              // Validar que los horarios tengan materias asociadas
-              const orphanSchedules = (schedulesData || []).filter(schedule =>
-                !(subjectsData || []).some(subject => subject.id === schedule.subject_id)
-              );
-
-              if (orphanSchedules.length > 0) {
-                console.error("⚠️ ADVERTENCIA: Se encontraron horarios sin materia asociada");
-                console.error(`   → ${orphanSchedules.length} horario(s) no tienen una materia válida`);
-                console.error("   → Estos horarios no se mostrarán en el calendario");
-                console.error("   → Horarios huérfanos:", orphanSchedules);
-              }
             }
           } else {
             console.log("ℹ️ No hay datos en Supabase o trabajando en modo offline");
@@ -252,8 +226,15 @@ export const useAppStore = create<AppState>()(
         subjects: [...state.subjects, { ...subject, id: crypto.randomUUID() }]
       })),
 
-      addSchedule: (schedule) => set((state) => ({
-        schedules: [...state.schedules, { ...schedule, id: crypto.randomUUID() }]
+      updateSubject: (id, updates) => set((state) => ({
+        subjects: state.subjects.map(s => s.id === id ? { ...s, ...updates } : s)
+      })),
+
+      deleteSubject: (id) => set((state) => ({
+        subjects: state.subjects.filter(s => s.id !== id),
+        tasks: state.tasks.filter(t => t.subject_id !== id),
+        exams: state.exams.filter(e => e.subject_id !== id),
+        materials: state.materials.filter(m => m.subject_id !== id)
       })),
 
       addTask: (task) => set((state) => ({
@@ -268,8 +249,25 @@ export const useAppStore = create<AppState>()(
         exams: [...state.exams, { ...exam, id: crypto.randomUUID() }]
       })),
 
+      updateExam: (id, updates) => set((state) => ({
+        exams: state.exams.map(e => e.id === id ? { ...e, ...updates } : e)
+      })),
+
+      deleteExam: (id) => set((state) => ({
+        exams: state.exams.filter(e => e.id !== id),
+        examTopics: state.examTopics.filter(et => et.exam_id !== id)
+      })),
+
       addExamTopic: (topic) => set((state) => ({
         examTopics: [...state.examTopics, { ...topic, id: crypto.randomUUID(), completed_pomodoros: 0 }]
+      })),
+
+      updateExamTopic: (id, updates) => set((state) => ({
+        examTopics: state.examTopics.map(et => et.id === id ? { ...et, ...updates } : et)
+      })),
+
+      deleteExamTopic: (id) => set((state) => ({
+        examTopics: state.examTopics.filter(et => et.id !== id)
       })),
 
       addMaterial: (material) => set((state) => ({

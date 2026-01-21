@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import {
   ClipboardList, BookOpen, Timer, BarChart3, Settings,
-  LayoutGrid, LayoutDashboard, GraduationCap, FileText,
-  Moon, Sun, Flame, Brain
+  LayoutDashboard, GraduationCap, FileText,
+  Moon, Sun, Flame
 } from 'lucide-react';
 
 interface ModernLayoutProps {
@@ -17,8 +17,6 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
   const menuItems = [
-    { id: 'schedule', label: 'Horario', icon: LayoutGrid, color: '#10B981', emoji: '📅' },
-    { id: 'ai-plan', label: 'Plan IA', icon: Brain, color: '#8B5CF6', emoji: '🧠' },
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, color: '#3B82F6', emoji: '🏠' },
     { id: 'subjects', label: 'Materias', icon: GraduationCap, color: '#EC4899', emoji: '📚' },
     { id: 'exams', label: 'Exámenes', icon: FileText, color: '#F59E0B', emoji: '📝' },
