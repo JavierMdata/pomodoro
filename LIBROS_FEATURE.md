@@ -4,6 +4,21 @@
 
 He creado una **sección completa de Libros** para PomoSmart que te permitirá rastrear tu progreso de lectura, medir tu evolución y alcanzar tus metas de lectura. Esta funcionalidad va **mucho más allá** de lo que solicitaste inicialmente.
 
+## ✅ VERSIÓN 2.0 - CORRECCIONES Y MEJORAS
+
+### 🔧 Correcciones Importantes:
+- ✅ **SQL corregido**: Ahora la integración con la tabla `sessions` es opcional y no causará errores
+- ✅ **Compatibilidad mejorada**: El script detecta automáticamente qué tablas existen
+- ✅ **Manejo robusto de errores**: Usa bloques `DO $$` para operaciones opcionales
+
+### 🆕 Nuevas Características - Estadísticas por Autor:
+- ✅ **Vista `author_statistics`**: Estadísticas completas por autor
+- ✅ **Vista `top_favorite_authors`**: Ranking de autores favoritos
+- ✅ **Función `get_top_authors()`**: Obtén los autores más leídos
+- ✅ **Función `get_books_by_author()`**: Lista todos los libros de un autor
+- ✅ **Componente `AuthorStatistics.tsx`**: Dashboard visual de autores
+- ✅ **Índice por autor**: Búsquedas rápidas en la base de datos
+
 ## ✨ Características Implementadas
 
 ### 📖 Características Básicas (Lo que pediste)
@@ -130,6 +145,15 @@ He creado una **sección completa de Libros** para PomoSmart que te permitirá r
 - ✅ Tabla de sesiones recientes
 - ✅ Visualización de objetivos activos con barras de progreso
 
+📄 `/components/AuthorStatistics.tsx` - **NUEVO** Dashboard de autores con:
+- ✅ 4 tarjetas de estadísticas globales de autores
+- ✅ Ranking de autores con badges (oro, plata, bronce)
+- ✅ Lista expandible de libros por autor
+- ✅ Estadísticas detalladas: completados, páginas, tiempo, tasa de finalización
+- ✅ Ordenamiento por completados, total, rating o páginas
+- ✅ Vista de cada libro con estado y progreso
+- ✅ Diseño responsive y moderno
+
 ---
 
 ## 🚀 Instalación
@@ -159,6 +183,7 @@ Abre tu archivo principal (probablemente `App.tsx` o `Dashboard.tsx`) y agrega:
 ```tsx
 import BooksManager from './components/BooksManager';
 import ReadingStatistics from './components/ReadingStatistics';
+import AuthorStatistics from './components/AuthorStatistics'; // NUEVO
 
 // En tu componente:
 function App() {
@@ -185,6 +210,12 @@ function App() {
         books={books}
         sessions={readingSessions}
         goals={readingGoals}
+        profileId={activeProfileId}
+      />
+
+      {/* NUEVO: Sección de Estadísticas por Autor */}
+      <AuthorStatistics
+        books={books}
         profileId={activeProfileId}
       />
     </div>
@@ -375,6 +406,42 @@ ORDER BY progress_percentage DESC;
 SELECT * FROM reading_activity_by_month
 WHERE profile_id = 'tu-profile-id'
 ORDER BY month DESC;
+```
+
+### 🆕 Ver Estadísticas por Autor
+```sql
+-- Todos los autores con sus estadísticas
+SELECT * FROM author_statistics
+WHERE profile_id = 'tu-profile-id'
+ORDER BY books_completed DESC;
+
+-- Top autores favoritos
+SELECT * FROM top_favorite_authors
+WHERE profile_id = 'tu-profile-id'
+LIMIT 10;
+```
+
+### 🆕 Obtener Top Autores (función)
+```sql
+-- Obtener los 10 autores más leídos
+SELECT * FROM get_top_authors('tu-profile-id', 10);
+
+-- Resultado incluye:
+-- - author: nombre del autor
+-- - total_books: total de libros
+-- - books_completed: libros completados
+-- - total_pages_read: páginas totales
+-- - total_time_hours: horas dedicadas
+-- - avg_rating: calificación promedio
+-- - completion_rate: tasa de finalización
+```
+
+### 🆕 Obtener Libros de un Autor Específico
+```sql
+-- Todos los libros de James Clear
+SELECT * FROM get_books_by_author('tu-profile-id', 'James Clear');
+
+-- Resultado ordenado por estado (reading > completed > paused)
 ```
 
 ### Obtener Recomendación de Qué Leer

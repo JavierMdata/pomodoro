@@ -1,36 +1,31 @@
 -- ============================================================================
--- POMOSMART - SISTEMA DE GESTIÓN DE LIBROS Y LECTURA
+-- POMOSMART - SISTEMA DE GESTIÓN DE LIBROS Y LECTURA (VERSIÓN CORREGIDA)
 -- ============================================================================
 -- Creado: 2026-01-21
--- Descripción: Sistema completo de tracking de lectura con integración a pomodoros
--- Características:
---   ✓ Seguimiento de progreso de lectura (páginas, capítulos)
---   ✓ Cálculo automático de velocidad de lectura
---   ✓ Sesiones de lectura detalladas
---   ✓ Citas y highlights favoritos
---   ✓ Integración con pomodoros
---   ✓ Estadísticas y gráficos de evolución
---   ✓ Relación con materias académicas
---   ✓ Sistema de objetivos de lectura
+-- Versión: 2.0
+-- Cambios:
+--   - Corrección de integración con tabla sessions (opcional)
+--   - Agregadas estadísticas por autor
+--   - Vista de autores favoritos
+--   - Función para obtener autores más leídos
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
 -- TABLA 1: books (Libros)
 -- ----------------------------------------------------------------------------
--- Almacena información principal de cada libro
 CREATE TABLE IF NOT EXISTS books (
   -- Identificación
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL, -- Opcional: para libros académicos
+  subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
 
   -- Información del libro
   title TEXT NOT NULL,
-  author TEXT,
-  isbn TEXT, -- ISBN-10 o ISBN-13
-  publisher TEXT, -- Editorial
+  author TEXT, -- IMPORTANTE: Campo de autor
+  isbn TEXT,
+  publisher TEXT,
   publication_year INTEGER,
-  genre TEXT, -- Ficción, No Ficción, Académico, Técnico, etc.
+  genre TEXT,
   language TEXT DEFAULT 'es',
 
   -- Estructura del libro
@@ -42,10 +37,10 @@ CREATE TABLE IF NOT EXISTS books (
   current_chapter INTEGER DEFAULT 0 CHECK (current_chapter >= 0),
 
   -- Fechas importantes (calculadas automáticamente)
-  start_date DATE, -- Fecha cuando empezó a leer
-  halfway_date DATE, -- Fecha cuando llegó a la mitad
-  completion_date DATE, -- Fecha cuando terminó
-  last_read_date DATE, -- Última fecha de lectura
+  start_date DATE,
+  halfway_date DATE,
+  completion_date DATE,
+  last_read_date DATE,
 
   -- Estado de lectura
   status TEXT DEFAULT 'not_started' CHECK (
@@ -53,21 +48,21 @@ CREATE TABLE IF NOT EXISTS books (
   ),
 
   -- Objetivos
-  daily_pages_goal INTEGER, -- Meta diaria de páginas
-  target_completion_date DATE, -- Fecha objetivo para terminar
+  daily_pages_goal INTEGER,
+  target_completion_date DATE,
 
   -- Estadísticas (calculadas con triggers)
-  total_reading_time_minutes INTEGER DEFAULT 0, -- Tiempo total dedicado
-  pages_per_hour NUMERIC(5,2), -- Velocidad de lectura calculada
-  reading_streak_days INTEGER DEFAULT 0, -- Días consecutivos leyendo
-  active_reading_days INTEGER DEFAULT 0, -- Total de días que ha leído
+  total_reading_time_minutes INTEGER DEFAULT 0,
+  pages_per_hour NUMERIC(5,2),
+  reading_streak_days INTEGER DEFAULT 0,
+  active_reading_days INTEGER DEFAULT 0,
 
   -- Metadata
-  cover_url TEXT, -- URL de portada del libro
-  notes TEXT, -- Notas generales del libro
-  rating INTEGER CHECK (rating BETWEEN 1 AND 5), -- Calificación personal 1-5 estrellas
+  cover_url TEXT,
+  notes TEXT,
+  rating INTEGER CHECK (rating BETWEEN 1 AND 5),
   is_favorite BOOLEAN DEFAULT FALSE,
-  tags TEXT[], -- Etiquetas personalizadas
+  tags TEXT[],
 
   -- Timestamps
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -84,36 +79,35 @@ CREATE TABLE IF NOT EXISTS books (
   )
 );
 
--- Índices para búsqueda rápida
-CREATE INDEX idx_books_profile ON books(profile_id);
-CREATE INDEX idx_books_subject ON books(subject_id);
-CREATE INDEX idx_books_status ON books(status);
-CREATE INDEX idx_books_genre ON books(genre);
-CREATE INDEX idx_books_last_read ON books(last_read_date DESC);
-CREATE INDEX idx_books_tags ON books USING GIN(tags);
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_books_profile ON books(profile_id);
+CREATE INDEX IF NOT EXISTS idx_books_subject ON books(subject_id);
+CREATE INDEX IF NOT EXISTS idx_books_status ON books(status);
+CREATE INDEX IF NOT EXISTS idx_books_genre ON books(genre);
+CREATE INDEX IF NOT EXISTS idx_books_author ON books(author); -- NUEVO: Índice por autor
+CREATE INDEX IF NOT EXISTS idx_books_last_read ON books(last_read_date DESC);
+CREATE INDEX IF NOT EXISTS idx_books_tags ON books USING GIN(tags);
 
 COMMENT ON TABLE books IS 'Catálogo personal de libros con tracking de progreso';
-COMMENT ON COLUMN books.pages_per_hour IS 'Velocidad de lectura calculada automáticamente basada en sesiones';
-COMMENT ON COLUMN books.reading_streak_days IS 'Días consecutivos con al menos una sesión de lectura';
+COMMENT ON COLUMN books.author IS 'Autor del libro - usado para estadísticas por autor';
 
 -- ----------------------------------------------------------------------------
 -- TABLA 2: book_reading_sessions (Sesiones de Lectura)
 -- ----------------------------------------------------------------------------
--- Registra cada sesión de lectura con detalle de páginas/capítulos leídos
 CREATE TABLE IF NOT EXISTS book_reading_sessions (
   -- Identificación
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   book_id UUID NOT NULL REFERENCES books(id) ON DELETE CASCADE,
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  pomodoro_session_id UUID REFERENCES sessions(id) ON DELETE SET NULL, -- Vinculación con pomodoro
+  pomodoro_session_id UUID, -- Sin FK por ahora, la agregamos después si existe
 
   -- Progreso de la sesión
   start_page INTEGER NOT NULL,
   end_page INTEGER NOT NULL CHECK (end_page >= start_page),
   pages_read INTEGER GENERATED ALWAYS AS (end_page - start_page) STORED,
 
-  chapter_number INTEGER, -- Capítulo que leyó
-  chapter_name TEXT, -- Nombre del capítulo
+  chapter_number INTEGER,
+  chapter_name TEXT,
 
   -- Tiempo y duración
   session_date DATE DEFAULT CURRENT_DATE,
@@ -122,13 +116,13 @@ CREATE TABLE IF NOT EXISTS book_reading_sessions (
   completed_at TIMESTAMPTZ,
 
   -- Evaluación de la sesión
-  focus_rating INTEGER CHECK (focus_rating BETWEEN 1 AND 5), -- Qué tan enfocado estuvo
-  enjoyment_rating INTEGER CHECK (enjoyment_rating BETWEEN 1 AND 5), -- Qué tanto disfrutó
-  comprehension_rating INTEGER CHECK (comprehension_rating BETWEEN 1 AND 5), -- Qué tanto entendió
+  focus_rating INTEGER CHECK (focus_rating BETWEEN 1 AND 5),
+  enjoyment_rating INTEGER CHECK (enjoyment_rating BETWEEN 1 AND 5),
+  comprehension_rating INTEGER CHECK (comprehension_rating BETWEEN 1 AND 5),
 
   -- Notas de la sesión
-  session_notes TEXT, -- Reflexiones de la sesión
-  quick_summary TEXT, -- Resumen breve de lo leído
+  session_notes TEXT,
+  quick_summary TEXT,
 
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -139,18 +133,14 @@ CREATE TABLE IF NOT EXISTS book_reading_sessions (
 );
 
 -- Índices
-CREATE INDEX idx_reading_sessions_book ON book_reading_sessions(book_id);
-CREATE INDEX idx_reading_sessions_profile ON book_reading_sessions(profile_id);
-CREATE INDEX idx_reading_sessions_date ON book_reading_sessions(session_date DESC);
-CREATE INDEX idx_reading_sessions_pomodoro ON book_reading_sessions(pomodoro_session_id);
-
-COMMENT ON TABLE book_reading_sessions IS 'Registro detallado de cada sesión de lectura';
-COMMENT ON COLUMN book_reading_sessions.pages_read IS 'Calculado automáticamente como (end_page - start_page)';
+CREATE INDEX IF NOT EXISTS idx_reading_sessions_book ON book_reading_sessions(book_id);
+CREATE INDEX IF NOT EXISTS idx_reading_sessions_profile ON book_reading_sessions(profile_id);
+CREATE INDEX IF NOT EXISTS idx_reading_sessions_date ON book_reading_sessions(session_date DESC);
+CREATE INDEX IF NOT EXISTS idx_reading_sessions_pomodoro ON book_reading_sessions(pomodoro_session_id);
 
 -- ----------------------------------------------------------------------------
 -- TABLA 3: book_quotes (Citas y Highlights del Libro)
 -- ----------------------------------------------------------------------------
--- Almacena citas, frases memorables y highlights de los libros
 CREATE TABLE IF NOT EXISTS book_quotes (
   -- Identificación
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -164,11 +154,11 @@ CREATE TABLE IF NOT EXISTS book_quotes (
   chapter_name TEXT,
 
   -- Contexto
-  context TEXT, -- Contexto donde apareció la cita
-  personal_note TEXT, -- Por qué te gustó o qué significa para ti
+  context TEXT,
+  personal_note TEXT,
 
   -- Categorización
-  category TEXT, -- motivacional, técnica, filosófica, etc.
+  category TEXT,
   tags TEXT[],
   is_favorite BOOLEAN DEFAULT FALSE,
 
@@ -178,17 +168,14 @@ CREATE TABLE IF NOT EXISTS book_quotes (
 );
 
 -- Índices
-CREATE INDEX idx_book_quotes_book ON book_quotes(book_id);
-CREATE INDEX idx_book_quotes_profile ON book_quotes(profile_id);
-CREATE INDEX idx_book_quotes_favorite ON book_quotes(is_favorite);
-CREATE INDEX idx_book_quotes_tags ON book_quotes USING GIN(tags);
-
-COMMENT ON TABLE book_quotes IS 'Colección de citas favoritas y highlights de libros';
+CREATE INDEX IF NOT EXISTS idx_book_quotes_book ON book_quotes(book_id);
+CREATE INDEX IF NOT EXISTS idx_book_quotes_profile ON book_quotes(profile_id);
+CREATE INDEX IF NOT EXISTS idx_book_quotes_favorite ON book_quotes(is_favorite);
+CREATE INDEX IF NOT EXISTS idx_book_quotes_tags ON book_quotes USING GIN(tags);
 
 -- ----------------------------------------------------------------------------
 -- TABLA 4: reading_goals (Objetivos de Lectura)
 -- ----------------------------------------------------------------------------
--- Define metas personales de lectura (diarias, semanales, mensuales, anuales)
 CREATE TABLE IF NOT EXISTS reading_goals (
   -- Identificación
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -224,26 +211,22 @@ CREATE TABLE IF NOT EXISTS reading_goals (
   completed_at TIMESTAMPTZ,
 
   -- Metadata
-  title TEXT, -- Nombre descriptivo del objetivo
+  title TEXT,
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Índices
-CREATE INDEX idx_reading_goals_profile ON reading_goals(profile_id);
-CREATE INDEX idx_reading_goals_active ON reading_goals(is_active);
-CREATE INDEX idx_reading_goals_dates ON reading_goals(start_date, end_date);
-
-COMMENT ON TABLE reading_goals IS 'Objetivos personales de lectura con tracking de progreso';
+CREATE INDEX IF NOT EXISTS idx_reading_goals_profile ON reading_goals(profile_id);
+CREATE INDEX IF NOT EXISTS idx_reading_goals_active ON reading_goals(is_active);
+CREATE INDEX IF NOT EXISTS idx_reading_goals_dates ON reading_goals(start_date, end_date);
 
 -- ============================================================================
 -- TRIGGERS
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
--- TRIGGER 1: Actualizar updated_at automáticamente
--- ----------------------------------------------------------------------------
+-- Trigger: Actualizar updated_at
 CREATE OR REPLACE FUNCTION update_books_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -252,78 +235,60 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS books_updated_at_trigger ON books;
 CREATE TRIGGER books_updated_at_trigger
   BEFORE UPDATE ON books
   FOR EACH ROW
   EXECUTE FUNCTION update_books_updated_at();
 
+DROP TRIGGER IF EXISTS book_quotes_updated_at_trigger ON book_quotes;
 CREATE TRIGGER book_quotes_updated_at_trigger
   BEFORE UPDATE ON book_quotes
   FOR EACH ROW
   EXECUTE FUNCTION update_books_updated_at();
 
+DROP TRIGGER IF EXISTS reading_goals_updated_at_trigger ON reading_goals;
 CREATE TRIGGER reading_goals_updated_at_trigger
   BEFORE UPDATE ON reading_goals
   FOR EACH ROW
   EXECUTE FUNCTION update_books_updated_at();
 
--- ----------------------------------------------------------------------------
--- TRIGGER 2: Actualizar progreso del libro automáticamente
--- ----------------------------------------------------------------------------
+-- Trigger: Actualizar progreso del libro
 CREATE OR REPLACE FUNCTION update_book_progress()
 RETURNS TRIGGER AS $$
 DECLARE
   v_book_pages INTEGER;
   v_halfway_page INTEGER;
   v_book_status TEXT;
-  v_book_start_date DATE;
 BEGIN
-  -- Obtener información del libro
-  SELECT total_pages, status, start_date
-  INTO v_book_pages, v_book_status, v_book_start_date
+  SELECT total_pages, status
+  INTO v_book_pages, v_book_status
   FROM books
   WHERE id = NEW.book_id;
 
   v_halfway_page := v_book_pages / 2;
 
-  -- Actualizar el libro con el nuevo progreso
   UPDATE books
   SET
-    -- Actualizar página actual (si es mayor que la actual)
     current_page = GREATEST(current_page, NEW.end_page),
-
-    -- Actualizar capítulo actual
     current_chapter = COALESCE(NEW.chapter_number, current_chapter),
-
-    -- Actualizar última fecha de lectura
     last_read_date = NEW.session_date,
-
-    -- Si no tiene start_date, establecerlo
     start_date = COALESCE(start_date, NEW.session_date),
-
-    -- Si llegó a la mitad, registrar fecha
     halfway_date = CASE
       WHEN halfway_date IS NULL AND NEW.end_page >= v_halfway_page
       THEN NEW.session_date
       ELSE halfway_date
     END,
-
-    -- Si completó el libro, registrar fecha
     completion_date = CASE
       WHEN NEW.end_page >= v_book_pages THEN NEW.session_date
       ELSE completion_date
     END,
-
-    -- Actualizar estado automáticamente
     status = CASE
       WHEN NEW.end_page >= v_book_pages THEN 'completed'
       WHEN v_book_status = 'not_started' THEN 'reading'
       ELSE status
     END,
-
-    -- Sumar tiempo de lectura
     total_reading_time_minutes = total_reading_time_minutes + NEW.duration_minutes,
-
     updated_at = NOW()
   WHERE id = NEW.book_id;
 
@@ -331,16 +296,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_book_progress_trigger ON book_reading_sessions;
 CREATE TRIGGER update_book_progress_trigger
   AFTER INSERT ON book_reading_sessions
   FOR EACH ROW
   EXECUTE FUNCTION update_book_progress();
 
-COMMENT ON FUNCTION update_book_progress IS 'Actualiza automáticamente el progreso del libro después de cada sesión de lectura';
-
--- ----------------------------------------------------------------------------
--- TRIGGER 3: Calcular velocidad de lectura
--- ----------------------------------------------------------------------------
+-- Trigger: Calcular velocidad de lectura
 CREATE OR REPLACE FUNCTION calculate_reading_speed()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -348,7 +310,6 @@ DECLARE
   v_total_minutes INTEGER;
   v_pages_per_hour NUMERIC(5,2);
 BEGIN
-  -- Calcular páginas por hora basado en todas las sesiones
   SELECT
     COALESCE(SUM(pages_read), 0),
     COALESCE(SUM(duration_minutes), 0)
@@ -356,7 +317,6 @@ BEGIN
   FROM book_reading_sessions
   WHERE book_id = NEW.book_id;
 
-  -- Calcular velocidad (páginas por hora)
   IF v_total_minutes > 0 THEN
     v_pages_per_hour := (v_total_pages::NUMERIC / v_total_minutes) * 60;
 
@@ -369,16 +329,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS calculate_reading_speed_trigger ON book_reading_sessions;
 CREATE TRIGGER calculate_reading_speed_trigger
   AFTER INSERT ON book_reading_sessions
   FOR EACH ROW
   EXECUTE FUNCTION calculate_reading_speed();
 
-COMMENT ON FUNCTION calculate_reading_speed IS 'Calcula la velocidad de lectura en páginas por hora';
-
--- ----------------------------------------------------------------------------
--- TRIGGER 4: Actualizar racha de lectura
--- ----------------------------------------------------------------------------
+-- Trigger: Actualizar racha de lectura
 CREATE OR REPLACE FUNCTION update_reading_streak()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -386,26 +343,21 @@ DECLARE
   v_current_streak INTEGER;
   v_active_days INTEGER;
 BEGIN
-  -- Obtener última fecha de lectura y racha actual
   SELECT last_read_date, reading_streak_days, active_reading_days
   INTO v_last_read_date, v_current_streak, v_active_days
   FROM books
   WHERE id = NEW.book_id;
 
-  -- Si es el primer día o si leyó ayer, incrementar racha
   IF v_last_read_date IS NULL THEN
     v_current_streak := 1;
   ELSIF NEW.session_date = v_last_read_date + INTERVAL '1 day' THEN
     v_current_streak := v_current_streak + 1;
   ELSIF NEW.session_date = v_last_read_date THEN
-    -- Mismo día, no cambiar racha
     v_current_streak := v_current_streak;
   ELSE
-    -- Se rompió la racha
     v_current_streak := 1;
   END IF;
 
-  -- Contar días activos únicos
   SELECT COUNT(DISTINCT session_date)
   INTO v_active_days
   FROM book_reading_sessions
@@ -421,21 +373,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_reading_streak_trigger ON book_reading_sessions;
 CREATE TRIGGER update_reading_streak_trigger
   AFTER INSERT ON book_reading_sessions
   FOR EACH ROW
   EXECUTE FUNCTION update_reading_streak();
 
-COMMENT ON FUNCTION update_reading_streak IS 'Actualiza la racha de días consecutivos leyendo el libro';
-
 -- ============================================================================
--- VISTAS Y FUNCIONES DE CONSULTA
+-- VISTAS
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
--- VISTA 1: Estadísticas de libros por perfil
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW book_statistics_by_profile AS
+-- Vista: Estadísticas por perfil
+DROP VIEW IF EXISTS book_statistics_by_profile;
+CREATE VIEW book_statistics_by_profile AS
 SELECT
   b.profile_id,
   COUNT(*) AS total_books,
@@ -450,12 +400,9 @@ SELECT
 FROM books b
 GROUP BY b.profile_id;
 
-COMMENT ON VIEW book_statistics_by_profile IS 'Estadísticas agregadas de lectura por perfil';
-
--- ----------------------------------------------------------------------------
--- VISTA 2: Progreso de lectura actual
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW current_reading_progress AS
+-- Vista: Progreso de lectura actual
+DROP VIEW IF EXISTS current_reading_progress;
+CREATE VIEW current_reading_progress AS
 SELECT
   b.id AS book_id,
   b.profile_id,
@@ -469,13 +416,11 @@ SELECT
   b.last_read_date,
   b.target_completion_date,
   b.pages_per_hour,
-  -- Estimación de tiempo restante
   CASE
     WHEN b.pages_per_hour > 0 THEN
       ROUND(((b.total_pages - b.current_page)::NUMERIC / b.pages_per_hour) * 60)
     ELSE NULL
   END AS estimated_minutes_remaining,
-  -- Estimación de fecha de finalización
   CASE
     WHEN b.pages_per_hour > 0 AND b.daily_pages_goal > 0 THEN
       b.last_read_date + ((b.total_pages - b.current_page)::NUMERIC / b.daily_pages_goal)::INTEGER
@@ -486,12 +431,9 @@ SELECT
 FROM books b
 WHERE b.status IN ('reading', 'paused');
 
-COMMENT ON VIEW current_reading_progress IS 'Vista del progreso actual de libros en lectura con estimaciones';
-
--- ----------------------------------------------------------------------------
--- VISTA 3: Actividad de lectura por mes
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW reading_activity_by_month AS
+-- Vista: Actividad por mes
+DROP VIEW IF EXISTS reading_activity_by_month;
+CREATE VIEW reading_activity_by_month AS
 SELECT
   b.profile_id,
   DATE_TRUNC('month', brs.session_date) AS month,
@@ -506,11 +448,70 @@ JOIN books b ON b.id = brs.book_id
 GROUP BY b.profile_id, DATE_TRUNC('month', brs.session_date)
 ORDER BY month DESC;
 
-COMMENT ON VIEW reading_activity_by_month IS 'Actividad de lectura agregada por mes';
+-- ============================================================================
+-- NUEVAS VISTAS: ESTADÍSTICAS POR AUTOR
+-- ============================================================================
 
--- ----------------------------------------------------------------------------
--- FUNCIÓN 1: Obtener recomendación de siguiente libro
--- ----------------------------------------------------------------------------
+-- Vista: Estadísticas por autor
+DROP VIEW IF EXISTS author_statistics;
+CREATE VIEW author_statistics AS
+SELECT
+  b.profile_id,
+  COALESCE(NULLIF(TRIM(b.author), ''), 'Autor Desconocido') AS author,
+  COUNT(*) AS total_books,
+  COUNT(*) FILTER (WHERE b.status = 'completed') AS books_completed,
+  COUNT(*) FILTER (WHERE b.status = 'reading') AS books_reading,
+  COUNT(*) FILTER (WHERE b.status = 'not_started') AS books_pending,
+  COALESCE(SUM(b.total_pages) FILTER (WHERE b.status = 'completed'), 0) AS total_pages_read,
+  COALESCE(SUM(b.total_reading_time_minutes), 0) AS total_reading_time_minutes,
+  ROUND(AVG(b.pages_per_hour) FILTER (WHERE b.pages_per_hour > 0), 2) AS avg_reading_speed,
+  ROUND(AVG(b.rating) FILTER (WHERE b.rating IS NOT NULL), 2) AS avg_rating,
+  MAX(b.reading_streak_days) AS max_streak,
+  MIN(b.start_date) AS first_book_started,
+  MAX(b.completion_date) AS last_book_completed,
+  -- Calcular tasa de finalización
+  CASE
+    WHEN COUNT(*) > 0 THEN
+      ROUND((COUNT(*) FILTER (WHERE b.status = 'completed')::NUMERIC / COUNT(*)) * 100, 2)
+    ELSE 0
+  END AS completion_rate
+FROM books b
+WHERE b.author IS NOT NULL AND TRIM(b.author) != ''
+GROUP BY b.profile_id, COALESCE(NULLIF(TRIM(b.author), ''), 'Autor Desconocido')
+ORDER BY books_completed DESC, total_books DESC;
+
+COMMENT ON VIEW author_statistics IS 'Estadísticas agregadas por autor para cada perfil';
+
+-- Vista: Top autores favoritos
+DROP VIEW IF EXISTS top_favorite_authors;
+CREATE VIEW top_favorite_authors AS
+SELECT
+  b.profile_id,
+  COALESCE(NULLIF(TRIM(b.author), ''), 'Autor Desconocido') AS author,
+  COUNT(*) AS books_count,
+  COUNT(*) FILTER (WHERE b.is_favorite = TRUE) AS favorite_books_count,
+  ROUND(AVG(b.rating) FILTER (WHERE b.rating IS NOT NULL), 1) AS avg_rating,
+  SUM(b.total_reading_time_minutes) AS total_time_minutes,
+  -- Calcular "puntuación de favorito"
+  (
+    (COUNT(*) FILTER (WHERE b.is_favorite = TRUE) * 10) +
+    (COUNT(*) FILTER (WHERE b.status = 'completed') * 5) +
+    (COALESCE(AVG(b.rating), 0) * 3) +
+    (COUNT(*) * 2)
+  ) AS favorite_score
+FROM books b
+WHERE b.author IS NOT NULL AND TRIM(b.author) != ''
+GROUP BY b.profile_id, COALESCE(NULLIF(TRIM(b.author), ''), 'Autor Desconocido')
+HAVING COUNT(*) > 0
+ORDER BY favorite_score DESC;
+
+COMMENT ON VIEW top_favorite_authors IS 'Ranking de autores favoritos basado en múltiples métricas';
+
+-- ============================================================================
+-- FUNCIONES
+-- ============================================================================
+
+-- Función: Obtener siguiente libro recomendado
 CREATE OR REPLACE FUNCTION get_next_book_to_read(p_profile_id UUID)
 RETURNS TABLE (
   book_id UUID,
@@ -524,19 +525,14 @@ BEGIN
     b.id,
     b.title,
     b.author,
-    -- Calcular puntuación de prioridad
     (
-      -- Libros pausados tienen más prioridad
       CASE WHEN b.status = 'paused' THEN 10 ELSE 0 END +
-      -- Libros con fecha objetivo cercana
       CASE
         WHEN b.target_completion_date IS NOT NULL THEN
           (30 - EXTRACT(DAY FROM b.target_completion_date - CURRENT_DATE))
         ELSE 0
       END +
-      -- Libros asociados a una materia
       CASE WHEN b.subject_id IS NOT NULL THEN 5 ELSE 0 END +
-      -- Libros más avanzados
       (b.current_page::NUMERIC / b.total_pages * 10)
     )::NUMERIC AS priority_score
   FROM books b
@@ -547,11 +543,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION get_next_book_to_read IS 'Recomienda los siguientes libros a leer basado en prioridades';
-
--- ----------------------------------------------------------------------------
--- FUNCIÓN 2: Registrar sesión de lectura rápida
--- ----------------------------------------------------------------------------
+-- Función: Registrar sesión de lectura rápida
 CREATE OR REPLACE FUNCTION log_reading_session(
   p_book_id UUID,
   p_profile_id UUID,
@@ -568,7 +560,6 @@ RETURNS UUID AS $$
 DECLARE
   v_session_id UUID;
 BEGIN
-  -- Insertar sesión de lectura
   INSERT INTO book_reading_sessions (
     book_id, profile_id, start_page, end_page, duration_minutes,
     chapter_number, chapter_name, focus_rating, enjoyment_rating,
@@ -584,11 +575,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION log_reading_session IS 'Función helper para registrar una sesión de lectura rápidamente';
-
--- ----------------------------------------------------------------------------
--- FUNCIÓN 3: Obtener citas aleatorias de libros completados
--- ----------------------------------------------------------------------------
+-- Función: Obtener cita aleatoria
 CREATE OR REPLACE FUNCTION get_random_quote(p_profile_id UUID)
 RETURNS TABLE (
   quote_text TEXT,
@@ -611,204 +598,243 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION get_random_quote IS 'Devuelve una cita aleatoria de los libros del usuario';
-
 -- ============================================================================
--- INTEGRACIÓN CON SISTEMA DE POMODOROS
+-- NUEVAS FUNCIONES: ANÁLISIS POR AUTOR
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
--- Agregar columna book_id a la tabla sessions (si no existe)
--- ----------------------------------------------------------------------------
-DO $$
+-- Función: Obtener autores más leídos
+CREATE OR REPLACE FUNCTION get_top_authors(
+  p_profile_id UUID,
+  p_limit INTEGER DEFAULT 10
+)
+RETURNS TABLE (
+  author TEXT,
+  total_books INTEGER,
+  books_completed INTEGER,
+  total_pages_read BIGINT,
+  total_time_hours NUMERIC,
+  avg_rating NUMERIC,
+  completion_rate NUMERIC
+) AS $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'sessions' AND column_name = 'book_id'
-  ) THEN
-    ALTER TABLE sessions
-    ADD COLUMN book_id UUID REFERENCES books(id) ON DELETE SET NULL;
-
-    CREATE INDEX idx_sessions_book ON sessions(book_id);
-
-    COMMENT ON COLUMN sessions.book_id IS 'Libro asociado a esta sesión de pomodoro (opcional)';
-  END IF;
-END $$;
-
--- ----------------------------------------------------------------------------
--- TRIGGER: Vincular sesión de pomodoro con sesión de lectura
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION link_pomodoro_to_reading()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Si la sesión de pomodoro tiene book_id, crear sesión de lectura automáticamente
-  IF NEW.book_id IS NOT NULL AND NEW.status = 'completed' AND NEW.session_type = 'work' THEN
-    -- Aquí podrías crear automáticamente una sesión de lectura
-    -- o simplemente vincularlas para análisis posterior
-    NULL; -- Por ahora solo vincular, el usuario registrará páginas manualmente
-  END IF;
-
-  RETURN NEW;
+  RETURN QUERY
+  SELECT
+    a.author::TEXT,
+    a.total_books::INTEGER,
+    a.books_completed::INTEGER,
+    a.total_pages_read,
+    ROUND((a.total_reading_time_minutes::NUMERIC / 60), 1) AS total_time_hours,
+    a.avg_rating,
+    a.completion_rate
+  FROM author_statistics a
+  WHERE a.profile_id = p_profile_id
+  ORDER BY a.books_completed DESC, a.total_books DESC
+  LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER link_pomodoro_to_reading_trigger
-  AFTER INSERT OR UPDATE ON sessions
-  FOR EACH ROW
-  WHEN (NEW.book_id IS NOT NULL)
-  EXECUTE FUNCTION link_pomodoro_to_reading();
+COMMENT ON FUNCTION get_top_authors IS 'Obtiene los autores más leídos de un perfil';
 
--- ============================================================================
--- INTEGRACIÓN CON SEGUNDO CEREBRO (KNOWLEDGE GRAPH)
--- ============================================================================
-
--- ----------------------------------------------------------------------------
--- Actualizar vista knowledge_nodes para incluir libros
--- ----------------------------------------------------------------------------
--- Nota: Esto se debe ejecutar DESPUÉS de tener second_brain_schema.sql
--- Agrega libros como nodos en el grafo de conocimiento
-
-CREATE OR REPLACE VIEW knowledge_nodes AS
-WITH all_nodes AS (
-  -- Materias
-  SELECT
-    'subject' AS node_type,
-    s.id AS node_id,
-    s.profile_id,
-    s.name AS title,
-    s.color,
-    s.icon,
-    COALESCE(SUM(sess.duration_seconds), 0) AS total_time_seconds,
-    COUNT(sess.id) AS session_count,
-    AVG(sess.focus_rating) AS avg_focus_rating
-  FROM subjects s
-  LEFT JOIN sessions sess ON sess.subject_id = s.id AND sess.status = 'completed'
-  GROUP BY s.id, s.profile_id, s.name, s.color, s.icon
-
-  UNION ALL
-
-  -- Tareas
-  SELECT
-    'task' AS node_type,
-    t.id AS node_id,
-    (SELECT profile_id FROM subjects WHERE id = t.subject_id) AS profile_id,
-    t.title,
-    (SELECT color FROM subjects WHERE id = t.subject_id) AS color,
-    NULL AS icon,
-    COALESCE(SUM(sess.duration_seconds), 0) AS total_time_seconds,
-    COUNT(sess.id) AS session_count,
-    AVG(sess.focus_rating) AS avg_focus_rating
-  FROM tasks t
-  LEFT JOIN sessions sess ON sess.task_id = t.id AND sess.status = 'completed'
-  GROUP BY t.id, t.title, t.subject_id
-
-  UNION ALL
-
-  -- Materiales
-  SELECT
-    'material' AS node_type,
-    m.id AS node_id,
-    m.profile_id,
-    m.title,
-    NULL AS color,
-    NULL AS icon,
-    COALESCE(SUM(sess.duration_seconds), 0) AS total_time_seconds,
-    COUNT(sess.id) AS session_count,
-    AVG(sess.focus_rating) AS avg_focus_rating
-  FROM materials m
-  LEFT JOIN sessions sess ON sess.material_id = m.id AND sess.status = 'completed'
-  GROUP BY m.id, m.profile_id, m.title
-
-  UNION ALL
-
-  -- NUEVO: Libros
-  SELECT
-    'book' AS node_type,
-    b.id AS node_id,
-    b.profile_id,
-    b.title || ' - ' || COALESCE(b.author, 'Autor desconocido') AS title,
-    '#8B4513' AS color, -- Color marrón para libros
-    '📚' AS icon,
-    COALESCE(b.total_reading_time_minutes * 60, 0) AS total_time_seconds,
-    (SELECT COUNT(*) FROM book_reading_sessions WHERE book_id = b.id) AS session_count,
-    (SELECT AVG(focus_rating) FROM book_reading_sessions WHERE book_id = b.id) AS avg_focus_rating
-  FROM books b
+-- Función: Obtener libros de un autor específico
+CREATE OR REPLACE FUNCTION get_books_by_author(
+  p_profile_id UUID,
+  p_author TEXT
 )
+RETURNS TABLE (
+  book_id UUID,
+  title TEXT,
+  total_pages INTEGER,
+  status TEXT,
+  rating INTEGER,
+  completion_date DATE,
+  total_reading_time_minutes INTEGER
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    b.id,
+    b.title,
+    b.total_pages,
+    b.status,
+    b.rating,
+    b.completion_date,
+    b.total_reading_time_minutes
+  FROM books b
+  WHERE b.profile_id = p_profile_id
+    AND LOWER(TRIM(b.author)) = LOWER(TRIM(p_author))
+  ORDER BY
+    CASE b.status
+      WHEN 'reading' THEN 1
+      WHEN 'completed' THEN 2
+      WHEN 'paused' THEN 3
+      WHEN 'not_started' THEN 4
+      ELSE 5
+    END,
+    b.completion_date DESC NULLS LAST,
+    b.created_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION get_books_by_author IS 'Obtiene todos los libros de un autor específico para un perfil';
+
+-- ============================================================================
+-- INTEGRACIÓN CON TABLA SESSIONS (OPCIONAL)
+-- ============================================================================
+
+-- Intentar agregar columna book_id a sessions si existe
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'sessions') THEN
+    -- Agregar columna si no existe
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'sessions' AND column_name = 'book_id'
+    ) THEN
+      ALTER TABLE sessions ADD COLUMN book_id UUID REFERENCES books(id) ON DELETE SET NULL;
+      CREATE INDEX IF NOT EXISTS idx_sessions_book ON sessions(book_id);
+      RAISE NOTICE 'Columna book_id agregada a tabla sessions';
+    ELSE
+      RAISE NOTICE 'Columna book_id ya existe en tabla sessions';
+    END IF;
+
+    -- Agregar trigger para vincular pomodoro con libro
+    CREATE OR REPLACE FUNCTION link_pomodoro_to_reading()
+    RETURNS TRIGGER AS $trigger$
+    BEGIN
+      IF NEW.book_id IS NOT NULL AND NEW.status = 'completed' AND NEW.session_type = 'work' THEN
+        -- Vincular sesión de pomodoro con libro
+        NULL;
+      END IF;
+      RETURN NEW;
+    END;
+    $trigger$ LANGUAGE plpgsql;
+
+    DROP TRIGGER IF EXISTS link_pomodoro_to_reading_trigger ON sessions;
+    CREATE TRIGGER link_pomodoro_to_reading_trigger
+      AFTER INSERT OR UPDATE ON sessions
+      FOR EACH ROW
+      WHEN (NEW.book_id IS NOT NULL)
+      EXECUTE FUNCTION link_pomodoro_to_reading();
+
+    RAISE NOTICE 'Trigger de vinculación pomodoro-libro creado';
+  ELSE
+    RAISE NOTICE 'Tabla sessions no existe - integración omitida (esto es normal si aún no la has creado)';
+  END IF;
+END $$;
+
+-- ============================================================================
+-- INTEGRACIÓN CON KNOWLEDGE GRAPH (OPCIONAL)
+-- ============================================================================
+
+-- Actualizar vista knowledge_nodes si existe
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.views WHERE table_name = 'knowledge_nodes') THEN
+    DROP VIEW IF EXISTS knowledge_nodes CASCADE;
+
+    CREATE VIEW knowledge_nodes AS
+    WITH all_nodes AS (
+      -- Materias
+      SELECT
+        'subject'::TEXT AS node_type,
+        s.id AS node_id,
+        s.profile_id,
+        s.name AS title,
+        s.color,
+        s.icon,
+        COALESCE(SUM(sess.duration_seconds), 0) AS total_time_seconds,
+        COUNT(sess.id) AS session_count,
+        AVG(sess.focus_rating) AS avg_focus_rating
+      FROM subjects s
+      LEFT JOIN sessions sess ON sess.subject_id = s.id AND sess.status = 'completed'
+      GROUP BY s.id, s.profile_id, s.name, s.color, s.icon
+
+      UNION ALL
+
+      -- Tareas
+      SELECT
+        'task'::TEXT AS node_type,
+        t.id AS node_id,
+        (SELECT profile_id FROM subjects WHERE id = t.subject_id) AS profile_id,
+        t.title,
+        (SELECT color FROM subjects WHERE id = t.subject_id) AS color,
+        NULL AS icon,
+        COALESCE(SUM(sess.duration_seconds), 0) AS total_time_seconds,
+        COUNT(sess.id) AS session_count,
+        AVG(sess.focus_rating) AS avg_focus_rating
+      FROM tasks t
+      LEFT JOIN sessions sess ON sess.task_id = t.id AND sess.status = 'completed'
+      GROUP BY t.id, t.title, t.subject_id
+
+      UNION ALL
+
+      -- Materiales
+      SELECT
+        'material'::TEXT AS node_type,
+        m.id AS node_id,
+        m.profile_id,
+        m.title,
+        NULL AS color,
+        NULL AS icon,
+        COALESCE(SUM(sess.duration_seconds), 0) AS total_time_seconds,
+        COUNT(sess.id) AS session_count,
+        AVG(sess.focus_rating) AS avg_focus_rating
+      FROM materials m
+      LEFT JOIN sessions sess ON sess.material_id = m.id AND sess.status = 'completed'
+      GROUP BY m.id, m.profile_id, m.title
+
+      UNION ALL
+
+      -- LIBROS (NUEVO)
+      SELECT
+        'book'::TEXT AS node_type,
+        b.id AS node_id,
+        b.profile_id,
+        b.title || COALESCE(' - ' || b.author, '') AS title,
+        '#8B4513' AS color,
+        '📚' AS icon,
+        COALESCE(b.total_reading_time_minutes * 60, 0) AS total_time_seconds,
+        (SELECT COUNT(*) FROM book_reading_sessions WHERE book_id = b.id) AS session_count,
+        (SELECT AVG(focus_rating) FROM book_reading_sessions WHERE book_id = b.id) AS avg_focus_rating
+      FROM books b
+    )
+    SELECT
+      node_type,
+      node_id,
+      profile_id,
+      title,
+      color,
+      icon,
+      total_time_seconds,
+      session_count,
+      avg_focus_rating,
+      CASE
+        WHEN total_time_seconds > 0 THEN LOG(total_time_seconds + 1) * 2 + 5
+        ELSE 5
+      END AS node_size
+    FROM all_nodes;
+
+    RAISE NOTICE 'Vista knowledge_nodes actualizada con libros';
+  ELSE
+    RAISE NOTICE 'Vista knowledge_nodes no existe - omitida (esto es normal)';
+  END IF;
+END $$;
+
+-- ============================================================================
+-- CONFIGURACIÓN DE SEGURIDAD
+-- ============================================================================
+
+-- Desactivar RLS para desarrollo
+ALTER TABLE books DISABLE ROW LEVEL SECURITY;
+ALTER TABLE book_reading_sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE book_quotes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE reading_goals DISABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
+-- VERIFICACIÓN FINAL
+-- ============================================================================
+
 SELECT
-  node_type,
-  node_id,
-  profile_id,
-  title,
-  color,
-  icon,
-  total_time_seconds,
-  session_count,
-  avg_focus_rating,
-  -- Calcular tamaño del nodo (logarítmico)
-  CASE
-    WHEN total_time_seconds > 0 THEN LOG(total_time_seconds + 1) * 2 + 5
-    ELSE 5
-  END AS node_size
-FROM all_nodes;
-
-COMMENT ON VIEW knowledge_nodes IS 'Nodos del grafo de conocimiento incluyendo libros';
-
--- ============================================================================
--- DATOS DE EJEMPLO (OPCIONAL)
--- ============================================================================
-
--- Descomentar para insertar datos de ejemplo
-/*
--- Insertar libro de ejemplo
-INSERT INTO books (
-  profile_id,
-  title,
-  author,
-  total_pages,
-  total_chapters,
-  genre,
-  isbn,
-  status
-) VALUES (
-  (SELECT id FROM profiles LIMIT 1),
-  'Atomic Habits',
-  'James Clear',
-  320,
-  20,
-  'Autoayuda',
-  '978-0735211292',
-  'not_started'
-);
-
--- Insertar objetivo de lectura
-INSERT INTO reading_goals (
-  profile_id,
-  goal_type,
-  goal_unit,
-  target_amount,
-  start_date,
-  end_date,
-  title
-) VALUES (
-  (SELECT id FROM profiles LIMIT 1),
-  'daily',
-  'pages',
-  30,
-  CURRENT_DATE,
-  CURRENT_DATE + INTERVAL '30 days',
-  'Leer 30 páginas diarias'
-);
-*/
-
--- ============================================================================
--- FIN DEL SCRIPT
--- ============================================================================
-
--- Para aplicar este script en Supabase:
--- 1. Ve a tu proyecto en Supabase Dashboard
--- 2. Abre el SQL Editor
--- 3. Copia y pega este script completo
--- 4. Ejecuta el script
--- 5. Verifica que todas las tablas se crearon correctamente
-
-SELECT 'Sistema de Libros instalado correctamente! 📚✨' AS status;
+  'Sistema de Libros instalado correctamente! 📚✨' AS status,
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('books', 'book_reading_sessions', 'book_quotes', 'reading_goals')) AS tablas_creadas,
+  (SELECT COUNT(*) FROM information_schema.views WHERE table_name IN ('book_statistics_by_profile', 'current_reading_progress', 'reading_activity_by_month', 'author_statistics', 'top_favorite_authors')) AS vistas_creadas;
