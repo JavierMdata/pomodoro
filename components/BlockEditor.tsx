@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -6,17 +6,19 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
+import Mathematics from '@tiptap/extension-mathematics';
 import {
   Bold, Italic, List, ListOrdered, CheckSquare,
   Code, Quote, Image as ImageIcon, Link as LinkIcon,
-  Heading1, Heading2, Heading3, Sparkles, Save
+  Heading1, Heading2, Heading3, Sparkles, Save, BookOpen,
+  ChevronDown, Hash, PlusCircle, X
 } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { ContentBlock, EntityType } from '../types';
 
 interface BlockEditorProps {
-  blockId?: string; // Si se proporciona, editar bloque existente
-  entityType?: EntityType; // Si se proporciona, vincular a entidad
+  blockId?: string;
+  entityType?: EntityType;
   entityId?: string;
   onSave?: (block: ContentBlock) => void;
   placeholder?: string;
@@ -27,17 +29,26 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   entityType,
   entityId,
   onSave,
-  placeholder = 'Escribe algo increíble... o presiona / para comandos'
+  placeholder = 'Escribe algo increíble... Usa # para hashtags y @ para menciones'
 }) => {
   const activeProfileId = useAppStore(state => state.activeProfileId);
   const contentBlocks = useAppStore(state => state.contentBlocks);
+  const subjects = useAppStore(state => state.subjects);
   const addContentBlock = useAppStore(state => state.addContentBlock);
   const updateContentBlock = useAppStore(state => state.updateContentBlock);
   const parseWikiLinks = useAppStore(state => state.parseWikiLinks);
+  const createNoteLink = useAppStore(state => state.createNoteLink);
+  const analyzeAndCreateLinks = useAppStore(state => state.analyzeAndCreateLinks);
 
   const [title, setTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | undefined>(entityId);
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const [detectedHashtags, setDetectedHashtags] = useState<string[]>([]);
+  const [isImageUploading, setIsImageUploading] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Cargar bloque existente si se proporciona blockId
   useEffect(() => {
@@ -45,6 +56,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       const block = contentBlocks.find(b => b.id === blockId);
       if (block) {
         setTitle(block.title || '');
+        setSelectedSubjectId(block.subject_id);
         if (editor && block.content?.text) {
           editor.commands.setContent(block.content.text);
         }
@@ -52,37 +64,83 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   }, [blockId, contentBlocks]);
 
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSubjectDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3]
-        }
+        heading: { levels: [1, 2, 3] }
       }),
-      Placeholder.configure({
-        placeholder
-      }),
+      Placeholder.configure({ placeholder }),
       TaskList,
-      TaskItem.configure({
-        nested: true
-      }),
+      TaskItem.configure({ nested: true }),
       Image.configure({
         inline: true,
-        allowBase64: true
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'rounded-lg max-w-full h-auto my-4 shadow-lg'
+        }
       }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-500 hover:text-blue-600 underline cursor-pointer'
+          class: 'text-purple-400 hover:text-purple-300 underline decoration-purple-500/50 decoration-2 hover:decoration-purple-400 cursor-pointer transition-all'
+        }
+      }),
+      Mathematics.configure({
+        HTMLAttributes: {
+          class: 'math-formula bg-purple-900/30 px-2 py-1 rounded border border-purple-500/30'
+        },
+        katexOptions: {
+          throwOnError: false
         }
       })
     ],
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-[200px] max-w-none'
+        class: 'prose prose-invert prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-[300px] max-w-none prose-headings:text-purple-100 prose-p:text-gray-300 prose-strong:text-purple-200 prose-code:text-pink-300 prose-code:bg-gray-800/50 prose-code:px-1 prose-code:rounded'
+      },
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            handleImageUpload(file);
+            return true;
+          }
+        }
+        return false;
+      },
+      handlePaste: (view, event, slice) => {
+        const items = Array.from(event.clipboardData?.items || []);
+        for (const item of items) {
+          if (item.type.indexOf('image') === 0) {
+            const file = item.getAsFile();
+            if (file) {
+              handleImageUpload(file);
+              return true;
+            }
+          }
+        }
+        return false;
       }
     },
     onUpdate: ({ editor }) => {
+      // Detectar hashtags
+      const text = editor.getText();
+      const hashtagRegex = /#(\w+)/g;
+      const foundHashtags = [...text.matchAll(hashtagRegex)].map(m => m[1]);
+      setDetectedHashtags([...new Set(foundHashtags)]);
+
       // Auto-guardar cada 3 segundos de inactividad
       if (autoSaveTimer) clearTimeout(autoSaveTimer);
       autoSaveTimer = setTimeout(() => {
@@ -93,20 +151,44 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
   let autoSaveTimer: NodeJS.Timeout | null = null;
 
+  const handleImageUpload = async (file: File) => {
+    setIsImageUploading(true);
+    try {
+      // Convertir a base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        if (editor) {
+          editor.chain().focus().setImage({ src: base64 }).run();
+        }
+        setIsImageUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error al subir imagen:', error);
+      setIsImageUploading(false);
+    }
+  };
+
   const handleAutoSave = async () => {
     if (!editor || !activeProfileId) return;
 
+    const htmlContent = editor.getHTML();
+    const plainText = editor.getText();
+
     const content = {
-      text: editor.getHTML(),
+      text: htmlContent,
+      plainText: plainText,
       format: {
         bold: editor.isActive('bold'),
         italic: editor.isActive('italic')
       }
     };
 
-    // Detectar wiki links [[]]
-    const plainText = editor.getText();
+    // Detectar hashtags y wiki links
     const wikiLinks = parseWikiLinks(plainText);
+    const hashtagRegex = /#(\w+)/g;
+    const hashtags = [...plainText.matchAll(hashtagRegex)].map(m => m[1]);
 
     try {
       setIsSaving(true);
@@ -116,8 +198,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
         await updateContentBlock(blockId, {
           title,
           content,
+          subject_id: selectedSubjectId,
           updated_at: new Date().toISOString()
         });
+
+        // Analizar y crear enlaces automáticos
+        if (analyzeAndCreateLinks) {
+          await analyzeAndCreateLinks(blockId, 'content_block', title, plainText, hashtags);
+        }
       } else {
         // Crear nuevo bloque
         const newBlockData: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'> = {
@@ -126,10 +214,15 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           position: 0,
           title,
           content,
-          ...(entityType && { [`${entityType}_id`]: entityId })
+          subject_id: selectedSubjectId
         };
 
-        await addContentBlock(newBlockData);
+        const newBlock = await addContentBlock(newBlockData);
+
+        // Crear enlaces después de crear el bloque
+        if (newBlock && analyzeAndCreateLinks) {
+          await analyzeAndCreateLinks(newBlock.id, 'content_block', title, plainText, hashtags);
+        }
       }
 
       setLastSaved(new Date());
@@ -137,7 +230,10 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
 
       if (wikiLinks.length > 0) {
         console.log('🔗 Enlaces detectados:', wikiLinks);
-        // TODO: Crear enlaces automáticamente
+      }
+
+      if (hashtags.length > 0) {
+        console.log('🏷️ Hashtags detectados:', hashtags);
       }
     } catch (error) {
       console.error('Error al auto-guardar:', error);
@@ -155,50 +251,148 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     }
   };
 
+  const insertFormula = () => {
+    if (editor) {
+      const formula = window.prompt('Ingresa la fórmula LaTeX (ej: E = mc^2):');
+      if (formula) {
+        editor.chain().focus().insertContent(`$${formula}$`).run();
+      }
+    }
+  };
+
+  const activeSubjects = subjects.filter(s => s.profile_id === activeProfileId);
+  const selectedSubject = activeSubjects.find(s => s.id === selectedSubjectId);
+
   if (!editor) {
-    return <div className="animate-pulse bg-gray-200 h-64 rounded-lg"></div>;
+    return (
+      <div className="animate-pulse bg-gray-800/50 h-64 rounded-2xl border border-purple-500/20"></div>
+    );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-md">
-      {/* Header con título */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+    <div className="w-full max-w-5xl mx-auto bg-gray-900 rounded-3xl shadow-2xl border border-purple-500/30 overflow-hidden transition-all duration-300 hover:shadow-purple-500/20 hover:shadow-2xl">
+      {/* Header con título y asociación de materia */}
+      <div className="p-6 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Título de la nota..."
-          className="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-gray-600 text-gray-900 dark:text-gray-100"
+          placeholder="✨ Título de la nota..."
+          className="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder-gray-600 text-purple-100 mb-4"
           onBlur={handleAutoSave}
         />
 
-        <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
-          <div className="flex items-center gap-2">
-            {isSaving && (
-              <span className="flex items-center gap-1 text-blue-500">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                Guardando...
-              </span>
-            )}
-            {lastSaved && !isSaving && (
-              <span className="text-green-600">
-                ✓ Guardado {lastSaved.toLocaleTimeString()}
-              </span>
+        <div className="flex items-center justify-between">
+          {/* Asociación de Materia */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all
+                ${selectedSubject
+                  ? 'bg-purple-600/20 border-2 border-purple-500/50 text-purple-300 hover:bg-purple-600/30'
+                  : 'bg-gray-800/50 border-2 border-gray-700 text-gray-400 hover:bg-gray-800 hover:border-purple-500/30'
+                }
+              `}
+            >
+              <BookOpen className="w-4 h-4" />
+              {selectedSubject ? (
+                <>
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedSubject.color }}></span>
+                  <span>{selectedSubject.name}</span>
+                </>
+              ) : (
+                <span>Vincular a Materia</span>
+              )}
+              <ChevronDown className={`w-4 h-4 transition-transform ${showSubjectDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown de Materias */}
+            {showSubjectDropdown && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-gray-800 border border-purple-500/30 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="p-2 border-b border-purple-500/20 bg-purple-900/20">
+                  <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">Selecciona una Materia</span>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <button
+                    onClick={() => {
+                      setSelectedSubjectId(undefined);
+                      setShowSubjectDropdown(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-gray-400 hover:bg-gray-700/50 transition-colors flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Sin materia</span>
+                  </button>
+                  {activeSubjects.map((subject) => (
+                    <button
+                      key={subject.id}
+                      onClick={() => {
+                        setSelectedSubjectId(subject.id);
+                        setShowSubjectDropdown(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-purple-900/30 transition-colors flex items-center gap-3 border-l-2 border-transparent hover:border-purple-500"
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: subject.color }}
+                      ></span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-purple-100 truncate">{subject.name}</div>
+                        {subject.code && (
+                          <div className="text-xs text-gray-500 truncate">{subject.code}</div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
-          <button
-            onClick={handleManualSave}
-            className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <Save className="w-4 h-4" />
-            Guardar
-          </button>
+          {/* Estado de guardado */}
+          <div className="flex items-center gap-4">
+            {detectedHashtags.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-pink-900/30 rounded-lg border border-pink-500/30">
+                <Hash className="w-4 h-4 text-pink-400" />
+                <span className="text-xs text-pink-300">{detectedHashtags.length} hashtag{detectedHashtags.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {isImageUploading && (
+              <span className="flex items-center gap-2 text-sm text-blue-400">
+                <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                Subiendo imagen...
+              </span>
+            )}
+
+            {isSaving && (
+              <span className="flex items-center gap-2 text-sm text-purple-400">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                Guardando...
+              </span>
+            )}
+
+            {lastSaved && !isSaving && (
+              <span className="text-sm text-green-400 flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                Guardado {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+
+            <button
+              onClick={handleManualSave}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg hover:shadow-purple-500/50"
+            >
+              <Save className="w-4 h-4" />
+              <span className="hidden sm:inline">Guardar</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Barra de herramientas */}
-      <div className="flex items-center gap-1 p-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      {/* Barra de herramientas mejorada */}
+      <div className="flex items-center gap-1 p-3 bg-gray-800/50 border-b border-purple-500/20 overflow-x-auto scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-gray-800">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive('bold')}
@@ -212,7 +406,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           tooltip="Cursiva"
         />
 
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-purple-500/30 mx-1"></div>
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -233,7 +427,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           tooltip="Encabezado 3"
         />
 
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-purple-500/30 mx-1"></div>
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -254,7 +448,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           tooltip="Lista de tareas"
         />
 
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-purple-500/30 mx-1"></div>
 
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleCode().run()}
@@ -269,17 +463,21 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           tooltip="Cita"
         />
 
-        <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+        <div className="w-px h-6 bg-purple-500/30 mx-1"></div>
 
         <ToolbarButton
           onClick={() => {
-            const url = window.prompt('URL de la imagen:');
-            if (url) {
-              editor.chain().focus().setImage({ src: url }).run();
-            }
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0];
+              if (file) handleImageUpload(file);
+            };
+            input.click();
           }}
           icon={<ImageIcon className="w-4 h-4" />}
-          tooltip="Insertar imagen"
+          tooltip="Insertar imagen (o arrástrala)"
         />
 
         <ToolbarButton
@@ -293,22 +491,37 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           icon={<LinkIcon className="w-4 h-4" />}
           tooltip="Insertar enlace"
         />
+
+        <ToolbarButton
+          onClick={insertFormula}
+          active={editor.isActive('mathematics')}
+          icon={<span className="text-xs font-bold">ƒ(x)</span>}
+          tooltip="Insertar fórmula matemática"
+        />
       </div>
 
       {/* Editor de contenido */}
-      <div className="p-6 min-h-[300px] bg-white dark:bg-gray-800">
+      <div className="p-6 min-h-[400px] bg-gray-900">
         <EditorContent editor={editor} />
       </div>
 
-      {/* Footer con ayudas */}
-      <div className="p-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            Tip: Usa <code className="px-1 bg-gray-200 dark:bg-gray-700 rounded">[[nombre]]</code> para crear enlaces a otras notas
-          </span>
+      {/* Footer con hashtags detectados */}
+      {detectedHashtags.length > 0 && (
+        <div className="p-4 bg-gradient-to-r from-pink-900/20 to-purple-900/20 border-t border-purple-500/20">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Hash className="w-4 h-4 text-pink-400" />
+            <span className="text-xs font-bold text-pink-300 uppercase">Hashtags:</span>
+            {detectedHashtags.map((tag, i) => (
+              <span
+                key={i}
+                className="px-2 py-1 bg-pink-600/20 text-pink-300 rounded-lg text-xs border border-pink-500/30 hover:bg-pink-600/30 transition-colors cursor-pointer"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -334,8 +547,8 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
       className={`
         p-2 rounded-lg transition-all duration-200
         ${active
-          ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
-          : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+          ? 'bg-purple-600/30 text-purple-300 ring-2 ring-purple-500/50'
+          : 'hover:bg-gray-700/50 text-gray-400 hover:text-purple-300'
         }
       `}
     >
