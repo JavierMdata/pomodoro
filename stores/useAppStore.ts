@@ -4,7 +4,9 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 import {
   Profile, SchoolPeriod, Subject, Task, Exam,
-  ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert
+  ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert,
+  ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
+  EntityType, EntityRef
 } from '../types';
 
 interface AppState {
@@ -20,6 +22,12 @@ interface AppState {
   sessions: PomodoroSession[];
   settings: Record<string, PomodoroSettings>;
   alerts: Alert[];
+
+  // SEGUNDO CEREBRO: Nuevos estados
+  contentBlocks: ContentBlock[];
+  noteLinks: NoteLink[];
+  focusJournals: FocusJournal[];
+  knowledgeNodes: KnowledgeNode[];
 
   toggleTheme: () => void;
   addProfile: (profile: Omit<Profile, 'id'>) => Promise<void>;
@@ -42,7 +50,31 @@ interface AppState {
   addSession: (session: Omit<PomodoroSession, 'id'>) => void;
   updateSettings: (profileId: string, updates: Partial<PomodoroSettings>) => void;
   markAlertRead: (id: string) => void;
-  
+
+  // SEGUNDO CEREBRO: Content Blocks (Notion-style)
+  addContentBlock: (block: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateContentBlock: (id: string, updates: Partial<ContentBlock>) => Promise<void>;
+  deleteContentBlock: (id: string) => Promise<void>;
+  getBlocksByParent: (parentId: string | null) => ContentBlock[];
+  getBlocksByEntity: (entityType: EntityType, entityId: string) => ContentBlock[];
+
+  // SEGUNDO CEREBRO: Note Links (Obsidian-style)
+  createNoteLink: (source: EntityRef, target: EntityRef, linkText?: string, context?: string) => Promise<void>;
+  deleteNoteLink: (id: string) => Promise<void>;
+  getLinksByNode: (nodeType: EntityType, nodeId: string) => NoteLink[];
+  parseWikiLinks: (text: string) => string[]; // Encuentra [[enlaces]] en texto
+
+  // SEGUNDO CEREBRO: Focus Journals (Filosofía "Amar el Proceso")
+  addFocusJournal: (journal: Omit<FocusJournal, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateFocusJournal: (id: string, updates: Partial<FocusJournal>) => Promise<void>;
+  deleteFocusJournal: (id: string) => Promise<void>;
+  getJournalsByDateRange: (startDate: string, endDate: string) => FocusJournal[];
+  getJournalsByMood: (mood: string) => FocusJournal[];
+
+  // SEGUNDO CEREBRO: Knowledge Graph
+  refreshKnowledgeGraph: () => Promise<void>;
+  searchNodes: (term: string) => KnowledgeNode[];
+
   // Acción para cargar todo desde Supabase
   syncWithSupabase: () => Promise<void>;
 }
@@ -62,6 +94,12 @@ export const useAppStore = create<AppState>()(
       sessions: [],
       settings: {},
       alerts: [],
+
+      // SEGUNDO CEREBRO: Estados iniciales
+      contentBlocks: [],
+      noteLinks: [],
+      focusJournals: [],
+      knowledgeNodes: [],
 
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
@@ -137,6 +175,23 @@ export const useAppStore = create<AppState>()(
               .eq('is_read', false)
               .order('created_at', { ascending: false });
 
+            // SEGUNDO CEREBRO: Cargar nuevas tablas
+            const { data: blocksData } = await supabase
+              .from('content_blocks')
+              .select('*')
+              .order('created_at', { ascending: false });
+
+            const { data: linksData } = await supabase
+              .from('note_links')
+              .select('*')
+              .order('last_referenced_at', { ascending: false });
+
+            const { data: journalsData } = await supabase
+              .from('focus_journals')
+              .select('*')
+              .order('journal_date', { ascending: false })
+              .limit(100);
+
             set({
               profiles: profilesData || [],
               settings: settingsMap,
@@ -147,7 +202,10 @@ export const useAppStore = create<AppState>()(
               examTopics: topicsData || [],
               materials: materialsData || [],
               sessions: sessionsData || [],
-              alerts: alertsData || []
+              alerts: alertsData || [],
+              contentBlocks: blocksData || [],
+              noteLinks: linksData || [],
+              focusJournals: journalsData || []
             });
 
             console.log("✅ Sincronización con Supabase completada");
@@ -156,8 +214,20 @@ export const useAppStore = create<AppState>()(
               subjects: (subjectsData || []).length,
               tasks: (tasksData || []).length,
               exams: (examsData || []).length,
-              examTopics: (topicsData || []).length
+              examTopics: (topicsData || []).length,
+              contentBlocks: (blocksData || []).length,
+              noteLinks: (linksData || []).length,
+              focusJournals: (journalsData || []).length
             });
+
+            // SEGUNDO CEREBRO: Refrescar grafo de conocimiento
+            if (profilesData && profilesData.length > 0) {
+              try {
+                await get().refreshKnowledgeGraph();
+              } catch (e) {
+                console.log('ℹ️ No se pudo refrescar el grafo (puede que las tablas no existan aún)');
+              }
+            }
 
             // Validar si hay materias
             if ((subjectsData || []).length === 0) {
@@ -384,7 +454,342 @@ export const useAppStore = create<AppState>()(
 
       markAlertRead: (id) => set((state) => ({
         alerts: state.alerts.map(a => a.id === id ? { ...a, is_read: true } : a)
-      }))
+      })),
+
+      // ================================================================
+      // SEGUNDO CEREBRO: Content Blocks (Notion-style)
+      // ================================================================
+
+      addContentBlock: async (block) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newBlock: ContentBlock = {
+          ...block,
+          id,
+          created_at: now,
+          updated_at: now
+        };
+
+        try {
+          await supabase.from('content_blocks').insert([newBlock]);
+          console.log('✅ Bloque guardado en Supabase:', id);
+        } catch (e) {
+          console.error('Error al guardar bloque en Supabase:', e);
+        }
+
+        set((state) => ({
+          contentBlocks: [...state.contentBlocks, newBlock]
+        }));
+
+        // Auto-detectar y crear enlaces [[wiki]] si hay texto
+        if (block.content?.text) {
+          const wikiLinks = get().parseWikiLinks(block.content.text);
+          for (const linkText of wikiLinks) {
+            // TODO: Resolver el linkText a una entidad real
+            // Por ahora solo lo loggeamos
+            console.log('🔗 Detectado wiki link:', linkText);
+          }
+        }
+      },
+
+      updateContentBlock: async (id, updates) => {
+        const updatedBlock = {
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        try {
+          await supabase.from('content_blocks').update(updatedBlock).eq('id', id);
+        } catch (e) {
+          console.error('Error al actualizar bloque en Supabase:', e);
+        }
+
+        set((state) => ({
+          contentBlocks: state.contentBlocks.map(b =>
+            b.id === id ? { ...b, ...updatedBlock } : b
+          )
+        }));
+      },
+
+      deleteContentBlock: async (id) => {
+        try {
+          await supabase.from('content_blocks').delete().eq('id', id);
+        } catch (e) {
+          console.error('Error al eliminar bloque en Supabase:', e);
+        }
+
+        set((state) => ({
+          contentBlocks: state.contentBlocks.filter(b => b.id !== id)
+        }));
+      },
+
+      getBlocksByParent: (parentId) => {
+        const state = get();
+        return state.contentBlocks
+          .filter(b => b.parent_block_id === parentId)
+          .sort((a, b) => a.position - b.position);
+      },
+
+      getBlocksByEntity: (entityType, entityId) => {
+        const state = get();
+        const fieldMap: Record<string, keyof ContentBlock> = {
+          task: 'task_id',
+          subject: 'subject_id',
+          exam: 'exam_id',
+          exam_topic: 'exam_topic_id',
+          material: 'material_id'
+        };
+
+        const field = fieldMap[entityType];
+        if (!field) return [];
+
+        return state.contentBlocks
+          .filter(b => b[field] === entityId)
+          .sort((a, b) => a.position - b.position);
+      },
+
+      // ================================================================
+      // SEGUNDO CEREBRO: Note Links (Obsidian-style)
+      // ================================================================
+
+      createNoteLink: async (source, target, linkText, context) => {
+        const profileId = get().activeProfileId;
+        if (!profileId) {
+          console.error('No hay perfil activo');
+          return;
+        }
+
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+
+        const newLink: NoteLink = {
+          id,
+          profile_id: profileId,
+          source_type: source.type,
+          source_id: source.id,
+          target_type: target.type,
+          target_id: target.id,
+          link_text: linkText,
+          context,
+          weight: 1,
+          created_at: now,
+          last_referenced_at: now
+        };
+
+        try {
+          // Usar la función de Supabase para crear enlaces bidireccionales
+          const { data, error } = await supabase.rpc('create_bidirectional_link', {
+            p_profile_id: profileId,
+            p_source_type: source.type,
+            p_source_id: source.id,
+            p_target_type: target.type,
+            p_target_id: target.id,
+            p_link_text: linkText,
+            p_context: context
+          });
+
+          if (error) throw error;
+
+          console.log('✅ Enlace creado:', data);
+        } catch (e) {
+          console.error('Error al crear enlace en Supabase:', e);
+          // Fallback: insertar manualmente
+          try {
+            await supabase.from('note_links').insert([newLink]);
+          } catch (e2) {
+            console.error('Error en fallback de enlace:', e2);
+          }
+        }
+
+        // Actualizar estado local (buscar si ya existe para incrementar peso)
+        set((state) => {
+          const existing = state.noteLinks.find(
+            l =>
+              l.profile_id === profileId &&
+              l.source_type === source.type &&
+              l.source_id === source.id &&
+              l.target_type === target.type &&
+              l.target_id === target.id
+          );
+
+          if (existing) {
+            // Incrementar peso del existente
+            return {
+              noteLinks: state.noteLinks.map(l =>
+                l.id === existing.id
+                  ? { ...l, weight: l.weight + 1, last_referenced_at: now }
+                  : l
+              )
+            };
+          } else {
+            // Agregar nuevo
+            return {
+              noteLinks: [...state.noteLinks, newLink]
+            };
+          }
+        });
+
+        // Refrescar el grafo después de crear un enlace
+        await get().refreshKnowledgeGraph();
+      },
+
+      deleteNoteLink: async (id) => {
+        try {
+          await supabase.from('note_links').delete().eq('id', id);
+        } catch (e) {
+          console.error('Error al eliminar enlace en Supabase:', e);
+        }
+
+        set((state) => ({
+          noteLinks: state.noteLinks.filter(l => l.id !== id)
+        }));
+      },
+
+      getLinksByNode: (nodeType, nodeId) => {
+        const state = get();
+        return state.noteLinks.filter(
+          l =>
+            (l.source_type === nodeType && l.source_id === nodeId) ||
+            (l.target_type === nodeType && l.target_id === nodeId)
+        );
+      },
+
+      parseWikiLinks: (text) => {
+        const wikiLinkRegex = /\[\[([^\]]+)\]\]/g;
+        const matches = [];
+        let match;
+
+        while ((match = wikiLinkRegex.exec(text)) !== null) {
+          matches.push(match[1].trim());
+        }
+
+        return matches;
+      },
+
+      // ================================================================
+      // SEGUNDO CEREBRO: Focus Journals
+      // ================================================================
+
+      addFocusJournal: async (journal) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newJournal: FocusJournal = {
+          ...journal,
+          id,
+          created_at: now,
+          updated_at: now
+        };
+
+        try {
+          await supabase.from('focus_journals').insert([newJournal]);
+          console.log('✅ Journal guardado en Supabase:', id);
+        } catch (e) {
+          console.error('Error al guardar journal en Supabase:', e);
+        }
+
+        set((state) => ({
+          focusJournals: [...state.focusJournals, newJournal]
+        }));
+
+        // Auto-detectar y crear enlaces [[wiki]] en el entry
+        const wikiLinks = get().parseWikiLinks(journal.entry);
+        for (const linkText of wikiLinks) {
+          console.log('🔗 Detectado wiki link en journal:', linkText);
+          // TODO: Resolver y crear enlaces automáticamente
+        }
+      },
+
+      updateFocusJournal: async (id, updates) => {
+        const updatedJournal = {
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        try {
+          await supabase.from('focus_journals').update(updatedJournal).eq('id', id);
+        } catch (e) {
+          console.error('Error al actualizar journal en Supabase:', e);
+        }
+
+        set((state) => ({
+          focusJournals: state.focusJournals.map(j =>
+            j.id === id ? { ...j, ...updatedJournal } : j
+          )
+        }));
+      },
+
+      deleteFocusJournal: async (id) => {
+        try {
+          await supabase.from('focus_journals').delete().eq('id', id);
+        } catch (e) {
+          console.error('Error al eliminar journal en Supabase:', e);
+        }
+
+        set((state) => ({
+          focusJournals: state.focusJournals.filter(j => j.id !== id)
+        }));
+      },
+
+      getJournalsByDateRange: (startDate, endDate) => {
+        const state = get();
+        return state.focusJournals.filter(j => {
+          const jDate = j.journal_date;
+          return jDate >= startDate && jDate <= endDate;
+        }).sort((a, b) => b.journal_date.localeCompare(a.journal_date));
+      },
+
+      getJournalsByMood: (mood) => {
+        const state = get();
+        return state.focusJournals.filter(j => j.mood === mood);
+      },
+
+      // ================================================================
+      // SEGUNDO CEREBRO: Knowledge Graph
+      // ================================================================
+
+      refreshKnowledgeGraph: async () => {
+        const profileId = get().activeProfileId;
+        if (!profileId) {
+          console.log('No hay perfil activo, no se puede refrescar el grafo');
+          return;
+        }
+
+        try {
+          // Refrescar la vista materializada
+          await supabase.rpc('refresh_knowledge_graph');
+
+          // Cargar nodos del grafo
+          const { data: nodesData, error } = await supabase
+            .from('knowledge_nodes')
+            .select('*')
+            .eq('profile_id', profileId);
+
+          if (error) throw error;
+
+          set({ knowledgeNodes: nodesData || [] });
+
+          console.log(`✅ Grafo refrescado: ${(nodesData || []).length} nodos`);
+        } catch (e) {
+          console.error('Error al refrescar grafo:', e);
+        }
+      },
+
+      searchNodes: (term) => {
+        const state = get();
+        const lowerTerm = term.toLowerCase();
+
+        return state.knowledgeNodes
+          .filter(n => n.title.toLowerCase().includes(lowerTerm))
+          .sort((a, b) => {
+            // Priorizar matches exactos
+            const aExact = a.title.toLowerCase() === lowerTerm ? 1 : 0;
+            const bExact = b.title.toLowerCase() === lowerTerm ? 1 : 0;
+            if (aExact !== bExact) return bExact - aExact;
+
+            // Luego por tiempo dedicado
+            return b.total_time_seconds - a.total_time_seconds;
+          });
+      }
     }),
     { name: 'pomosmart-cloud-v1' }
   )

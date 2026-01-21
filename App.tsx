@@ -11,6 +11,9 @@ import StatisticsView from './components/StatisticsView';
 import SubjectsManager from './components/SubjectsManager';
 import ExamManager from './components/ExamManager';
 import EnhancedTaskProgress from './components/EnhancedTaskProgress';
+import BlockEditor from './components/BlockEditor';
+import KnowledgeGraph from './components/KnowledgeGraph';
+import FocusJournal from './components/FocusJournal';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -218,6 +221,9 @@ const App: React.FC = () => {
           {activeTab === 'materials' && <MaterialManager />}
           {activeTab === 'pomodoro' && <PomodoroTimer />}
           {activeTab === 'statistics' && <StatisticsView />}
+          {activeTab === 'notes' && <BlockEditor />}
+          {activeTab === 'graph' && <KnowledgeGraph />}
+          {activeTab === 'journal' && <FocusJournal />}
           {activeTab === 'settings' && (
             <div className="max-w-3xl mx-auto py-10">
               <h1 className={`text-4xl font-black mb-10 tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Preferencias del Perfil</h1>
