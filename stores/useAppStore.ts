@@ -175,22 +175,41 @@ export const useAppStore = create<AppState>()(
               .eq('is_read', false)
               .order('created_at', { ascending: false });
 
-            // SEGUNDO CEREBRO: Cargar nuevas tablas
-            const { data: blocksData } = await supabase
-              .from('content_blocks')
-              .select('*')
-              .order('created_at', { ascending: false });
+            // SEGUNDO CEREBRO: Cargar nuevas tablas (si existen)
+            let blocksData = null;
+            let linksData = null;
+            let journalsData = null;
 
-            const { data: linksData } = await supabase
-              .from('note_links')
-              .select('*')
-              .order('last_referenced_at', { ascending: false });
+            try {
+              const blocksResult = await supabase
+                .from('content_blocks')
+                .select('*')
+                .order('created_at', { ascending: false });
+              blocksData = blocksResult.data;
+            } catch (e) {
+              console.log('ℹ️ Tabla content_blocks no disponible (ejecuta el SQL primero)');
+            }
 
-            const { data: journalsData } = await supabase
-              .from('focus_journals')
-              .select('*')
-              .order('journal_date', { ascending: false })
-              .limit(100);
+            try {
+              const linksResult = await supabase
+                .from('note_links')
+                .select('*')
+                .order('last_referenced_at', { ascending: false });
+              linksData = linksResult.data;
+            } catch (e) {
+              console.log('ℹ️ Tabla note_links no disponible (ejecuta el SQL primero)');
+            }
+
+            try {
+              const journalsResult = await supabase
+                .from('focus_journals')
+                .select('*')
+                .order('journal_date', { ascending: false })
+                .limit(100);
+              journalsData = journalsResult.data;
+            } catch (e) {
+              console.log('ℹ️ Tabla focus_journals no disponible (ejecuta el SQL primero)');
+            }
 
             set({
               profiles: profilesData || [],
@@ -205,20 +224,27 @@ export const useAppStore = create<AppState>()(
               alerts: alertsData || [],
               contentBlocks: blocksData || [],
               noteLinks: linksData || [],
-              focusJournals: journalsData || []
+              focusJournals: journalsData || [],
+              knowledgeNodes: [] // Inicializar siempre como array vacío
             });
 
             console.log("✅ Sincronización con Supabase completada");
-            console.log("📊 Datos cargados:", {
+            const loadedData: any = {
               profiles: (profilesData || []).length,
               subjects: (subjectsData || []).length,
               tasks: (tasksData || []).length,
               exams: (examsData || []).length,
-              examTopics: (topicsData || []).length,
-              contentBlocks: (blocksData || []).length,
-              noteLinks: (linksData || []).length,
-              focusJournals: (journalsData || []).length
-            });
+              examTopics: (topicsData || []).length
+            };
+
+            // Solo mostrar datos del Segundo Cerebro si las tablas existen
+            if (blocksData !== null) {
+              loadedData.contentBlocks = blocksData.length;
+              loadedData.noteLinks = (linksData || []).length;
+              loadedData.focusJournals = (journalsData || []).length;
+            }
+
+            console.log("📊 Datos cargados:", loadedData);
 
             // SEGUNDO CEREBRO: Refrescar grafo de conocimiento
             if (profilesData && profilesData.length > 0) {
@@ -755,8 +781,13 @@ export const useAppStore = create<AppState>()(
         }
 
         try {
-          // Refrescar la vista materializada
-          await supabase.rpc('refresh_knowledge_graph');
+          // Refrescar la vista materializada (solo si existe)
+          const { error: rpcError } = await supabase.rpc('refresh_knowledge_graph');
+
+          if (rpcError) {
+            // Si la función no existe, simplemente loggeamos y continuamos
+            console.log('ℹ️ Función refresh_knowledge_graph no disponible (ejecuta el SQL primero)');
+          }
 
           // Cargar nodos del grafo
           const { data: nodesData, error } = await supabase
@@ -764,13 +795,18 @@ export const useAppStore = create<AppState>()(
             .select('*')
             .eq('profile_id', profileId);
 
-          if (error) throw error;
+          if (error) {
+            console.log('ℹ️ Vista knowledge_nodes no disponible (ejecuta el SQL primero)');
+            set({ knowledgeNodes: [] }); // Asegurar que siempre sea un array
+            return;
+          }
 
           set({ knowledgeNodes: nodesData || [] });
 
           console.log(`✅ Grafo refrescado: ${(nodesData || []).length} nodos`);
         } catch (e) {
-          console.error('Error al refrescar grafo:', e);
+          console.log('ℹ️ No se pudo refrescar el grafo (las tablas del Segundo Cerebro aún no existen)');
+          set({ knowledgeNodes: [] }); // Asegurar que siempre sea un array
         }
       },
 
