@@ -52,7 +52,7 @@ interface AppState {
   markAlertRead: (id: string) => void;
 
   // SEGUNDO CEREBRO: Content Blocks (Notion-style)
-  addContentBlock: (block: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  addContentBlock: (block: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'>) => Promise<ContentBlock>;
   updateContentBlock: (id: string, updates: Partial<ContentBlock>) => Promise<void>;
   deleteContentBlock: (id: string) => Promise<void>;
   getBlocksByParent: (parentId: string | null) => ContentBlock[];
@@ -70,6 +70,9 @@ interface AppState {
   deleteFocusJournal: (id: string) => Promise<void>;
   getJournalsByDateRange: (startDate: string, endDate: string) => FocusJournal[];
   getJournalsByMood: (mood: string) => FocusJournal[];
+
+  // SEGUNDO CEREBRO: Análisis Inteligente de Enlaces
+  analyzeAndCreateLinks: (entityId: string, entityType: EntityType, title: string, content: string, hashtags: string[]) => Promise<void>;
 
   // SEGUNDO CEREBRO: Knowledge Graph
   refreshKnowledgeGraph: () => Promise<void>;
@@ -516,6 +519,8 @@ export const useAppStore = create<AppState>()(
             console.log('🔗 Detectado wiki link:', linkText);
           }
         }
+
+        return newBlock;
       },
 
       updateContentBlock: async (id, updates) => {
@@ -767,6 +772,99 @@ export const useAppStore = create<AppState>()(
       getJournalsByMood: (mood) => {
         const state = get();
         return state.focusJournals.filter(j => j.mood === mood);
+      },
+
+      // ================================================================
+      // SEGUNDO CEREBRO: Análisis Inteligente de Enlaces
+      // ================================================================
+
+      analyzeAndCreateLinks: async (entityId, entityType, title, content, hashtags) => {
+        const profileId = get().activeProfileId;
+        if (!profileId) return;
+
+        try {
+          // 1. Extraer palabras clave del título (ignorar palabras comunes)
+          const stopWords = ['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'y', 'o', 'en', 'a', 'para', 'con', 'por', 'como', 'que', 'es'];
+          const titleWords = title
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(word => word.length > 3 && !stopWords.includes(word));
+
+          // 2. Buscar otras notas con palabras clave similares
+          const allBlocks = get().contentBlocks.filter(b => b.profile_id === profileId && b.id !== entityId);
+
+          for (const block of allBlocks) {
+            const blockTitleWords = (block.title || '')
+              .toLowerCase()
+              .split(/\s+/)
+              .filter(word => word.length > 3 && !stopWords.includes(word));
+
+            // Calcular coincidencias
+            const matches = titleWords.filter(word => blockTitleWords.includes(word));
+
+            // Si hay al menos 2 palabras en común, crear enlace
+            if (matches.length >= 2) {
+              await get().createNoteLink(
+                { type: entityType, id: entityId },
+                { type: 'content_block', id: block.id },
+                matches.join(', '),
+                `Conexión automática por palabras clave: ${matches.join(', ')}`
+              );
+              console.log(`🔗 Enlace automático creado con "${block.title}" (${matches.length} coincidencias)`);
+            }
+          }
+
+          // 3. Crear nodos y enlaces para hashtags
+          if (hashtags && hashtags.length > 0) {
+            for (const tag of hashtags) {
+              // Crear o actualizar nodo de hashtag en la base de datos
+              // (Los hashtags se almacenarán como content_blocks especiales de tipo 'tag')
+              const tagBlockData: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'> = {
+                profile_id: profileId,
+                block_type: 'text',
+                position: 0,
+                title: `#${tag}`,
+                content: {
+                  text: `<p>Hashtag: #${tag}</p>`,
+                  type: 'hashtag'
+                }
+              };
+
+              // Buscar si ya existe un bloque para este hashtag
+              const existingTagBlock = get().contentBlocks.find(
+                b => b.profile_id === profileId && b.title === `#${tag}` && b.content?.type === 'hashtag'
+              );
+
+              let tagBlockId: string;
+
+              if (existingTagBlock) {
+                tagBlockId = existingTagBlock.id;
+              } else {
+                // Crear nuevo nodo de hashtag
+                const newTagBlock = await get().addContentBlock(tagBlockData);
+                tagBlockId = newTagBlock?.id || '';
+                console.log(`🏷️ Nodo de hashtag creado: #${tag}`);
+              }
+
+              // Crear enlace entre la nota y el hashtag
+              if (tagBlockId) {
+                await get().createNoteLink(
+                  { type: entityType, id: entityId },
+                  { type: 'content_block', id: tagBlockId },
+                  `#${tag}`,
+                  `Hashtag encontrado en el contenido`
+                );
+                console.log(`🔗 Nota vinculada al hashtag #${tag}`);
+              }
+            }
+          }
+
+          // 4. Refrescar el grafo para mostrar las nuevas conexiones
+          await get().refreshKnowledgeGraph();
+
+        } catch (error) {
+          console.error('Error al analizar y crear enlaces:', error);
+        }
       },
 
       // ================================================================
