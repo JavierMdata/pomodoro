@@ -26,17 +26,17 @@ interface AppState {
   deleteProfile: (id: string) => Promise<void>;
   setActiveProfile: (id: string | null) => void;
   addPeriod: (period: Omit<SchoolPeriod, 'id'>) => void;
-  addSubject: (subject: Omit<Subject, 'id'>) => void;
-  updateSubject: (id: string, updates: Partial<Subject>) => void;
-  deleteSubject: (id: string) => void;
+  addSubject: (subject: Omit<Subject, 'id'>) => Promise<void>;
+  updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
+  deleteSubject: (id: string) => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'completed_pomodoros'>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
-  addExam: (exam: Omit<Exam, 'id'>) => void;
-  updateExam: (id: string, updates: Partial<Exam>) => void;
-  deleteExam: (id: string) => void;
-  addExamTopic: (topic: Omit<ExamTopic, 'id' | 'completed_pomodoros'>) => void;
-  updateExamTopic: (id: string, updates: Partial<ExamTopic>) => void;
-  deleteExamTopic: (id: string) => void;
+  addExam: (exam: Omit<Exam, 'id'>) => Promise<void>;
+  updateExam: (id: string, updates: Partial<Exam>) => Promise<void>;
+  deleteExam: (id: string) => Promise<void>;
+  addExamTopic: (topic: Omit<ExamTopic, 'id' | 'completed_pomodoros'>) => Promise<void>;
+  updateExamTopic: (id: string, updates: Partial<ExamTopic>) => Promise<void>;
+  deleteExamTopic: (id: string) => Promise<void>;
   addMaterial: (material: Omit<Material, 'id'>) => void;
   updateMaterial: (id: string, updates: Partial<Material>) => void;
   addSession: (session: Omit<PomodoroSession, 'id'>) => void;
@@ -222,20 +222,47 @@ export const useAppStore = create<AppState>()(
         periods: [...state.periods, { ...period, id: crypto.randomUUID() }]
       })),
 
-      addSubject: (subject) => set((state) => ({
-        subjects: [...state.subjects, { ...subject, id: crypto.randomUUID() }]
-      })),
+      addSubject: async (subject) => {
+        const id = crypto.randomUUID();
+        const newSubject = { ...subject, id };
 
-      updateSubject: (id, updates) => set((state) => ({
-        subjects: state.subjects.map(s => s.id === id ? { ...s, ...updates } : s)
-      })),
+        try {
+          await supabase.from('subjects').insert([newSubject]);
+        } catch (e) {
+          console.error("Error al guardar materia en Supabase", e);
+        }
 
-      deleteSubject: (id) => set((state) => ({
-        subjects: state.subjects.filter(s => s.id !== id),
-        tasks: state.tasks.filter(t => t.subject_id !== id),
-        exams: state.exams.filter(e => e.subject_id !== id),
-        materials: state.materials.filter(m => m.subject_id !== id)
-      })),
+        set((state) => ({
+          subjects: [...state.subjects, newSubject]
+        }));
+      },
+
+      updateSubject: async (id, updates) => {
+        try {
+          await supabase.from('subjects').update(updates).eq('id', id);
+        } catch (e) {
+          console.error("Error al actualizar materia en Supabase", e);
+        }
+
+        set((state) => ({
+          subjects: state.subjects.map(s => s.id === id ? { ...s, ...updates } : s)
+        }));
+      },
+
+      deleteSubject: async (id) => {
+        try {
+          await supabase.from('subjects').delete().eq('id', id);
+        } catch (e) {
+          console.error("Error al eliminar materia en Supabase", e);
+        }
+
+        set((state) => ({
+          subjects: state.subjects.filter(s => s.id !== id),
+          tasks: state.tasks.filter(t => t.subject_id !== id),
+          exams: state.exams.filter(e => e.subject_id !== id),
+          materials: state.materials.filter(m => m.subject_id !== id)
+        }));
+      },
 
       addTask: (task) => set((state) => ({
         tasks: [...state.tasks, { ...task, id: crypto.randomUUID(), completed_pomodoros: 0 }]
@@ -245,30 +272,84 @@ export const useAppStore = create<AppState>()(
         tasks: state.tasks.map(t => t.id === id ? { ...t, ...updates } : t)
       })),
 
-      addExam: (exam) => set((state) => ({
-        exams: [...state.exams, { ...exam, id: crypto.randomUUID() }]
-      })),
+      addExam: async (exam) => {
+        const id = crypto.randomUUID();
+        const newExam = { ...exam, id };
 
-      updateExam: (id, updates) => set((state) => ({
-        exams: state.exams.map(e => e.id === id ? { ...e, ...updates } : e)
-      })),
+        try {
+          await supabase.from('exams').insert([newExam]);
+        } catch (e) {
+          console.error("Error al guardar examen en Supabase", e);
+        }
 
-      deleteExam: (id) => set((state) => ({
-        exams: state.exams.filter(e => e.id !== id),
-        examTopics: state.examTopics.filter(et => et.exam_id !== id)
-      })),
+        set((state) => ({
+          exams: [...state.exams, newExam]
+        }));
+      },
 
-      addExamTopic: (topic) => set((state) => ({
-        examTopics: [...state.examTopics, { ...topic, id: crypto.randomUUID(), completed_pomodoros: 0 }]
-      })),
+      updateExam: async (id, updates) => {
+        try {
+          await supabase.from('exams').update(updates).eq('id', id);
+        } catch (e) {
+          console.error("Error al actualizar examen en Supabase", e);
+        }
 
-      updateExamTopic: (id, updates) => set((state) => ({
-        examTopics: state.examTopics.map(et => et.id === id ? { ...et, ...updates } : et)
-      })),
+        set((state) => ({
+          exams: state.exams.map(e => e.id === id ? { ...e, ...updates } : e)
+        }));
+      },
 
-      deleteExamTopic: (id) => set((state) => ({
-        examTopics: state.examTopics.filter(et => et.id !== id)
-      })),
+      deleteExam: async (id) => {
+        try {
+          await supabase.from('exams').delete().eq('id', id);
+        } catch (e) {
+          console.error("Error al eliminar examen en Supabase", e);
+        }
+
+        set((state) => ({
+          exams: state.exams.filter(e => e.id !== id),
+          examTopics: state.examTopics.filter(et => et.exam_id !== id)
+        }));
+      },
+
+      addExamTopic: async (topic) => {
+        const id = crypto.randomUUID();
+        const newTopic = { ...topic, id, completed_pomodoros: 0 };
+
+        try {
+          await supabase.from('exam_topics').insert([newTopic]);
+        } catch (e) {
+          console.error("Error al guardar tema en Supabase", e);
+        }
+
+        set((state) => ({
+          examTopics: [...state.examTopics, newTopic]
+        }));
+      },
+
+      updateExamTopic: async (id, updates) => {
+        try {
+          await supabase.from('exam_topics').update(updates).eq('id', id);
+        } catch (e) {
+          console.error("Error al actualizar tema en Supabase", e);
+        }
+
+        set((state) => ({
+          examTopics: state.examTopics.map(et => et.id === id ? { ...et, ...updates } : et)
+        }));
+      },
+
+      deleteExamTopic: async (id) => {
+        try {
+          await supabase.from('exam_topics').delete().eq('id', id);
+        } catch (e) {
+          console.error("Error al eliminar tema en Supabase", e);
+        }
+
+        set((state) => ({
+          examTopics: state.examTopics.filter(et => et.id !== id)
+        }));
+      },
 
       addMaterial: (material) => set((state) => ({
         materials: [...state.materials, { ...material, id: crypto.randomUUID() }]
