@@ -4,7 +4,8 @@ import FullscreenPomodoro from './FullscreenPomodoro';
 import MiniPomodoro from './MiniPomodoro';
 import {
   GraduationCap, Plus, BookOpen, FolderKanban, PlayCircle,
-  ChevronDown, ChevronRight, Clock, Target, Sparkles, Flame
+  ChevronDown, ChevronRight, Clock, Target, Sparkles, Flame,
+  Edit2, Trash2
 } from 'lucide-react';
 
 interface SubjectWithData {
@@ -26,12 +27,14 @@ interface PomodoroItem {
 const SubjectsManager: React.FC = () => {
   const {
     theme, activeProfileId, subjects, exams, examTopics, tasks, materials,
-    addSubject, settings, addSession
+    addSubject, updateSubject, deleteSubject, settings, addSession
   } = useAppStore();
 
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [expandedExams, setExpandedExams] = useState<Set<string>>(new Set());
   const [showAddSubject, setShowAddSubject] = useState(false);
+  const [showEditSubject, setShowEditSubject] = useState(false);
+  const [editingSubject, setEditingSubject] = useState<any>(null);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectColor, setNewSubjectColor] = useState('#6366f1');
   const [pomodoroItem, setPomodoroItem] = useState<PomodoroItem | null>(null);
@@ -97,6 +100,33 @@ const SubjectsManager: React.FC = () => {
     setNewSubjectName('');
     setNewSubjectColor('#6366f1');
     setShowAddSubject(false);
+  };
+
+  const handleEditSubject = (subject: any) => {
+    setEditingSubject(subject);
+    setNewSubjectName(subject.name);
+    setNewSubjectColor(subject.color);
+    setShowEditSubject(true);
+  };
+
+  const handleSaveEditSubject = () => {
+    if (!newSubjectName.trim() || !editingSubject) return;
+
+    updateSubject(editingSubject.id, {
+      name: newSubjectName.trim(),
+      color: newSubjectColor
+    });
+
+    setNewSubjectName('');
+    setNewSubjectColor('#6366f1');
+    setEditingSubject(null);
+    setShowEditSubject(false);
+  };
+
+  const handleDeleteSubject = (subject: any) => {
+    if (window.confirm(`¿Estás seguro de eliminar "${subject.name}"? Se eliminarán todos sus parciales, tareas y materiales.`)) {
+      deleteSubject(subject.id);
+    }
   };
 
   const startPomodoro = (item: any, type: 'task' | 'topic' | 'material', subjectData: any) => {
@@ -262,6 +292,88 @@ const SubjectsManager: React.FC = () => {
         </div>
       )}
 
+      {/* Modal Editar Materia */}
+      {showEditSubject && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-8 animate-in fade-in duration-300">
+          <div className={`w-full max-w-2xl p-12 rounded-[3.5rem] shadow-2xl animate-in zoom-in duration-300 ${
+            theme === 'dark' ? 'bg-slate-900 border-2 border-white/10' : 'bg-white'
+          }`}>
+            <h2 className="text-4xl font-black mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              Editar Materia
+            </h2>
+
+            <div className="space-y-6">
+              <div>
+                <label className={`block text-sm font-bold mb-3 uppercase tracking-wider ${
+                  theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                }`}>
+                  Nombre de la Materia
+                </label>
+                <input
+                  type="text"
+                  value={newSubjectName}
+                  onChange={(e) => setNewSubjectName(e.target.value)}
+                  placeholder="ej: Cálculo Integral"
+                  className={`w-full px-6 py-4 rounded-2xl border-2 font-semibold text-lg transition-all focus:scale-[1.02] ${
+                    theme === 'dark'
+                      ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
+                      : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-bold mb-3 uppercase tracking-wider ${
+                  theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
+                }`}>
+                  Color
+                </label>
+                <div className="flex gap-4 items-center">
+                  <input
+                    type="color"
+                    value={newSubjectColor}
+                    onChange={(e) => setNewSubjectColor(e.target.value)}
+                    className="w-24 h-24 rounded-2xl cursor-pointer border-4 border-white shadow-xl"
+                  />
+                  <div className="flex-1 px-6 py-4 rounded-2xl font-mono font-bold text-center" style={{
+                    backgroundColor: newSubjectColor + '20',
+                    color: newSubjectColor,
+                    border: `2px solid ${newSubjectColor}50`
+                  }}>
+                    {newSubjectColor}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-10">
+              <button
+                onClick={() => {
+                  setShowEditSubject(false);
+                  setEditingSubject(null);
+                  setNewSubjectName('');
+                  setNewSubjectColor('#6366f1');
+                }}
+                className={`flex-1 px-8 py-5 rounded-2xl font-black text-lg transition-all hover:scale-105 active:scale-95 ${
+                  theme === 'dark'
+                    ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEditSubject}
+                disabled={!newSubjectName.trim()}
+                className="flex-1 px-8 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black text-lg shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Grid de Materias con Glassmorphism */}
       {subjectsWithData.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32">
@@ -302,44 +414,78 @@ const SubjectsManager: React.FC = () => {
                     : 'bg-white/60 border-slate-200/50 hover:bg-white/80'
                 }`}>
                   {/* Subject Header */}
-                  <button
-                    onClick={() => toggleSubject(subject.id)}
-                    className="w-full flex items-center justify-between group/header"
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div
-                        className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-transform group-hover/header:scale-110 duration-300"
-                        style={{
-                          backgroundColor: subject.color + '20',
-                          border: `3px solid ${subject.color}`
-                        }}
-                      >
-                        <GraduationCap size={36} style={{ color: subject.color }} />
-                      </div>
-                      <div className="text-left flex-1">
-                        <h3 className="text-3xl font-black mb-1" style={{ color: subject.color }}>
-                          {subject.name}
-                        </h3>
-                        <div className="flex gap-4 text-sm font-bold">
-                          <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                            {subjectExams.length} Parciales
-                          </span>
-                          <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                            {totalTasks} Tareas
-                          </span>
-                          <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                            {totalTopics} Temas
-                          </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => toggleSubject(subject.id)}
+                      className="flex-1 flex items-center justify-between group/header"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div
+                          className="w-20 h-20 rounded-[1.5rem] flex items-center justify-center shadow-lg transition-transform group-hover/header:scale-110 duration-300"
+                          style={{
+                            backgroundColor: subject.color + '20',
+                            border: `3px solid ${subject.color}`
+                          }}
+                        >
+                          <GraduationCap size={36} style={{ color: subject.color }} />
+                        </div>
+                        <div className="text-left flex-1">
+                          <h3 className="text-3xl font-black mb-1" style={{ color: subject.color }}>
+                            {subject.name}
+                          </h3>
+                          <div className="flex gap-4 text-sm font-bold">
+                            <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
+                              {subjectExams.length} Parciales
+                            </span>
+                            <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
+                              {totalTasks} Tareas
+                            </span>
+                            <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
+                              {totalTopics} Temas
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="transition-transform duration-300" style={{
-                      transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'
-                    }}>
-                      <ChevronDown size={32} className="text-slate-400" />
+                      <div className="transition-transform duration-300" style={{
+                        transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'
+                      }}>
+                        <ChevronDown size={32} className="text-slate-400" />
+                      </div>
+                    </button>
+
+                    {/* Edit and Delete Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditSubject(subject);
+                        }}
+                        className={`p-3 rounded-xl transition-all hover:scale-110 active:scale-95 ${
+                          theme === 'dark'
+                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-indigo-400'
+                            : 'bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-600'
+                        }`}
+                        title="Editar materia"
+                      >
+                        <Edit2 size={20} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSubject(subject);
+                        }}
+                        className={`p-3 rounded-xl transition-all hover:scale-110 active:scale-95 ${
+                          theme === 'dark'
+                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-red-400'
+                            : 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600'
+                        }`}
+                        title="Eliminar materia"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     </div>
-                  </button>
+                  </div>
 
                   {/* Progress Bars */}
                   <div className="mt-6 space-y-3">
