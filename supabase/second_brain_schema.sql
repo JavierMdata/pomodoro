@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS focus_journals (
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
 
   -- Relación con sesión Pomodoro (opcional)
-  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  session_id UUID REFERENCES pomodoro_sessions(id) ON DELETE SET NULL,
 
   -- Relaciones opcionales con contexto
   subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -212,7 +212,7 @@ WITH node_stats AS (
     COUNT(DISTINCT ses.id) as session_count,
     COALESCE(AVG(ses.focus_rating), 0) as avg_focus_rating
   FROM subjects s
-  LEFT JOIN sessions ses ON (
+  LEFT JOIN pomodoro_sessions ses ON (
     ses.task_id IN (SELECT id FROM tasks WHERE subject_id = s.id) OR
     ses.exam_topic_id IN (SELECT et.id FROM exam_topics et JOIN exams e ON et.exam_id = e.id WHERE e.subject_id = s.id) OR
     ses.material_id IN (SELECT id FROM materials WHERE subject_id = s.id)
@@ -234,7 +234,7 @@ WITH node_stats AS (
     COALESCE(AVG(ses.focus_rating), 0) as avg_focus_rating
   FROM tasks t
   JOIN subjects s ON t.subject_id = s.id
-  LEFT JOIN sessions ses ON ses.task_id = t.id
+  LEFT JOIN pomodoro_sessions ses ON ses.task_id = t.id
   GROUP BY t.id, s.profile_id, t.title, s.color, t.priority
 
   UNION ALL
@@ -252,7 +252,7 @@ WITH node_stats AS (
     COALESCE(AVG(ses.focus_rating), 0) as avg_focus_rating
   FROM exams e
   JOIN subjects s ON e.subject_id = s.id
-  LEFT JOIN sessions ses ON ses.exam_topic_id IN (SELECT id FROM exam_topics WHERE exam_id = e.id)
+  LEFT JOIN pomodoro_sessions ses ON ses.exam_topic_id IN (SELECT id FROM exam_topics WHERE exam_id = e.id)
   GROUP BY e.id, s.profile_id, e.name, s.color
 
   UNION ALL
@@ -270,7 +270,7 @@ WITH node_stats AS (
     COALESCE(AVG(ses.focus_rating), 0) as avg_focus_rating
   FROM materials m
   LEFT JOIN subjects s ON m.subject_id = s.id
-  LEFT JOIN sessions ses ON ses.material_id = m.id
+  LEFT JOIN pomodoro_sessions ses ON ses.material_id = m.id
   GROUP BY m.id, m.profile_id, m.title, s.color, m.type
 
   UNION ALL
@@ -328,30 +328,30 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ================================================================
--- 5. EXTENSIÓN: Campos adicionales en tabla 'sessions'
+-- 5. EXTENSIÓN: Campos adicionales en tabla 'pomodoro_sessions'
 -- ================================================================
 -- Agregar campo de mood a sesiones existentes (si no existe)
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'sessions' AND column_name = 'mood'
+    WHERE table_name = 'pomodoro_sessions' AND column_name = 'mood'
   ) THEN
-    ALTER TABLE sessions ADD COLUMN mood VARCHAR(50);
+    ALTER TABLE pomodoro_sessions ADD COLUMN mood VARCHAR(50);
 
-    ALTER TABLE sessions ADD CONSTRAINT sessions_mood_check CHECK (
+    ALTER TABLE pomodoro_sessions ADD CONSTRAINT pomodoro_sessions_mood_check CHECK (
       mood IN ('energized', 'calm', 'focused', 'frustrated', 'curious', 'proud', 'overwhelmed', 'playful', 'determined')
     );
 
-    CREATE INDEX idx_sessions_mood ON sessions(mood);
+    CREATE INDEX idx_pomodoro_sessions_mood ON pomodoro_sessions(mood);
   END IF;
 
   -- Agregar campo de notas rápidas
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'sessions' AND column_name = 'quick_notes'
+    WHERE table_name = 'pomodoro_sessions' AND column_name = 'quick_notes'
   ) THEN
-    ALTER TABLE sessions ADD COLUMN quick_notes TEXT;
+    ALTER TABLE pomodoro_sessions ADD COLUMN quick_notes TEXT;
   END IF;
 END $$;
 
