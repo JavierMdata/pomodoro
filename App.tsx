@@ -34,8 +34,8 @@ const App: React.FC = () => {
   // Estado para pantalla de bienvenida
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
 
-  // Get active profile
-  const activeProfile = profiles.find(p => p.id === activeProfileId);
+  // Get active profile (con protección contra undefined)
+  const activeProfile = (profiles || []).find(p => p.id === activeProfileId);
 
   // Cargar datos de Supabase al iniciar
   useEffect(() => {

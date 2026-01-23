@@ -32,16 +32,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ profile, onDismiss
     setTimeout(onDismiss, 300);
   };
 
-  // Calcular estadísticas del día
+  // Calcular estadísticas del día - con valores por defecto para evitar errores
   const today = new Date().toISOString().split('T')[0];
-  const todaySessions = sessions.filter(s =>
+  const todaySessions = (sessions || []).filter(s =>
     s.profile_id === profile.id &&
     s.started_at?.startsWith(today)
   );
   const todayPomodoros = todaySessions.filter(s => s.session_type === 'work').length;
 
-  const pendingTasks = tasks.filter(t => {
-    const taskSubject = subjects.find(s => s.id === t.subject_id);
+  const pendingTasks = (tasks || []).filter(t => {
+    const taskSubject = (subjects || []).find(s => s.id === t.subject_id);
     return taskSubject?.profile_id === profile.id && t.status !== 'completed';
   });
 
@@ -119,7 +119,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ profile, onDismiss
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20 hover:scale-105 transition-transform">
             <BookOpen className="text-green-400 mx-auto mb-3" size={32} />
             <div className="text-4xl font-black text-white mb-1">
-              {subjects.filter(s => s.profile_id === profile.id).length}
+              {(subjects || []).filter(s => s.profile_id === profile.id).length}
             </div>
             <div className="text-sm text-slate-300 font-bold">Materias</div>
           </div>
