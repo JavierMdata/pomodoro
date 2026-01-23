@@ -125,15 +125,15 @@ const ExamManager: React.FC = () => {
   };
 
   return (
-    <div className={`max-w-5xl mx-auto space-y-8 relative ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+    <div className={`max-w-5xl mx-auto space-y-8 relative px-4 md:px-6 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight">Evaluaciones</h1>
-          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-medium`}>Mantén bajo control tus exámenes y temas de estudio.</p>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight">Evaluaciones</h1>
+          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-medium text-sm md:text-base`}>Mantén bajo control tus exámenes y temas de estudio.</p>
         </div>
-        <button 
+        <button
           onClick={() => setActiveView('add-exam')}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all"
+          className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black shadow-xl hover:bg-indigo-700 transition-all w-full md:w-auto"
         >
           <Plus size={20} strokeWidth={3} />
           Nuevo Examen
@@ -141,9 +141,9 @@ const ExamManager: React.FC = () => {
       </div>
 
       {activeView === 'add-exam' && (
-        <div className={`p-10 rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-          <h3 className="text-2xl font-black mb-8">Programar Evaluación</h3>
-          <form onSubmit={handleAddExam} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className={`p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+          <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-8">Programar Evaluación</h3>
+          <form onSubmit={handleAddExam} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div className="md:col-span-2">
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Materia</label>
               <select 
@@ -163,18 +163,18 @@ const ExamManager: React.FC = () => {
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Fecha y Hora</label>
               <input type="datetime-local" required value={examForm.exam_date} onChange={e => setExamForm({...examForm, exam_date: e.target.value})} className={`w-full p-4 rounded-2xl outline-none font-bold ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900'}`} />
             </div>
-            <div className="md:col-span-2 flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
-              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs">Cancelar</button>
-              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all">Crear Examen</button>
+            <div className="md:col-span-2 flex flex-col md:flex-row justify-end gap-3 md:gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
+              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs order-2 md:order-1">Cancelar</button>
+              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all order-1 md:order-2">Crear Examen</button>
             </div>
           </form>
         </div>
       )}
 
       {activeView === 'edit-exam' && (
-        <div className={`p-10 rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-          <h3 className="text-2xl font-black mb-8">Editar Evaluación</h3>
-          <form onSubmit={handleSaveEditExam} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className={`p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+          <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-8">Editar Evaluación</h3>
+          <form onSubmit={handleSaveEditExam} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             <div className="md:col-span-2">
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Materia</label>
               <select
@@ -194,17 +194,17 @@ const ExamManager: React.FC = () => {
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Fecha y Hora</label>
               <input type="datetime-local" required value={examForm.exam_date} onChange={e => setExamForm({...examForm, exam_date: e.target.value})} className={`w-full p-4 rounded-2xl outline-none font-bold ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900'}`} />
             </div>
-            <div className="md:col-span-2 flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
-              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs">Cancelar</button>
-              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all">Guardar Cambios</button>
+            <div className="md:col-span-2 flex flex-col md:flex-row justify-end gap-3 md:gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
+              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs order-2 md:order-1">Cancelar</button>
+              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all order-1 md:order-2">Guardar Cambios</button>
             </div>
           </form>
         </div>
       )}
 
       {activeView === 'add-topic' && (
-        <div className={`p-10 rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-          <h3 className="text-2xl font-black mb-8">Nuevo Tema de Estudio</h3>
+        <div className={`p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+          <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-8">Nuevo Tema de Estudio</h3>
           <form onSubmit={handleAddTopic} className="space-y-6">
             <div>
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Tema</label>
@@ -214,17 +214,17 @@ const ExamManager: React.FC = () => {
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Pomodoros Sugeridos</label>
               <input type="number" required value={topicForm.estimated_pomodoros} onChange={e => setTopicForm({...topicForm, estimated_pomodoros: parseInt(e.target.value)})} className={`w-full p-4 rounded-2xl outline-none font-bold ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900'}`} />
             </div>
-            <div className="flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
-              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs">Cancelar</button>
-              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all">Agregar Tema</button>
+            <div className="flex flex-col md:flex-row justify-end gap-3 md:gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
+              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs order-2 md:order-1">Cancelar</button>
+              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all order-1 md:order-2">Agregar Tema</button>
             </div>
           </form>
         </div>
       )}
 
       {activeView === 'edit-topic' && (
-        <div className={`p-10 rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-          <h3 className="text-2xl font-black mb-8">Editar Tema de Estudio</h3>
+        <div className={`p-6 md:p-10 rounded-2xl md:rounded-[2.5rem] shadow-2xl border animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+          <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-8">Editar Tema de Estudio</h3>
           <form onSubmit={handleSaveEditTopic} className="space-y-6">
             <div>
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Tema</label>
@@ -234,9 +234,9 @@ const ExamManager: React.FC = () => {
               <label className="block text-xs font-black uppercase text-slate-400 mb-2">Pomodoros Sugeridos</label>
               <input type="number" required value={topicForm.estimated_pomodoros} onChange={e => setTopicForm({...topicForm, estimated_pomodoros: parseInt(e.target.value)})} className={`w-full p-4 rounded-2xl outline-none font-bold ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900'}`} />
             </div>
-            <div className="flex justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
-              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs">Cancelar</button>
-              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all">Guardar Cambios</button>
+            <div className="flex flex-col md:flex-row justify-end gap-3 md:gap-4 pt-6 border-t border-slate-100 dark:border-slate-700">
+              <button type="button" onClick={() => setActiveView('list')} className="px-8 py-4 font-black text-slate-400 uppercase tracking-widest text-xs order-2 md:order-1">Cancelar</button>
+              <button type="submit" className="px-10 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl hover:bg-indigo-700 transition-all order-1 md:order-2">Guardar Cambios</button>
             </div>
           </form>
         </div>
@@ -256,16 +256,16 @@ const ExamManager: React.FC = () => {
                 const subject = subjects.find(s => s.id === exam.subject_id);
                 const topics = examTopics.filter(et => et.exam_id === exam.id);
                 return (
-                  <div key={exam.id} className={`rounded-[2.5rem] border shadow-sm overflow-hidden transition-all hover:shadow-lg ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className="p-8 flex flex-col md:flex-row gap-8">
+                  <div key={exam.id} className={`rounded-2xl md:rounded-[2.5rem] border shadow-sm overflow-hidden transition-all hover:shadow-lg ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="p-6 md:p-8 flex flex-col md:flex-row gap-6 md:gap-8">
                       <div className="md:w-1/3">
                         <div className="flex items-center gap-3 mb-4">
-                           <div className="w-3 h-10 rounded-full" style={{ backgroundColor: subject?.color || '#3B82F6' }} />
-                           <div className="flex-1">
-                             <h4 className="text-xl font-black">{exam.name}</h4>
-                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{subject?.name}</p>
+                           <div className="w-2 md:w-3 h-8 md:h-10 rounded-full" style={{ backgroundColor: subject?.color || '#3B82F6' }} />
+                           <div className="flex-1 min-w-0">
+                             <h4 className="text-lg md:text-xl font-black truncate">{exam.name}</h4>
+                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{subject?.name}</p>
                            </div>
-                           <div className="flex gap-2">
+                           <div className="flex gap-2 flex-shrink-0">
                              <button
                                onClick={() => handleEditExam(exam)}
                                className={`p-2 rounded-lg transition-all hover:scale-110 ${
@@ -302,21 +302,21 @@ const ExamManager: React.FC = () => {
                         </div>
                         <button
                           onClick={() => { setSelectedExamId(exam.id); setActiveView('add-topic'); }}
-                          className={`mt-8 w-full py-3 rounded-2xl font-bold text-sm transition-all ${theme === 'dark' ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-900 text-white hover:bg-black'}`}
+                          className={`mt-6 md:mt-8 w-full py-3 rounded-2xl font-bold text-sm transition-all ${theme === 'dark' ? 'bg-slate-700 text-white hover:bg-slate-600' : 'bg-slate-900 text-white hover:bg-black'}`}
                         >
                           + Agregar Tema
                         </button>
                       </div>
 
-                      <div className={`flex-1 p-6 rounded-3xl ${theme === 'dark' ? 'bg-slate-900/40' : 'bg-slate-50/50'}`}>
-                        <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Temario de Estudio</h5>
+                      <div className={`flex-1 p-4 md:p-6 rounded-2xl md:rounded-3xl ${theme === 'dark' ? 'bg-slate-900/40' : 'bg-slate-50/50'}`}>
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 md:mb-4">Temario de Estudio</h5>
                         {topics.length === 0 ? (
                           <p className="text-slate-400 text-sm italic">Define los temas que vendrán en este examen.</p>
                         ) : (
                           <div className="space-y-3">
                             {topics.map(topic => (
-                              <div key={topic.id} className={`p-4 rounded-2xl flex items-center justify-between border group ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-                                <div className="flex items-center gap-3 flex-1">
+                              <div key={topic.id} className={`p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center justify-between border group ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                                   <button
                                     onClick={() => handleToggleTopicComplete(topic)}
                                     className={`p-2 rounded-xl transition-all hover:scale-110 ${
@@ -328,8 +328,8 @@ const ExamManager: React.FC = () => {
                                   >
                                     <CheckCircle2 size={16} />
                                   </button>
-                                  <div className="flex-1">
-                                    <p className={`text-sm font-bold ${topic.status === 'completed' ? 'line-through text-slate-500' : ''}`}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-xs md:text-sm font-bold truncate ${topic.status === 'completed' ? 'line-through text-slate-500' : ''}`}>
                                       {topic.title}
                                     </p>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -337,8 +337,8 @@ const ExamManager: React.FC = () => {
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-24 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                                  <div className={`w-16 md:w-24 h-2 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-200'}`}>
                                     <div
                                       className="h-full bg-indigo-500 transition-all duration-700"
                                       style={{ width: `${Math.min((topic.completed_pomodoros / topic.estimated_pomodoros) * 100, 100)}%` }}
