@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { soundService } from '../lib/soundService';
+import HierarchicalTaskSelector from './HierarchicalTaskSelector';
 import {
   Play, Pause, RotateCcw, Star,
   Maximize2, Minimize2, Sparkles, Trophy, BrainCircuit, Loader2,
@@ -49,7 +50,13 @@ const PomodoroTimer: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{ id: string, type: 'task' | 'topic' | 'material', title: string } | null>(null);
+  const [selectedItem, setSelectedItem] = useState<{
+    type: 'exam' | 'task' | 'material';
+    subject: any;
+    item: any;
+    meta?: any;
+    displayTitle: string;
+  } | null>(null);
   const [sessionCount, setSessionCount] = useState(1);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [rating, setRating] = useState(0);
@@ -156,6 +163,18 @@ const PomodoroTimer: React.FC = () => {
     return () => clearInterval(timerRef.current);
   }, [isActive, timeLeft]);
 
+  // Handler para cuando se selecciona un item del selector jerárquico
+  const handleItemSelection = (selection: any) => {
+    const displayTitle = selection.meta
+      ? `${selection.meta.title} (${selection.item.name || selection.item.title})`
+      : selection.item.name || selection.item.title;
+
+    setSelectedItem({
+      ...selection,
+      displayTitle
+    });
+  };
+
   const handleStart = () => {
     if (mode === 'work' && !selectedItem) {
       soundService.playError();
@@ -184,7 +203,7 @@ const PomodoroTimer: React.FC = () => {
     if (mode === 'work') {
       showNotification(
         '¡Pomodoro Completado! 🎉',
-        `Has terminado tu sesión de ${selectedItem?.title || 'trabajo'}. ¡Tiempo de descansar!`
+        `Has terminado tu sesión de ${selectedItem?.displayTitle || 'trabajo'}. ¡Tiempo de descansar!`
       );
       setShowCompletionModal(true);
     } else {
@@ -207,9 +226,9 @@ const PomodoroTimer: React.FC = () => {
 
     addSession({
       profile_id: activeProfileId,
-      task_id: selectedItem?.type === 'task' ? selectedItem.id : undefined,
-      exam_topic_id: selectedItem?.type === 'topic' ? selectedItem.id : undefined,
-      material_id: selectedItem?.type === 'material' ? selectedItem.id : undefined,
+      task_id: selectedItem?.type === 'task' ? selectedItem.item.id : undefined,
+      exam_topic_id: selectedItem?.type === 'exam' && selectedItem.meta ? selectedItem.meta.id : undefined,
+      material_id: selectedItem?.type === 'material' ? selectedItem.item.id : undefined,
       session_type: mode,
       planned_duration_minutes: plannedMins,
       duration_seconds: actualSecs,
@@ -344,7 +363,7 @@ const PomodoroTimer: React.FC = () => {
                 <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
               </div>
               <p className={`text-2xl font-black truncate max-w-[320px] mt-3 ${theme === 'dark' || isFullscreen ? 'text-slate-200' : 'text-slate-900'}`}>
-                {selectedItem.title}
+                {selectedItem.displayTitle}
               </p>
             </div>
           )}
@@ -419,42 +438,31 @@ const PomodoroTimer: React.FC = () => {
         </button>
       </div>
 
-      {!isActive && !isFullscreen && (
-        <div className={`mt-16 w-full p-10 rounded-[3.5rem] border-2 shadow-2xl animate-in slide-in-from-bottom duration-700 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-50'}`}>
-            <div className="flex items-center justify-between mb-8">
-               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">¿Qué vamos a lograr?</h3>
-               <button 
-                onClick={getAiSuggestion}
-                disabled={isSuggesting}
-                className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-colors"
-               >
-                 {isSuggesting ? <Loader2 className="animate-spin" size={16} /> : <BrainCircuit size={16} />}
-                 Asesor IA
-               </button>
-            </div>
-            <select
-              className={`w-full p-6 rounded-3xl font-black text-lg outline-none border-none transition-all shadow-inner ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-950'}`}
-              onChange={(e) => {
-                const [type, id] = e.target.value.split(':');
-                if (!id) { setSelectedItem(null); return; }
-                const item = [...filteredTasks, ...filteredMaterials, ...filteredExamTopics].find(i => i.id === id);
-                setSelectedItem({ type: type as any, id, title: (item as any).title || (item as any).name });
-              }}
+      {!isActive && !isFullscreen && activeProfileId && (
+        <div className="mt-16 w-full max-w-4xl mx-auto">
+          {/* Header con botón IA */}
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h3 className={`text-xs font-black uppercase tracking-[0.3em] ${
+              theme === 'dark' ? 'text-slate-500' : 'text-slate-600'
+            }`}>
+              ¿Qué vamos a lograr hoy?
+            </h3>
+            <button
+              onClick={getAiSuggestion}
+              disabled={isSuggesting}
+              className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-colors px-3 py-2 rounded-lg hover:bg-indigo-500/10"
             >
-              <option value="">-- Elige un desafío para hoy --</option>
-              <optgroup label="Tareas Críticas">
-                {filteredTasks.filter(t => t.status !== 'completed').map(t => <option key={t.id} value={`task:${t.id}`}>🔥 {t.title}</option>)}
-              </optgroup>
-              <optgroup label="Materiales de Estudio">
-                {filteredMaterials.filter(m => m.status !== 'completed').map(m => {
-                  const sub = subjects.find(s => s.id === m.subject_id);
-                  return <option key={m.id} value={`material:${m.id}`}>📚 {m.title} ({sub?.name || 'Gral'})</option>
-                })}
-              </optgroup>
-              <optgroup label="Temas de Examen">
-                {filteredExamTopics.filter(et => et.status !== 'completed').map(et => <option key={et.id} value={`topic:${et.id}`}>🎯 {et.title}</option>)}
-              </optgroup>
-            </select>
+              {isSuggesting ? <Loader2 className="animate-spin" size={16} /> : <BrainCircuit size={16} />}
+              Asesor IA
+            </button>
+          </div>
+
+          {/* Selector Jerárquico */}
+          <HierarchicalTaskSelector
+            theme={theme}
+            onSelect={handleItemSelection}
+            activeProfileId={activeProfileId}
+          />
         </div>
       )}
 

@@ -11,6 +11,13 @@ export interface Profile {
   type: ProfileType;
   color: string;
   icon: string;
+
+  // Security fields
+  pin_hash?: string; // Hash del PIN (nunca guardar en texto plano)
+  requires_pin: boolean; // Si requiere PIN para desbloquear
+  biometric_enabled: boolean; // Si permite autenticación biométrica
+  auto_lock_minutes?: number; // Minutos de inactividad antes de bloquear (null = no auto-lock)
+  last_accessed_at?: string; // Última vez que se accedió al perfil
 }
 
 export interface SchoolPeriod {
