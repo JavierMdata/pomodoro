@@ -16,6 +16,7 @@ import KnowledgeGraph from './components/KnowledgeGraph';
 import FocusJournal from './components/FocusJournal';
 import ProfileSettings from './components/ProfileSettings';
 import WelcomeScreen from './components/WelcomeScreen';
+import ProfileUnlock from './components/ProfileUnlock';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -33,6 +34,10 @@ const App: React.FC = () => {
 
   // Estado para pantalla de bienvenida
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
+
+  // Estado para manejo de PIN
+  const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
+  const pendingProfile = profiles.find(p => p.id === pendingProfileId);
 
   // Get active profile (con protección contra undefined)
   const activeProfile = (profiles || []).find(p => p.id === activeProfileId);
@@ -89,6 +94,32 @@ const App: React.FC = () => {
     }
   };
 
+  // Manejar selección de perfil con verificación de PIN
+  const handleSelectProfile = (profileId: string) => {
+    const profile = profiles.find(p => p.id === profileId);
+
+    if (profile && profile.requires_pin && profile.pin_hash) {
+      // El perfil requiere PIN, mostrar pantalla de desbloqueo
+      setPendingProfileId(profileId);
+    } else {
+      // El perfil no requiere PIN, activar directamente
+      setActiveProfile(profileId);
+    }
+  };
+
+  // Manejar desbloqueo exitoso
+  const handleUnlockSuccess = () => {
+    if (pendingProfileId) {
+      setActiveProfile(pendingProfileId);
+      setPendingProfileId(null);
+    }
+  };
+
+  // Cancelar desbloqueo
+  const handleUnlockCancel = () => {
+    setPendingProfileId(null);
+  };
+
   // Profile Selector View
   if (!activeProfileId) {
     return (
@@ -135,8 +166,8 @@ const App: React.FC = () => {
         <div className="flex flex-wrap justify-center gap-10 mb-12 max-w-6xl">
           {profiles.map(p => (
             <div key={p.id} className="relative group">
-                <ProfileCard profile={p} onClick={() => setActiveProfile(p.id)} />
-                <button 
+                <ProfileCard profile={p} onClick={() => handleSelectProfile(p.id)} />
+                <button
                     onClick={(e) => handleDeleteProfile(e, p.id)}
                     className={`absolute -top-3 -right-3 p-2 border rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-500 hover:text-red-400' : 'bg-white border-slate-200 text-slate-400 hover:text-red-500'}`}
                 >
@@ -248,6 +279,16 @@ const App: React.FC = () => {
         <WelcomeScreen
           profile={activeProfile}
           onDismiss={() => setShowWelcomeScreen(false)}
+        />
+      )}
+
+      {/* Pantalla de desbloqueo con PIN */}
+      {pendingProfile && (
+        <ProfileUnlock
+          profile={pendingProfile}
+          onUnlock={handleUnlockSuccess}
+          onCancel={handleUnlockCancel}
+          theme={theme}
         />
       )}
     </div>

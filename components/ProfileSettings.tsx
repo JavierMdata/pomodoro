@@ -22,6 +22,17 @@ const ProfileSettings: React.FC = () => {
 
   const [saved, setSaved] = useState(false);
 
+  // Sincronizar los valores del formulario cuando cambia el perfil o los settings
+  React.useEffect(() => {
+    if (currentSettings) {
+      setWorkDuration(currentSettings.work_duration || 25);
+      setShortBreak(currentSettings.short_break || 5);
+      setLongBreak(currentSettings.long_break || 15);
+      setPomsBeforeLong(currentSettings.poms_before_long || 4);
+      setAutoStartBreaks(currentSettings.auto_start_breaks || false);
+    }
+  }, [activeProfileId, currentSettings]);
+
   if (!activeProfile || !activeProfileId) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -56,38 +67,38 @@ const ProfileSettings: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 px-4 md:px-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className={`text-4xl font-black mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+      <div className="mb-6 md:mb-8">
+        <h1 className={`text-3xl md:text-4xl font-black mb-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
           Preferencias del Perfil
         </h1>
-        <p className="text-slate-400 font-medium">
+        <p className="text-slate-400 font-medium text-sm md:text-base">
           Configura tu experiencia de estudio personalizada
         </p>
       </div>
 
       {/* Tiempos del Pomodoro */}
-      <div className={`p-6 rounded-2xl border ${
+      <div className={`p-4 md:p-6 rounded-2xl border ${
         theme === 'dark'
           ? 'bg-slate-900 border-slate-800'
           : 'bg-white border-slate-200'
       }`}>
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-indigo-500/10 rounded-xl">
-            <Clock className="text-indigo-500" size={24} />
+        <div className="flex items-center gap-3 mb-4 md:mb-6">
+          <div className="p-2 md:p-3 bg-indigo-500/10 rounded-xl">
+            <Clock className="text-indigo-500" size={20} />
           </div>
-          <div>
-            <h3 className={`font-black text-lg ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+          <div className="flex-1 min-w-0">
+            <h3 className={`font-black text-base md:text-lg ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
               Tiempos del Pomodoro
             </h3>
-            <p className="text-sm text-slate-400">
+            <p className="text-xs md:text-sm text-slate-400">
               Personaliza la duración de tus sesiones
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
           {/* Tiempo de trabajo */}
           <div>
             <label className="block text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
@@ -98,7 +109,14 @@ const ProfileSettings: React.FC = () => {
               min="1"
               max="60"
               value={workDuration}
-              onChange={(e) => setWorkDuration(parseInt(e.target.value) || 25)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= 60) {
+                  setWorkDuration(val);
+                } else if (e.target.value === '') {
+                  setWorkDuration(1);
+                }
+              }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
                 theme === 'dark'
                   ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
@@ -117,7 +135,14 @@ const ProfileSettings: React.FC = () => {
               min="1"
               max="30"
               value={shortBreak}
-              onChange={(e) => setShortBreak(parseInt(e.target.value) || 5)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= 30) {
+                  setShortBreak(val);
+                } else if (e.target.value === '') {
+                  setShortBreak(1);
+                }
+              }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
                 theme === 'dark'
                   ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
@@ -136,7 +161,14 @@ const ProfileSettings: React.FC = () => {
               min="1"
               max="60"
               value={longBreak}
-              onChange={(e) => setLongBreak(parseInt(e.target.value) || 15)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= 60) {
+                  setLongBreak(val);
+                } else if (e.target.value === '') {
+                  setLongBreak(1);
+                }
+              }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
                 theme === 'dark'
                   ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
@@ -155,7 +187,14 @@ const ProfileSettings: React.FC = () => {
               min="2"
               max="10"
               value={pomsBeforeLong}
-              onChange={(e) => setPomsBeforeLong(parseInt(e.target.value) || 4)}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 2 && val <= 10) {
+                  setPomsBeforeLong(val);
+                } else if (e.target.value === '') {
+                  setPomsBeforeLong(2);
+                }
+              }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
                 theme === 'dark'
                   ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
