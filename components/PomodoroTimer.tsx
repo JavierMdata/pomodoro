@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { soundService } from '../lib/soundService';
-import HierarchicalTaskSelector from './HierarchicalTaskSelector';
+import DropdownTaskSelector from './DropdownTaskSelector';
 import {
   Play, Pause, RotateCcw, Star,
   Maximize2, Minimize2, Sparkles, Trophy, BrainCircuit, Loader2,
@@ -457,8 +457,8 @@ const PomodoroTimer: React.FC = () => {
             </button>
           </div>
 
-          {/* Selector Jerárquico */}
-          <HierarchicalTaskSelector
+          {/* Selector Desplegable */}
+          <DropdownTaskSelector
             theme={theme}
             onSelect={handleItemSelection}
             activeProfileId={activeProfileId}
