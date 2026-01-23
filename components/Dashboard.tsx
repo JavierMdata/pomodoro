@@ -15,27 +15,27 @@ const Dashboard: React.FC = () => {
     tasks, exams, alerts, markAlertRead, sessions 
   } = useAppStore();
   
-  const activeProfile = profiles.find(p => p.id === activeProfileId);
+  const activeProfile = (profiles || []).find(p => p.id === activeProfileId);
   if (!activeProfile) return null;
 
   const today = new Date();
-  const dayOfWeek = today.getDay(); 
+  const dayOfWeek = today.getDay();
 
-  const todayClasses = schedules.filter(s => {
-    const subj = subjects.find(sub => sub.id === s.subject_id);
+  const todayClasses = (schedules || []).filter(s => {
+    const subj = (subjects || []).find(sub => sub.id === s.subject_id);
     return subj?.profile_id === activeProfileId && s.day_of_week === dayOfWeek;
   }).sort((a, b) => a.start_time.localeCompare(b.start_time));
 
-  const unreadAlerts = alerts.filter(a => a.profile_id === activeProfileId && !a.is_read);
+  const unreadAlerts = (alerts || []).filter(a => a.profile_id === activeProfileId && !a.is_read);
 
-  const upcomingTasks = tasks.filter(t => {
-      const subj = subjects.find(s => s.id === t.subject_id);
+  const upcomingTasks = (tasks || []).filter(t => {
+      const subj = (subjects || []).find(s => s.id === t.subject_id);
       return subj?.profile_id === activeProfileId && t.status !== 'completed';
   }).sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()).slice(0, 3);
 
-  const statsToday = sessions.filter(s => 
-    s.profile_id === activeProfileId && 
-    isSameDay(new Date(s.completed_at || s.started_at), today) && 
+  const statsToday = (sessions || []).filter(s =>
+    s.profile_id === activeProfileId &&
+    isSameDay(new Date(s.completed_at || s.started_at), today) &&
     s.status === 'completed'
   );
 
