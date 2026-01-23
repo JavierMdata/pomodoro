@@ -47,7 +47,11 @@ const PomodoroTimer: React.FC = () => {
   }, [examTopics, exams, subjects, activeProfileId]);
 
   const [mode, setMode] = useState<'work' | 'short_break' | 'long_break'>('work');
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [timeLeft, setTimeLeft] = useState(() => {
+    // Inicializar con los settings del perfil activo
+    const initialDuration = currentSettings?.work_duration || 25;
+    return initialDuration * 60;
+  });
   const [isActive, setIsActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{

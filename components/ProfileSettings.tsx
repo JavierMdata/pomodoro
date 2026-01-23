@@ -14,10 +14,10 @@ const ProfileSettings: React.FC = () => {
   const activeProfile = profiles.find(p => p.id === activeProfileId);
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
 
-  const [workDuration, setWorkDuration] = useState(currentSettings?.work_duration || 25);
-  const [shortBreak, setShortBreak] = useState(currentSettings?.short_break || 5);
-  const [longBreak, setLongBreak] = useState(currentSettings?.long_break || 15);
-  const [pomsBeforeLong, setPomsBeforeLong] = useState(currentSettings?.poms_before_long || 4);
+  const [workDuration, setWorkDuration] = useState<number | ''>(currentSettings?.work_duration || 25);
+  const [shortBreak, setShortBreak] = useState<number | ''>(currentSettings?.short_break || 5);
+  const [longBreak, setLongBreak] = useState<number | ''>(currentSettings?.long_break || 15);
+  const [pomsBeforeLong, setPomsBeforeLong] = useState<number | ''>(currentSettings?.poms_before_long || 4);
   const [autoStartBreaks, setAutoStartBreaks] = useState(currentSettings?.auto_start_breaks || false);
 
   const [saved, setSaved] = useState(false);
@@ -44,11 +44,17 @@ const ProfileSettings: React.FC = () => {
   const handleSave = () => {
     if (!activeProfileId) return;
 
+    // Asegurarse de que los valores sean números válidos antes de guardar
+    const work = typeof workDuration === 'number' ? workDuration : parseInt(String(workDuration)) || 25;
+    const shortB = typeof shortBreak === 'number' ? shortBreak : parseInt(String(shortBreak)) || 5;
+    const longB = typeof longBreak === 'number' ? longBreak : parseInt(String(longBreak)) || 15;
+    const pomsLong = typeof pomsBeforeLong === 'number' ? pomsBeforeLong : parseInt(String(pomsBeforeLong)) || 4;
+
     updatePomodoroSettings(activeProfileId, {
-      work_duration: workDuration,
-      short_break: shortBreak,
-      long_break: longBreak,
-      poms_before_long: pomsBeforeLong,
+      work_duration: work,
+      short_break: shortB,
+      long_break: longB,
+      poms_before_long: pomsLong,
       auto_start_breaks: autoStartBreaks
     });
 
@@ -110,11 +116,21 @@ const ProfileSettings: React.FC = () => {
               max="60"
               value={workDuration}
               onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val) && val >= 1 && val <= 60) {
-                  setWorkDuration(val);
-                } else if (e.target.value === '') {
+                const val = e.target.value;
+                if (val === '') {
+                  setWorkDuration('' as any);
+                } else {
+                  const numVal = parseInt(val);
+                  if (!isNaN(numVal)) {
+                    setWorkDuration(Math.min(Math.max(numVal, 1), 60));
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '' || parseInt(e.target.value) < 1) {
                   setWorkDuration(1);
+                } else if (parseInt(e.target.value) > 60) {
+                  setWorkDuration(60);
                 }
               }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
@@ -136,11 +152,21 @@ const ProfileSettings: React.FC = () => {
               max="30"
               value={shortBreak}
               onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val) && val >= 1 && val <= 30) {
-                  setShortBreak(val);
-                } else if (e.target.value === '') {
+                const val = e.target.value;
+                if (val === '') {
+                  setShortBreak('' as any);
+                } else {
+                  const numVal = parseInt(val);
+                  if (!isNaN(numVal)) {
+                    setShortBreak(Math.min(Math.max(numVal, 1), 30));
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '' || parseInt(e.target.value) < 1) {
                   setShortBreak(1);
+                } else if (parseInt(e.target.value) > 30) {
+                  setShortBreak(30);
                 }
               }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
@@ -162,11 +188,21 @@ const ProfileSettings: React.FC = () => {
               max="60"
               value={longBreak}
               onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val) && val >= 1 && val <= 60) {
-                  setLongBreak(val);
-                } else if (e.target.value === '') {
+                const val = e.target.value;
+                if (val === '') {
+                  setLongBreak('' as any);
+                } else {
+                  const numVal = parseInt(val);
+                  if (!isNaN(numVal)) {
+                    setLongBreak(Math.min(Math.max(numVal, 1), 60));
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '' || parseInt(e.target.value) < 1) {
                   setLongBreak(1);
+                } else if (parseInt(e.target.value) > 60) {
+                  setLongBreak(60);
                 }
               }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${
@@ -188,11 +224,21 @@ const ProfileSettings: React.FC = () => {
               max="10"
               value={pomsBeforeLong}
               onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val) && val >= 2 && val <= 10) {
-                  setPomsBeforeLong(val);
-                } else if (e.target.value === '') {
+                const val = e.target.value;
+                if (val === '') {
+                  setPomsBeforeLong('' as any);
+                } else {
+                  const numVal = parseInt(val);
+                  if (!isNaN(numVal)) {
+                    setPomsBeforeLong(Math.min(Math.max(numVal, 2), 10));
+                  }
+                }
+              }}
+              onBlur={(e) => {
+                if (e.target.value === '' || parseInt(e.target.value) < 2) {
                   setPomsBeforeLong(2);
+                } else if (parseInt(e.target.value) > 10) {
+                  setPomsBeforeLong(10);
                 }
               }}
               className={`w-full px-4 py-3 rounded-xl font-bold text-lg outline-none border-2 transition-all ${

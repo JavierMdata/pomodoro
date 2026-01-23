@@ -53,12 +53,12 @@ const App: React.FC = () => {
     }
   }, [activeProfileId, settings]);
 
-  // Mostrar pantalla de bienvenida al seleccionar un perfil
+  // Mostrar pantalla de bienvenida al seleccionar un perfil (solo si no hay PIN pendiente)
   useEffect(() => {
-    if (activeProfileId) {
+    if (activeProfileId && !pendingProfileId) {
       setShowWelcomeScreen(true);
     }
-  }, [activeProfileId]);
+  }, [activeProfileId, pendingProfileId]);
 
   const handleCreateProfile = (e: React.FormEvent) => {
     e.preventDefault();
