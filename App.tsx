@@ -14,6 +14,8 @@ import EnhancedTaskProgress from './components/EnhancedTaskProgress';
 import BlockEditor from './components/BlockEditor';
 import KnowledgeGraph from './components/KnowledgeGraph';
 import FocusJournal from './components/FocusJournal';
+import ProfileSettings from './components/ProfileSettings';
+import WelcomeScreen from './components/WelcomeScreen';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -29,6 +31,9 @@ const App: React.FC = () => {
   // Local state for settings form
   const [localSettings, setLocalSettings] = useState<PomodoroSettings | null>(null);
 
+  // Estado para pantalla de bienvenida
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
+
   // Cargar datos de Supabase al iniciar
   useEffect(() => {
     syncWithSupabase();
@@ -39,6 +44,13 @@ const App: React.FC = () => {
       setLocalSettings(settings[activeProfileId]);
     }
   }, [activeProfileId, settings]);
+
+  // Mostrar pantalla de bienvenida al seleccionar un perfil
+  useEffect(() => {
+    if (activeProfileId) {
+      setShowWelcomeScreen(true);
+    }
+  }, [activeProfileId]);
 
   const handleCreateProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,85 +236,17 @@ const App: React.FC = () => {
           {activeTab === 'notes' && <BlockEditor />}
           {activeTab === 'graph' && <KnowledgeGraph />}
           {activeTab === 'journal' && <FocusJournal />}
-          {activeTab === 'settings' && (
-            <div className="max-w-3xl mx-auto py-10">
-              <h1 className={`text-4xl font-black mb-10 tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Preferencias del Perfil</h1>
-              <div className={`p-10 rounded-[3rem] border shadow-sm space-y-12 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                <section>
-                  <h3 className={`text-2xl font-black mb-8 flex items-center gap-3 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
-                      <div className="w-2.5 h-10 bg-indigo-500 rounded-full" />
-                      Tiempos del Pomodoro
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-2">
-                      <label className="block text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Tiempo de Trabajo (minutos)</label>
-                      <input 
-                        type="number" 
-                        value={localSettings?.work_duration || 25} 
-                        onChange={(e) => setLocalSettings(prev => prev ? { ...prev, work_duration: parseInt(e.target.value) || 0 } : null)}
-                        className={`w-full p-5 rounded-3xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-lg transition-all ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900 border border-slate-100'}`} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Descanso Corto (minutos)</label>
-                      <input 
-                        type="number" 
-                        value={localSettings?.short_break || 5} 
-                        onChange={(e) => setLocalSettings(prev => prev ? { ...prev, short_break: parseInt(e.target.value) || 0 } : null)}
-                        className={`w-full p-5 rounded-3xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-lg transition-all ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900 border border-slate-100'}`} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Descanso Largo (minutos)</label>
-                      <input 
-                        type="number" 
-                        value={localSettings?.long_break || 15} 
-                        onChange={(e) => setLocalSettings(prev => prev ? { ...prev, long_break: parseInt(e.target.value) || 0 } : null)}
-                        className={`w-full p-5 rounded-3xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-lg transition-all ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900 border border-slate-100'}`} 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Pomodoros hasta Descanso Largo</label>
-                      <input 
-                        type="number" 
-                        value={localSettings?.poms_before_long || 4} 
-                        onChange={(e) => setLocalSettings(prev => prev ? { ...prev, poms_before_long: parseInt(e.target.value) || 0 } : null)}
-                        className={`w-full p-5 rounded-3xl outline-none focus:ring-4 focus:ring-indigo-500/20 font-bold text-lg transition-all ${theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900 border border-slate-100'}`} 
-                      />
-                    </div>
-                  </div>
-                </section>
-
-                <section>
-                   <h3 className={`text-2xl font-black mb-8 flex items-center gap-3 ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
-                      <div className="w-2.5 h-10 bg-indigo-500 rounded-full" />
-                      Automatización
-                  </h3>
-                  <div className="flex items-center justify-between p-6 bg-slate-50/50 dark:bg-slate-700/50 rounded-3xl border border-slate-100 dark:border-slate-600">
-                    <div>
-                      <h4 className="font-bold">Auto-iniciar descansos</h4>
-                      <p className="text-xs text-slate-400 font-medium">Comienza el descanso automáticamente al terminar el trabajo.</p>
-                    </div>
-                    <input 
-                      type="checkbox" 
-                      checked={localSettings?.auto_start_breaks || false}
-                      onChange={(e) => setLocalSettings(prev => prev ? { ...prev, auto_start_breaks: e.target.checked } : null)}
-                      className="w-6 h-6 rounded-lg accent-indigo-600 cursor-pointer"
-                    />
-                  </div>
-                </section>
-
-                <button 
-                  onClick={handleSaveSettings}
-                  className="w-full bg-indigo-600 text-white font-black py-6 rounded-3xl shadow-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 text-lg"
-                >
-                  Guardar Preferencias <Save size={24} />
-                </button>
-              </div>
-            </div>
-          )}
+          {activeTab === 'settings' && <ProfileSettings />}
         </div>
       </ModernLayout>
+
+      {/* Pantalla de Bienvenida */}
+      {showWelcomeScreen && activeProfile && (
+        <WelcomeScreen
+          profile={activeProfile}
+          onDismiss={() => setShowWelcomeScreen(false)}
+        />
+      )}
     </div>
   );
 };
