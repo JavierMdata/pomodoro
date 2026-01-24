@@ -32,7 +32,7 @@ export interface SchoolPeriod {
 export interface Subject {
   id: string;
   profile_id: string;
-  school_period_id: string;
+  school_period_id?: string | null;
   name: string;
   color: string;
   professor_name?: string;
