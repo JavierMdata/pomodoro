@@ -108,7 +108,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
     ],
     editorProps: {
       attributes: {
-        class: 'prose prose-invert prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-[300px] max-w-none prose-headings:text-purple-100 prose-p:text-gray-300 prose-strong:text-purple-200 prose-code:text-pink-300 prose-code:bg-gray-800/50 prose-code:px-1 prose-code:rounded'
+        class: 'prose prose-invert prose-sm md:prose lg:prose-lg focus:outline-none min-h-[250px] md:min-h-[300px] lg:min-h-[350px] max-w-none prose-headings:text-purple-100 prose-p:text-gray-300 prose-strong:text-purple-200 prose-code:text-pink-300 prose-code:bg-gray-800/50 prose-code:px-1 prose-code:rounded'
       },
       handleDrop: (view, event, slice, moved) => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
@@ -270,56 +270,56 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-gray-900 rounded-3xl shadow-2xl border border-purple-500/30 overflow-hidden transition-all duration-300 hover:shadow-purple-500/20 hover:shadow-2xl">
+    <div className="w-full max-w-5xl mx-auto bg-gray-900 rounded-xl md:rounded-2xl lg:rounded-3xl shadow-2xl border border-purple-500/30 overflow-hidden transition-all duration-300 hover:shadow-purple-500/20 hover:shadow-2xl">
       {/* Header con título y asociación de materia */}
-      <div className="p-6 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
+      <div className="p-4 md:p-5 lg:p-6 border-b border-purple-500/20 bg-gradient-to-r from-purple-900/20 to-pink-900/20">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="✨ Título de la nota..."
-          className="w-full text-3xl font-bold bg-transparent border-none outline-none placeholder-gray-600 text-purple-100 mb-4"
+          className="w-full text-xl md:text-2xl lg:text-3xl font-bold bg-transparent border-none outline-none placeholder-gray-600 text-purple-100 mb-3 md:mb-4"
           onBlur={handleAutoSave}
         />
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
           {/* Asociación de Materia */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative w-full sm:w-auto" ref={dropdownRef}>
             <button
               onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all
+                w-full sm:w-auto flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg md:rounded-xl font-medium transition-all text-sm md:text-base
                 ${selectedSubject
                   ? 'bg-purple-600/20 border-2 border-purple-500/50 text-purple-300 hover:bg-purple-600/30'
                   : 'bg-gray-800/50 border-2 border-gray-700 text-gray-400 hover:bg-gray-800 hover:border-purple-500/30'
                 }
               `}
             >
-              <BookOpen className="w-4 h-4" />
+              <BookOpen className="w-4 h-4 flex-shrink-0" />
               {selectedSubject ? (
                 <>
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedSubject.color }}></span>
-                  <span>{selectedSubject.name}</span>
+                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: selectedSubject.color }}></span>
+                  <span className="truncate">{selectedSubject.name}</span>
                 </>
               ) : (
-                <span>Vincular a Materia</span>
+                <span className="truncate">Vincular a Materia</span>
               )}
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSubjectDropdown ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 transition-transform flex-shrink-0 ${showSubjectDropdown ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown de Materias */}
             {showSubjectDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-gray-800 border border-purple-500/30 rounded-xl shadow-2xl z-50 overflow-hidden">
+              <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-full sm:w-64 md:w-72 bg-gray-800 border border-purple-500/30 rounded-lg md:rounded-xl shadow-2xl z-50 overflow-hidden">
                 <div className="p-2 border-b border-purple-500/20 bg-purple-900/20">
                   <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">Selecciona una Materia</span>
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div className="max-h-48 md:max-h-64 overflow-y-auto">
                   <button
                     onClick={() => {
                       setSelectedSubjectId(undefined);
                       setShowSubjectDropdown(false);
                     }}
-                    className="w-full px-4 py-2 text-left text-gray-400 hover:bg-gray-700/50 transition-colors flex items-center gap-2"
+                    className="w-full px-3 md:px-4 py-2 text-left text-sm md:text-base text-gray-400 hover:bg-gray-700/50 transition-colors flex items-center gap-2"
                   >
                     <X className="w-4 h-4" />
                     <span>Sin materia</span>
@@ -331,14 +331,14 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
                         setSelectedSubjectId(subject.id);
                         setShowSubjectDropdown(false);
                       }}
-                      className="w-full px-4 py-3 text-left hover:bg-purple-900/30 transition-colors flex items-center gap-3 border-l-2 border-transparent hover:border-purple-500"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left hover:bg-purple-900/30 transition-colors flex items-center gap-2 md:gap-3 border-l-2 border-transparent hover:border-purple-500"
                     >
                       <span
-                        className="w-4 h-4 rounded-full flex-shrink-0"
+                        className="w-3 h-3 md:w-4 md:h-4 rounded-full flex-shrink-0"
                         style={{ backgroundColor: subject.color }}
                       ></span>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-purple-100 truncate">{subject.name}</div>
+                        <div className="font-medium text-sm md:text-base text-purple-100 truncate">{subject.name}</div>
                         {subject.code && (
                           <div className="text-xs text-gray-500 truncate">{subject.code}</div>
                         )}
@@ -351,40 +351,40 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
           </div>
 
           {/* Estado de guardado */}
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 lg:gap-4">
             {detectedHashtags.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-pink-900/30 rounded-lg border border-pink-500/30">
-                <Hash className="w-4 h-4 text-pink-400" />
-                <span className="text-xs text-pink-300">{detectedHashtags.length} hashtag{detectedHashtags.length !== 1 ? 's' : ''}</span>
+              <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 bg-pink-900/30 rounded-lg border border-pink-500/30">
+                <Hash className="w-3 h-3 md:w-4 md:h-4 text-pink-400 flex-shrink-0" />
+                <span className="text-xs text-pink-300 whitespace-nowrap">{detectedHashtags.length} hashtag{detectedHashtags.length !== 1 ? 's' : ''}</span>
               </div>
             )}
 
             {isImageUploading && (
-              <span className="flex items-center gap-2 text-sm text-blue-400">
-                <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                Subiendo imagen...
+              <span className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-blue-400">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                <span className="hidden sm:inline">Subiendo imagen...</span>
               </span>
             )}
 
             {isSaving && (
-              <span className="flex items-center gap-2 text-sm text-purple-400">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                Guardando...
+              <span className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm text-purple-400">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse flex-shrink-0"></div>
+                <span className="hidden sm:inline">Guardando...</span>
               </span>
             )}
 
             {lastSaved && !isSaving && (
-              <span className="text-sm text-green-400 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                Guardado {lastSaved.toLocaleTimeString()}
+              <span className="text-xs md:text-sm text-green-400 flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></span>
+                <span className="hidden sm:inline">Guardado {lastSaved.toLocaleTimeString()}</span>
               </span>
             )}
 
             <button
               onClick={handleManualSave}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg hover:shadow-purple-500/50"
+              className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg md:rounded-xl hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg hover:shadow-purple-500/50 text-sm md:text-base"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4 flex-shrink-0" />
               <span className="hidden sm:inline">Guardar</span>
             </button>
           </div>
@@ -392,7 +392,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       </div>
 
       {/* Barra de herramientas mejorada */}
-      <div className="flex items-center gap-1 p-3 bg-gray-800/50 border-b border-purple-500/20 overflow-x-auto scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-gray-800">
+      <div className="flex items-center gap-0.5 md:gap-1 p-2 md:p-3 bg-gray-800/50 border-b border-purple-500/20 overflow-x-auto scrollbar-thin scrollbar-thumb-purple-500/30 scrollbar-track-gray-800">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           active={editor.isActive('bold')}
@@ -501,20 +501,20 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({
       </div>
 
       {/* Editor de contenido */}
-      <div className="p-6 min-h-[400px] bg-gray-900">
+      <div className="p-4 md:p-5 lg:p-6 min-h-[300px] md:min-h-[350px] lg:min-h-[400px] bg-gray-900">
         <EditorContent editor={editor} />
       </div>
 
       {/* Footer con hashtags detectados */}
       {detectedHashtags.length > 0 && (
-        <div className="p-4 bg-gradient-to-r from-pink-900/20 to-purple-900/20 border-t border-purple-500/20">
+        <div className="p-3 md:p-4 bg-gradient-to-r from-pink-900/20 to-purple-900/20 border-t border-purple-500/20">
           <div className="flex items-center gap-2 flex-wrap">
-            <Hash className="w-4 h-4 text-pink-400" />
+            <Hash className="w-3.5 h-3.5 md:w-4 md:h-4 text-pink-400 flex-shrink-0" />
             <span className="text-xs font-bold text-pink-300 uppercase">Hashtags:</span>
             {detectedHashtags.map((tag, i) => (
               <span
                 key={i}
-                className="px-2 py-1 bg-pink-600/20 text-pink-300 rounded-lg text-xs border border-pink-500/30 hover:bg-pink-600/30 transition-colors cursor-pointer"
+                className="px-2 py-0.5 md:py-1 bg-pink-600/20 text-pink-300 rounded-md md:rounded-lg text-xs border border-pink-500/30 hover:bg-pink-600/30 transition-colors cursor-pointer"
               >
                 #{tag}
               </span>
@@ -545,9 +545,9 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
       onClick={onClick}
       title={tooltip}
       className={`
-        p-2 rounded-lg transition-all duration-200
+        p-1.5 md:p-2 rounded-md md:rounded-lg transition-all duration-200
         ${active
-          ? 'bg-purple-600/30 text-purple-300 ring-2 ring-purple-500/50'
+          ? 'bg-purple-600/30 text-purple-300 ring-1 md:ring-2 ring-purple-500/50'
           : 'hover:bg-gray-700/50 text-gray-400 hover:text-purple-300'
         }
       `}
