@@ -9,7 +9,7 @@ import { Clock, Save, Shield } from 'lucide-react';
 import { soundService } from '../lib/soundService';
 
 const ProfileSettings: React.FC = () => {
-  const { theme, activeProfileId, profiles, settings, updatePomodoroSettings } = useAppStore();
+  const { theme, activeProfileId, profiles, settings, updateSettings } = useAppStore();
 
   const activeProfile = profiles.find(p => p.id === activeProfileId);
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
@@ -50,7 +50,7 @@ const ProfileSettings: React.FC = () => {
     const longB = typeof longBreak === 'number' ? longBreak : parseInt(String(longBreak)) || 15;
     const pomsLong = typeof pomsBeforeLong === 'number' ? pomsBeforeLong : parseInt(String(pomsBeforeLong)) || 4;
 
-    updatePomodoroSettings(activeProfileId, {
+    updateSettings(activeProfileId, {
       work_duration: work,
       short_break: shortB,
       long_break: longB,
