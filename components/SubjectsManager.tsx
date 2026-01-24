@@ -537,112 +537,167 @@ const SubjectsManager: React.FC = () => {
                           return (
                             <div
                               key={exam.id}
-                              className={`p-4 md:p-5 lg:p-6 rounded-xl md:rounded-2xl lg:rounded-[2rem] border-2 transition-all ${
-                                theme === 'dark'
-                                  ? 'bg-slate-800/60 border-slate-700'
-                                  : 'bg-white/60 border-slate-200'
-                              }`}
+                              className="group/examcard relative"
                             >
-                              <button
-                                onClick={() => toggleExam(exam.id)}
-                                className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 group/exam"
-                              >
-                                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full md:w-auto">
-                                  <Target className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" style={{ color: subject.color }} />
-                                  <h4 className="text-base md:text-lg lg:text-xl font-black truncate flex-1" style={{ color: subject.color }}>
-                                    {exam.name}
-                                  </h4>
-                                  <span className="px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0 md:hidden" style={{
-                                    backgroundColor: subject.color + '20',
-                                    color: subject.color
-                                  }}>
-                                    {examTopics.length} temas
-                                  </span>
-                                  <ChevronRight
-                                    className={`w-5 h-5 md:hidden transition-transform duration-300 flex-shrink-0 ${isExamExpanded ? 'rotate-90' : ''}`}
-                                    style={{ color: subject.color }}
-                                  />
-                                </div>
-                                <div className="hidden md:flex items-center gap-3">
-                                  <span className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap" style={{
-                                    backgroundColor: subject.color + '20',
-                                    color: subject.color
-                                  }}>
-                                    {examTopics.length} temas
-                                  </span>
-                                  <ChevronRight
-                                    className={`w-6 h-6 transition-transform duration-300 ${isExamExpanded ? 'rotate-90' : ''}`}
-                                    style={{ color: subject.color }}
-                                  />
-                                </div>
-                              </button>
+                              {/* Glow effect */}
+                              <div
+                                className="absolute -inset-0.5 rounded-xl md:rounded-2xl lg:rounded-[2rem] blur opacity-20 group-hover/examcard:opacity-40 transition-opacity duration-300"
+                                style={{ backgroundColor: subject.color }}
+                              />
+
+                              <div className={`relative p-4 md:p-5 lg:p-6 rounded-xl md:rounded-2xl lg:rounded-[2rem] border-2 transition-all group-hover/examcard:scale-[1.01] duration-300 ${
+                                theme === 'dark'
+                                  ? 'bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-900/60 border-slate-700 hover:border-slate-600'
+                                  : 'bg-gradient-to-br from-white/80 via-white/60 to-slate-50/60 border-slate-200 hover:border-slate-300'
+                              }`}>
+                                <button
+                                  onClick={() => toggleExam(exam.id)}
+                                  className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 group/exam"
+                                >
+                                  <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full md:w-auto">
+                                    {/* Icon with animated background */}
+                                    <div
+                                      className="relative p-2 md:p-2.5 rounded-lg md:rounded-xl group-hover/examcard:scale-110 transition-transform duration-300"
+                                      style={{
+                                        backgroundColor: subject.color + '15',
+                                        border: `2px solid ${subject.color}30`
+                                      }}
+                                    >
+                                      <Target className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" style={{ color: subject.color }} />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="text-base md:text-lg lg:text-xl font-black truncate" style={{ color: subject.color }}>
+                                        {exam.name}
+                                      </h4>
+                                      <p className={`text-xs md:text-sm font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                                        Parcial • {examTopics.length} {examTopics.length === 1 ? 'tema' : 'temas'}
+                                      </p>
+                                    </div>
+
+                                    <ChevronRight
+                                      className={`w-5 h-5 md:hidden transition-transform duration-300 flex-shrink-0 ${isExamExpanded ? 'rotate-90' : ''}`}
+                                      style={{ color: subject.color }}
+                                    />
+                                  </div>
+                                  <div className="hidden md:flex items-center gap-3">
+                                    <div
+                                      className="px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5"
+                                      style={{
+                                        backgroundColor: subject.color + '20',
+                                        border: `1px solid ${subject.color}40`
+                                      }}
+                                    >
+                                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: subject.color }} />
+                                      <span style={{ color: subject.color }}>{examTopics.length} temas</span>
+                                    </div>
+                                    <ChevronRight
+                                      className={`w-6 h-6 transition-transform duration-300 ${isExamExpanded ? 'rotate-90' : ''}`}
+                                      style={{ color: subject.color }}
+                                    />
+                                  </div>
+                                </button>
 
                               {/* Exam Topics */}
                               {isExamExpanded && (
                                 <div className="mt-4 md:mt-5 lg:mt-6 space-y-2 md:space-y-3 animate-in fade-in duration-300">
-                                  {examTopics.map((topic) => (
-                                    <div
-                                      key={topic.id}
-                                      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all hover:scale-[1.02] ${
-                                        theme === 'dark'
-                                          ? 'bg-slate-900/60 border-slate-700 hover:bg-slate-900/80'
-                                          : 'bg-slate-50/60 border-slate-200 hover:bg-slate-50'
-                                      }`}
-                                    >
-                                      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full sm:w-auto">
-                                        <div
-                                          className={`w-2.5 h-2.5 md:w-3 md:h-3 rounded-full flex-shrink-0 ${
-                                            topic.status === 'completed'
-                                              ? 'bg-green-500'
-                                              : topic.status === 'in_progress'
-                                              ? 'bg-yellow-500'
-                                              : 'bg-slate-400'
-                                          }`}
-                                        />
-                                        <span className="font-bold text-sm md:text-base truncate">{topic.title}</span>
-                                      </div>
+                                  {examTopics.map((topic, idx) => {
+                                    const statusConfig = {
+                                      completed: { bg: 'bg-green-500', label: 'Completado', icon: '✓' },
+                                      in_progress: { bg: 'bg-yellow-500', label: 'En progreso', icon: '⟳' },
+                                      pending: { bg: 'bg-slate-400', label: 'Pendiente', icon: '○' }
+                                    };
+                                    const status = statusConfig[topic.status as keyof typeof statusConfig] || statusConfig.pending;
 
-                                      <button
-                                        onClick={() => startPomodoro(topic, 'topic', subject)}
-                                        className="group/btn relative w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-1.5 md:gap-2 overflow-hidden"
-                                        style={{
-                                          backgroundColor: subject.color,
-                                          color: 'white'
-                                        }}
+                                    return (
+                                      <div
+                                        key={topic.id}
+                                        className="group/topic relative"
+                                        style={{ animationDelay: `${idx * 50}ms` }}
                                       >
-                                        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
-                                        <PlayCircle className="relative z-10 w-4 h-4 md:w-5 md:h-5" />
-                                        <span className="relative z-10">Estudiar</span>
-                                        <Flame className="relative z-10 animate-pulse w-3.5 h-3.5 md:w-4 md:h-4" />
-                                      </button>
-                                    </div>
-                                  ))}
+                                        <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all group-hover/topic:scale-[1.01] duration-200 ${
+                                          theme === 'dark'
+                                            ? 'bg-gradient-to-r from-slate-900/60 to-slate-800/60 border-slate-700/50 hover:border-slate-600'
+                                            : 'bg-gradient-to-r from-slate-50/60 to-white/60 border-slate-200/50 hover:border-slate-300'
+                                        }`}>
+                                          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full sm:w-auto">
+                                            {/* Status indicator with animation */}
+                                            <div
+                                              className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-white text-xs ${status.bg} shadow-md group-hover/topic:scale-110 transition-transform`}
+                                              title={status.label}
+                                            >
+                                              {status.icon}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <span className="font-bold text-sm md:text-base block truncate">{topic.title}</span>
+                                              <span className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                {status.label}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <button
+                                            onClick={() => startPomodoro(topic, 'topic', subject)}
+                                            className="group/btn relative w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-1.5 md:gap-2 overflow-hidden"
+                                            style={{
+                                              background: `linear-gradient(135deg, ${subject.color}, ${subject.color}dd)`,
+                                              color: 'white'
+                                            }}
+                                          >
+                                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover/btn:opacity-100 group-hover/btn:animate-shimmer transition-opacity" />
+                                            <PlayCircle className="relative z-10 w-4 h-4 md:w-5 md:h-5" />
+                                            <span className="relative z-10">Estudiar</span>
+                                            <Flame className="relative z-10 animate-pulse w-3.5 h-3.5 md:w-4 md:h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
 
                                   {/* Proyecto del Parcial */}
-                                  <div className={`p-4 md:p-5 lg:p-6 rounded-xl md:rounded-2xl border-2 border-dashed mt-4 md:mt-5 lg:mt-6 ${
-                                    theme === 'dark'
-                                      ? 'bg-slate-800/40 border-slate-600'
-                                      : 'bg-slate-100/60 border-slate-300'
-                                  }`}>
-                                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                      <FolderKanban className="w-5 h-5 md:w-6 md:h-6" style={{ color: subject.color }} />
-                                      <h5 className="text-base md:text-lg font-black" style={{ color: subject.color }}>
-                                        Proyecto del Parcial
-                                      </h5>
-                                    </div>
-                                    <p className="text-xs md:text-sm text-slate-500 font-medium mb-3 md:mb-4">
-                                      Aquí puedes agregar el proyecto específico de este parcial
-                                    </p>
-                                    <button className={`w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm transition-all hover:scale-105 ${
+                                  <div className="relative group/project">
+                                    <div
+                                      className="absolute -inset-0.5 rounded-xl md:rounded-2xl blur opacity-10 group-hover/project:opacity-20 transition-opacity"
+                                      style={{ backgroundColor: subject.color }}
+                                    />
+                                    <div className={`relative p-4 md:p-5 lg:p-6 rounded-xl md:rounded-2xl border-2 border-dashed mt-4 md:mt-5 lg:mt-6 transition-all group-hover/project:border-solid ${
                                       theme === 'dark'
-                                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                        ? 'bg-slate-800/40 border-slate-600 hover:bg-slate-800/60'
+                                        : 'bg-slate-100/60 border-slate-300 hover:bg-slate-100/80'
                                     }`}>
-                                      + Agregar Proyecto
-                                    </button>
+                                      <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                                        <div
+                                          className="p-2 rounded-lg"
+                                          style={{
+                                            backgroundColor: subject.color + '15',
+                                            border: `1px solid ${subject.color}30`
+                                          }}
+                                        >
+                                          <FolderKanban className="w-4 h-4 md:w-5 md:h-5" style={{ color: subject.color }} />
+                                        </div>
+                                        <h5 className="text-base md:text-lg font-black" style={{ color: subject.color }}>
+                                          Proyecto del Parcial
+                                        </h5>
+                                      </div>
+                                      <p className={`text-xs md:text-sm font-medium mb-3 md:mb-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                                        Agrega un proyecto específico para este parcial
+                                      </p>
+                                      <button
+                                        className="w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                                        style={{
+                                          backgroundColor: subject.color + '20',
+                                          color: subject.color,
+                                          border: `2px solid ${subject.color}40`
+                                        }}
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Agregar Proyecto</span>
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
                               )}
+                              </div>
                             </div>
                           );
                         })
