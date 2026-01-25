@@ -333,15 +333,24 @@ export const useAppStore = create<AppState>()(
         const id = crypto.randomUUID();
         const newSubject = { ...subject, id };
 
-        try {
-          await supabase.from('subjects').insert([newSubject]);
-        } catch (e) {
-          console.error("Error al guardar materia en Supabase", e);
-        }
+        console.log('📚 Intentando guardar materia:', newSubject);
 
+        // Primero actualizar estado local para respuesta inmediata
         set((state) => ({
           subjects: [...state.subjects, newSubject]
         }));
+
+        // Luego sincronizar con Supabase
+        try {
+          const { error } = await supabase.from('subjects').insert([newSubject]);
+          if (error) {
+            console.error('❌ Error de Supabase al guardar materia:', error);
+          } else {
+            console.log('✅ Materia guardada correctamente en Supabase:', id);
+          }
+        } catch (e) {
+          console.error('❌ Error de red al guardar materia en Supabase:', e);
+        }
       },
 
       updateSubject: async (id, updates) => {
