@@ -71,11 +71,11 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border-2 shadow-xl transition-all ${
+      className={`relative overflow-hidden rounded-xl md:rounded-2xl lg:rounded-3xl border-2 shadow-lg md:shadow-xl transition-all ${
         theme === 'dark'
           ? 'bg-slate-800 border-slate-700'
           : 'bg-white border-slate-200'
-      } ${compact ? 'p-4' : 'p-6'}`}
+      } ${compact ? 'p-3 md:p-4' : 'p-4 md:p-5 lg:p-6'}`}
     >
       {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-orange-500/5 to-yellow-500/5" />
@@ -106,9 +106,9 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
           </button>
         )}
 
-        <div className="flex items-center gap-3 mb-4">
-          <Flame className="text-red-500 animate-pulse" size={24} />
-          <h3 className={`font-black uppercase tracking-widest text-sm ${
+        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+          <Flame className="text-red-500 animate-pulse w-5 h-5 md:w-6 md:h-6" />
+          <h3 className={`font-black uppercase tracking-wider md:tracking-widest text-xs md:text-sm ${
             theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
           }`}>
             Pomodoro
@@ -116,13 +116,13 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
         </div>
 
         {/* Timer Display */}
-        <div className="text-center mb-6">
-          <div className={`text-5xl font-black tabular-nums ${
+        <div className="text-center mb-4 md:mb-6">
+          <div className={`text-4xl sm:text-5xl font-black tabular-nums ${
             theme === 'dark' ? 'text-white' : 'text-slate-900'
           }`}>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </div>
-          <div className={`text-xs font-bold uppercase tracking-widest mt-2 ${
+          <div className={`text-[10px] md:text-xs font-bold uppercase tracking-wider md:tracking-widest mt-1.5 md:mt-2 ${
             theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
           }`}>
             {isRunning ? 'En progreso' : timeLeft === 0 ? '¡Completado!' : 'Listo para empezar'}
@@ -130,7 +130,7 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
         </div>
 
         {/* Progress Bar */}
-        <div className={`h-2 rounded-full overflow-hidden mb-6 ${
+        <div className={`h-1.5 md:h-2 rounded-full overflow-hidden mb-4 md:mb-6 ${
           theme === 'dark' ? 'bg-slate-700' : 'bg-slate-100'
         }`}>
           <div
@@ -142,10 +142,10 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
         </div>
 
         {/* Controls */}
-        <div className="flex gap-3 justify-center">
+        <div className="flex gap-2 md:gap-3 justify-center">
           <button
             onClick={handleToggle}
-            className={`px-6 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-lg ${
+            className={`px-4 md:px-5 lg:px-6 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-bold transition-all flex items-center gap-1.5 md:gap-2 shadow-lg text-sm md:text-base ${
               isRunning
                 ? 'bg-orange-500 hover:bg-orange-600 text-white'
                 : 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white'
@@ -153,13 +153,13 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
           >
             {isRunning ? (
               <>
-                <Pause size={18} />
-                Pausar
+                <Pause className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">Pausar</span>
               </>
             ) : (
               <>
-                <Play size={18} />
-                {timeLeft === duration * 60 ? 'Iniciar' : 'Continuar'}
+                <Play className="w-4 h-4 md:w-5 md:h-5" />
+                <span className="hidden sm:inline">{timeLeft === duration * 60 ? 'Iniciar' : 'Continuar'}</span>
               </>
             )}
           </button>
@@ -167,13 +167,13 @@ const MiniPomodoro: React.FC<MiniPomodoroProps> = ({
           {timeLeft !== duration * 60 && (
             <button
               onClick={handleReset}
-              className={`px-4 py-3 rounded-2xl font-bold transition-all ${
+              className={`px-3 md:px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-bold transition-all ${
                 theme === 'dark'
                   ? 'bg-slate-700 hover:bg-slate-600 text-slate-300'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
-              <RotateCcw size={18} />
+              <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           )}
         </div>

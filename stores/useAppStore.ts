@@ -6,7 +6,7 @@ import {
   Profile, SchoolPeriod, Subject, Task, Exam,
   ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert,
   ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
-  EntityType, EntityRef
+  EntityType, EntityRef, ClassSchedule
 } from '../types';
 
 interface AppState {
@@ -15,6 +15,7 @@ interface AppState {
   activeProfileId: string | null;
   periods: SchoolPeriod[];
   subjects: Subject[];
+  schedules: ClassSchedule[];
   tasks: Task[];
   exams: Exam[];
   examTopics: ExamTopic[];
@@ -90,6 +91,7 @@ export const useAppStore = create<AppState>()(
       activeProfileId: null,
       periods: [],
       subjects: [],
+      schedules: [],
       tasks: [],
       exams: [],
       examTopics: [],
@@ -164,6 +166,11 @@ export const useAppStore = create<AppState>()(
               .select('*')
               .order('created_at', { ascending: false });
 
+            // Cargar horarios de clases
+            const { data: schedulesData } = await supabase
+              .from('class_schedule')
+              .select('*');
+
             // Cargar sesiones (últimas 100)
             const { data: sessionsData } = await supabase
               .from('pomodoro_sessions')
@@ -219,6 +226,7 @@ export const useAppStore = create<AppState>()(
               settings: settingsMap,
               periods: periodsData || [],
               subjects: subjectsData || [],
+              schedules: schedulesData || [],
               tasks: tasksData || [],
               exams: examsData || [],
               examTopics: topicsData || [],
@@ -458,21 +466,45 @@ export const useAppStore = create<AppState>()(
         materials: state.materials.map(m => m.id === id ? { ...m, ...updates } : m)
       })),
 
-      addSession: (session) => {
+      addSession: async (session) => {
         const id = crypto.randomUUID();
         const currentTasks = get().tasks;
         const currentTopics = get().examTopics;
 
+        // Actualizar contadores localmente y en Supabase
         if (session.session_type === 'work') {
           if (session.task_id) {
-            set({ tasks: currentTasks.map(t => t.id === session.task_id ? { ...t, completed_pomodoros: t.completed_pomodoros + 1 } : t) });
+            const task = currentTasks.find(t => t.id === session.task_id);
+            const newCount = (task?.completed_pomodoros || 0) + 1;
+            set({ tasks: currentTasks.map(t => t.id === session.task_id ? { ...t, completed_pomodoros: newCount } : t) });
+
+            // Sincronizar con Supabase
+            try {
+              await supabase.from('tasks').update({ completed_pomodoros: newCount }).eq('id', session.task_id);
+            } catch (e) {
+              console.error('Error al actualizar contador de tarea en Supabase:', e);
+            }
           } else if (session.exam_topic_id) {
-            set({ examTopics: currentTopics.map(et => et.id === session.exam_topic_id ? { ...et, completed_pomodoros: et.completed_pomodoros + 1 } : et) });
+            const topic = currentTopics.find(et => et.id === session.exam_topic_id);
+            const newCount = (topic?.completed_pomodoros || 0) + 1;
+            set({ examTopics: currentTopics.map(et => et.id === session.exam_topic_id ? { ...et, completed_pomodoros: newCount } : et) });
+
+            // Sincronizar con Supabase
+            try {
+              await supabase.from('exam_topics').update({ completed_pomodoros: newCount }).eq('id', session.exam_topic_id);
+            } catch (e) {
+              console.error('Error al actualizar contador de tema en Supabase:', e);
+            }
           }
         }
-        
+
         // Guardar sesión en Supabase para analíticas
-        supabase.from('pomodoro_sessions').insert([{ ...session, id }]).then();
+        try {
+          await supabase.from('pomodoro_sessions').insert([{ ...session, id }]);
+          console.log('✅ Sesión guardada en Supabase:', id);
+        } catch (e) {
+          console.error('Error al guardar sesión en Supabase:', e);
+        }
 
         set((state) => ({ sessions: [...state.sessions, { ...session, id }] }));
       },
