@@ -331,8 +331,55 @@ export const useAppStore = create<AppState>()(
 
       addSubject: async (subject) => {
         const id = crypto.randomUUID();
-        const newSubject = { ...subject, id };
+        const state = get();
 
+        // Obtener o crear un período escolar si no hay uno
+        let schoolPeriodId = subject.school_period_id;
+
+        if (!schoolPeriodId) {
+          const profilePeriods = state.periods.filter(p => p.profile_id === subject.profile_id);
+
+          if (profilePeriods.length > 0) {
+            // Usar el período activo o el primero disponible
+            const activePeriod = profilePeriods.find(p => p.is_active) || profilePeriods[0];
+            schoolPeriodId = activePeriod.id;
+            console.log('📅 Usando período existente:', activePeriod.name);
+          } else {
+            // Crear un período por defecto
+            const defaultPeriodId = crypto.randomUUID();
+            const defaultPeriod = {
+              id: defaultPeriodId,
+              profile_id: subject.profile_id,
+              name: 'Período Actual',
+              start_date: new Date().toISOString().split('T')[0],
+              end_date: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              is_active: true
+            };
+
+            console.log('📅 Creando período por defecto:', defaultPeriod);
+
+            // Guardar el período en Supabase
+            try {
+              const { error } = await supabase.from('school_periods').insert([defaultPeriod]);
+              if (error) {
+                console.error('❌ Error al crear período:', error);
+              } else {
+                console.log('✅ Período creado correctamente');
+              }
+            } catch (e) {
+              console.error('❌ Error de red al crear período:', e);
+            }
+
+            // Actualizar estado local con el nuevo período
+            set((state) => ({
+              periods: [...state.periods, defaultPeriod]
+            }));
+
+            schoolPeriodId = defaultPeriodId;
+          }
+        }
+
+        const newSubject = { ...subject, id, school_period_id: schoolPeriodId };
         console.log('📚 Intentando guardar materia:', newSubject);
 
         // Primero actualizar estado local para respuesta inmediata
