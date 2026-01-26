@@ -11,9 +11,26 @@ import { es } from 'date-fns/locale';
 
 const ExamManager: React.FC = () => {
   const {
-    theme, activeProfileId, subjects, exams, examTopics,
+    theme, activeProfileId, subjects, exams, examTopics, sessions,
     addExam, updateExam, deleteExam, addExamTopic, updateExamTopic, deleteExamTopic
   } = useAppStore();
+
+  // Calcular tiempo real acumulado por tema de examen
+  const getTopicTime = (topicId: string) => {
+    const topicSessions = sessions.filter(s => s.exam_topic_id === topicId && s.session_type === 'work');
+    const totalSeconds = topicSessions.reduce((acc, s) => acc + (s.duration_seconds || 0), 0);
+    return totalSeconds;
+  };
+
+  // Formatear segundos a tiempo legible
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMins = minutes % 60;
+    return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+  };
 
   const [activeView, setActiveView] = useState<'list' | 'add-exam' | 'add-topic' | 'edit-exam' | 'edit-topic'>('list');
   const [selectedExamId, setSelectedExamId] = useState<string>('');
@@ -149,18 +166,24 @@ const ExamManager: React.FC = () => {
   // Calcular progreso de temas
   const getExamProgress = (examId: string) => {
     const topics = examTopics.filter(et => et.exam_id === examId);
-    if (topics.length === 0) return { total: 0, completed: 0, percentage: 0, totalPomos: 0, completedPomos: 0 };
+    if (topics.length === 0) return { total: 0, completed: 0, percentage: 0, totalTimeSeconds: 0, estimatedTimeSeconds: 0 };
 
     const completed = topics.filter(t => t.status === 'completed').length;
-    const totalPomos = topics.reduce((acc, t) => acc + t.estimated_pomodoros, 0);
-    const completedPomos = topics.reduce((acc, t) => acc + t.completed_pomodoros, 0);
+
+    // Calcular tiempo real acumulado sumando las sesiones
+    let totalTimeSeconds = 0;
+    let estimatedTimeSeconds = 0;
+    topics.forEach(topic => {
+      totalTimeSeconds += getTopicTime(topic.id);
+      estimatedTimeSeconds += topic.estimated_pomodoros * 25 * 60; // Pomodoros estimados a segundos
+    });
 
     return {
       total: topics.length,
       completed,
       percentage: Math.round((completed / topics.length) * 100),
-      totalPomos,
-      completedPomos
+      totalTimeSeconds,
+      estimatedTimeSeconds
     };
   };
 
@@ -492,8 +515,10 @@ const ExamManager: React.FC = () => {
                       ) : (
                         <div className="space-y-2">
                           {topics.map((topic) => {
-                            const topicProgress = topic.estimated_pomodoros > 0
-                              ? Math.min((topic.completed_pomodoros / topic.estimated_pomodoros) * 100, 100)
+                            const topicTimeSeconds = getTopicTime(topic.id);
+                            const estimatedTimeSeconds = topic.estimated_pomodoros * 25 * 60;
+                            const topicProgress = estimatedTimeSeconds > 0
+                              ? Math.min((topicTimeSeconds / estimatedTimeSeconds) * 100, 100)
                               : 0;
 
                             return (
@@ -523,7 +548,7 @@ const ExamManager: React.FC = () => {
                                     {topic.title}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1">
-                                    <div className={`w-16 h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                                    <div className={`flex-1 max-w-[100px] h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-700' : 'bg-slate-200'}`}>
                                       <div
                                         className={`h-full transition-all duration-500 ${
                                           topicProgress >= 100 ? 'bg-emerald-500' : 'bg-indigo-500'
@@ -531,8 +556,8 @@ const ExamManager: React.FC = () => {
                                         style={{ width: `${topicProgress}%` }}
                                       />
                                     </div>
-                                    <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
-                                      {topic.completed_pomodoros}/{topic.estimated_pomodoros}
+                                    <span className={`text-xs font-bold ${topicTimeSeconds > 0 ? 'text-indigo-500' : theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
+                                      {formatTime(topicTimeSeconds)}
                                     </span>
                                   </div>
                                 </div>
@@ -558,17 +583,19 @@ const ExamManager: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Resumen de pomodoros */}
+                      {/* Resumen de tiempo */}
                       {topics.length > 0 && (
                         <div className={`mt-4 pt-4 border-t ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'} flex items-center justify-between`}>
                           <span className={`text-xs font-semibold ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
-                            Total de estudio:
+                            Tiempo estudiado:
                           </span>
                           <span className="text-sm font-bold text-indigo-500">
-                            {progress.completedPomos} / {progress.totalPomos} Pomodoros
-                            <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
-                              (~{progress.totalPomos * 25} min)
-                            </span>
+                            {formatTime(progress.totalTimeSeconds)}
+                            {progress.estimatedTimeSeconds > 0 && (
+                              <span className={`ml-2 text-xs font-normal ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
+                                / {formatTime(progress.estimatedTimeSeconds)} estimado
+                              </span>
+                            )}
                           </span>
                         </div>
                       )}

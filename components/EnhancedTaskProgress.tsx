@@ -1,14 +1,27 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import {
   CheckCircle2, Circle, Clock, Flame, TrendingUp,
-  Award, Target, Zap, Calendar, AlertCircle
+  Award, Target, Zap, Calendar, AlertCircle, Plus, X, ClipboardList, Trash2, Edit2
 } from 'lucide-react';
 import { format, differenceInDays, isBefore, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Priority } from '../types';
 
 const EnhancedTaskProgress: React.FC = () => {
-  const { theme, activeProfileId, tasks, subjects } = useAppStore();
+  const { theme, activeProfileId, tasks, subjects, addTask, updateTask, deleteTask } = useAppStore();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    subject_id: '',
+    description: '',
+    priority: 'medium' as Priority,
+    due_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    estimated_pomodoros: 4,
+    alert_days_before: 1
+  });
+
+  const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
 
   const activeTasks = useMemo(() =>
     tasks.filter(t => {
@@ -67,8 +80,182 @@ const EnhancedTaskProgress: React.FC = () => {
     return { label: format(date, 'd MMM', { locale: es }), color: 'bg-green-400', textColor: 'text-green-400' };
   };
 
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.title.trim() || !newTask.subject_id) return;
+
+    addTask({
+      ...newTask,
+      status: 'pending',
+      completed_pomodoros: 0
+    });
+
+    setNewTask({
+      title: '',
+      subject_id: '',
+      description: '',
+      priority: 'medium',
+      due_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      estimated_pomodoros: 4,
+      alert_days_before: 1
+    });
+    setShowAddForm(false);
+  };
+
+  const handleDeleteTask = (taskId: string, taskTitle: string) => {
+    if (window.confirm(`¿Eliminar la tarea "${taskTitle}"?`)) {
+      deleteTask(taskId);
+    }
+  };
+
+  const handleToggleTask = (taskId: string, currentStatus: string) => {
+    updateTask(taskId, {
+      status: currentStatus === 'completed' ? 'pending' : 'completed'
+    });
+  };
+
+  const inputBg = theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-slate-50 text-slate-900';
+  const cardBg = theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200';
+
   return (
     <div className={`space-y-10 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+      {/* Header con botón de crear */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className={`p-4 rounded-2xl ${theme === 'dark' ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+            <ClipboardList size={32} className="text-indigo-500" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Mis Tareas</h1>
+            <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+              {stats.total} tareas • {stats.completed} completadas
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+        >
+          <Plus size={20} strokeWidth={3} />
+          Nueva Tarea
+        </button>
+      </div>
+
+      {/* Formulario de crear tarea */}
+      {showAddForm && (
+        <div className={`${cardBg} border p-6 sm:p-8 rounded-2xl shadow-xl animate-in slide-in-from-top duration-300`}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-black flex items-center gap-2">
+              <Plus size={24} className="text-indigo-500" />
+              Crear Nueva Tarea
+            </h3>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className={`p-2 rounded-lg ${theme === 'dark' ? 'hover:bg-slate-700' : 'hover:bg-slate-100'}`}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <form onSubmit={handleAddTask} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Título</label>
+                <input
+                  type="text"
+                  required
+                  value={newTask.title}
+                  onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+                  className={`w-full p-4 rounded-xl outline-none font-semibold border-2 border-transparent focus:border-indigo-500 transition-colors ${inputBg}`}
+                  placeholder="¿Qué necesitas hacer?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Materia</label>
+                <select
+                  required
+                  value={newTask.subject_id}
+                  onChange={e => setNewTask({ ...newTask, subject_id: e.target.value })}
+                  className={`w-full p-4 rounded-xl outline-none font-semibold border-2 border-transparent focus:border-indigo-500 transition-colors ${inputBg}`}
+                >
+                  <option value="">Selecciona materia...</option>
+                  {profileSubjects.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Fecha de Entrega</label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={newTask.due_date}
+                  onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
+                  className={`w-full p-4 rounded-xl outline-none font-semibold border-2 border-transparent focus:border-indigo-500 transition-colors ${inputBg}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Prioridad</label>
+                <select
+                  value={newTask.priority}
+                  onChange={e => setNewTask({ ...newTask, priority: e.target.value as Priority })}
+                  className={`w-full p-4 rounded-xl outline-none font-semibold border-2 border-transparent focus:border-indigo-500 transition-colors ${inputBg}`}
+                >
+                  <option value="low">Baja</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                  <option value="urgent">Urgente</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">
+                  Tiempo estimado (min)
+                </label>
+                <input
+                  type="number"
+                  value={newTask.estimated_pomodoros * 25}
+                  onChange={e => setNewTask({ ...newTask, estimated_pomodoros: Math.ceil(parseInt(e.target.value) / 25) || 1 })}
+                  className={`w-full p-4 rounded-xl outline-none font-semibold border-2 border-transparent focus:border-indigo-500 transition-colors ${inputBg}`}
+                  min="25"
+                  step="25"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-2">Descripción (opcional)</label>
+                <textarea
+                  value={newTask.description}
+                  onChange={e => setNewTask({ ...newTask, description: e.target.value })}
+                  className={`w-full p-4 rounded-xl outline-none font-semibold border-2 border-transparent focus:border-indigo-500 transition-colors ${inputBg} resize-none`}
+                  rows={2}
+                  placeholder="Detalles adicionales..."
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="px-6 py-3 font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                Crear Tarea
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
         {/* Total Tasks */}
@@ -246,7 +433,7 @@ const EnhancedTaskProgress: React.FC = () => {
             return (
               <div
                 key={task.id}
-                className={`group relative p-6 rounded-[2rem] border transition-all cursor-pointer ${
+                className={`group relative p-6 rounded-[2rem] border transition-all ${
                   theme === 'dark'
                     ? 'bg-slate-700/30 border-slate-600 hover:bg-slate-700 hover:border-slate-500'
                     : 'bg-slate-50 border-slate-200 hover:border-indigo-300 hover:shadow-lg'
@@ -260,9 +447,23 @@ const EnhancedTaskProgress: React.FC = () => {
                 )}
 
                 <div className="flex items-start gap-4">
+                  {/* Checkbox para completar */}
+                  <button
+                    onClick={() => handleToggleTask(task.id, task.status)}
+                    className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                      task.status === 'completed'
+                        ? 'bg-emerald-500 text-white'
+                        : theme === 'dark'
+                          ? 'bg-slate-700 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400'
+                          : 'bg-slate-200 hover:bg-emerald-50 text-slate-400 hover:text-emerald-500'
+                    }`}
+                  >
+                    <CheckCircle2 size={20} />
+                  </button>
+
                   {/* Urgency Badge */}
                   <div className="flex-shrink-0">
-                    <div className={`px-4 py-2 rounded-xl ${urgency.color} text-white font-black text-sm min-w-[80px] text-center`}>
+                    <div className={`px-4 py-2 rounded-xl ${urgency.color} text-white font-black text-sm min-w-[70px] text-center`}>
                       {urgency.label}
                     </div>
                   </div>
@@ -270,7 +471,9 @@ const EnhancedTaskProgress: React.FC = () => {
                   {/* Task Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-2">
-                      <h3 className="font-black text-lg group-hover:text-indigo-500 transition-colors">
+                      <h3 className={`font-black text-lg transition-colors ${
+                        task.status === 'completed' ? 'line-through text-slate-400' : 'group-hover:text-indigo-500'
+                      }`}>
                         {task.title}
                       </h3>
                       <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${
@@ -306,6 +509,18 @@ const EnhancedTaskProgress: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Botón eliminar */}
+                  <button
+                    onClick={() => handleDeleteTask(task.id, task.title)}
+                    className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
+                      theme === 'dark'
+                        ? 'hover:bg-red-900/30 text-slate-400 hover:text-red-400'
+                        : 'hover:bg-red-50 text-slate-400 hover:text-red-500'
+                    }`}
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
             );
