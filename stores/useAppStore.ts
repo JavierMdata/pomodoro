@@ -6,7 +6,7 @@ import {
   Profile, SchoolPeriod, Subject, Task, Exam,
   ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert,
   ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
-  EntityType, EntityRef, ClassSchedule
+  EntityType, EntityRef, ClassSchedule, ActiveTimer
 } from '../types';
 
 interface AppState {
@@ -23,6 +23,9 @@ interface AppState {
   sessions: PomodoroSession[];
   settings: Record<string, PomodoroSettings>;
   alerts: Alert[];
+
+  // Timer activo persistente
+  activeTimer: ActiveTimer | null;
 
   // SEGUNDO CEREBRO: Nuevos estados
   contentBlocks: ContentBlock[];
@@ -51,6 +54,14 @@ interface AppState {
   addSession: (session: Omit<PomodoroSession, 'id'>) => void;
   updateSettings: (profileId: string, updates: Partial<PomodoroSettings>) => void;
   markAlertRead: (id: string) => void;
+
+  // Timer activo persistente
+  startActiveTimer: (timer: Omit<ActiveTimer, 'id'>) => Promise<void>;
+  pauseActiveTimer: () => Promise<void>;
+  resumeActiveTimer: () => Promise<void>;
+  stopActiveTimer: () => Promise<void>;
+  loadActiveTimer: () => Promise<ActiveTimer | null>;
+  getElapsedSeconds: () => number;
 
   // SEGUNDO CEREBRO: Content Blocks (Notion-style)
   addContentBlock: (block: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'>) => Promise<ContentBlock>;
@@ -99,6 +110,9 @@ export const useAppStore = create<AppState>()(
       sessions: [],
       settings: {},
       alerts: [],
+
+      // Timer activo persistente
+      activeTimer: null,
 
       // SEGUNDO CEREBRO: Estados iniciales
       contentBlocks: [],
@@ -185,6 +199,37 @@ export const useAppStore = create<AppState>()(
               .eq('is_read', false)
               .order('created_at', { ascending: false });
 
+            // Cargar timer activo (si existe)
+            let activeTimerData = null;
+            if (profilesData && profilesData.length > 0) {
+              try {
+                const { data: timerData } = await supabase
+                  .from('active_timers')
+                  .select('*')
+                  .limit(1)
+                  .single();
+
+                if (timerData) {
+                  // Verificar si el timer expiró
+                  const startTime = new Date(timerData.started_at).getTime();
+                  const elapsed = timerData.is_paused
+                    ? timerData.elapsed_when_paused || 0
+                    : Math.floor((Date.now() - startTime) / 1000);
+
+                  if (elapsed < timerData.duration_seconds) {
+                    activeTimerData = timerData;
+                    console.log('🔄 Timer activo encontrado y restaurado');
+                  } else {
+                    // Timer expirado, eliminarlo
+                    await supabase.from('active_timers').delete().eq('id', timerData.id);
+                    console.log('⏰ Timer expirado eliminado');
+                  }
+                }
+              } catch (e) {
+                console.log('ℹ️ No hay timer activo o tabla no existe');
+              }
+            }
+
             // SEGUNDO CEREBRO: Cargar nuevas tablas (si existen)
             let blocksData = null;
             let linksData = null;
@@ -233,6 +278,7 @@ export const useAppStore = create<AppState>()(
               materials: materialsData || [],
               sessions: sessionsData || [],
               alerts: alertsData || [],
+              activeTimer: activeTimerData,
               contentBlocks: blocksData || [],
               noteLinks: linksData || [],
               focusJournals: journalsData || [],
@@ -572,6 +618,169 @@ export const useAppStore = create<AppState>()(
       markAlertRead: (id) => set((state) => ({
         alerts: state.alerts.map(a => a.id === id ? { ...a, is_read: true } : a)
       })),
+
+      // ================================================================
+      // TIMER ACTIVO PERSISTENTE
+      // ================================================================
+
+      startActiveTimer: async (timerData) => {
+        const profileId = get().activeProfileId;
+        if (!profileId) return;
+
+        const id = crypto.randomUUID();
+        const newTimer: ActiveTimer = {
+          ...timerData,
+          id,
+          profile_id: profileId
+        };
+
+        // Guardar en Supabase
+        try {
+          // Primero eliminar cualquier timer activo previo del perfil
+          await supabase.from('active_timers').delete().eq('profile_id', profileId);
+
+          // Insertar el nuevo timer
+          const { error } = await supabase.from('active_timers').insert([newTimer]);
+          if (error) {
+            console.error('❌ Error al guardar timer activo:', error);
+          } else {
+            console.log('✅ Timer activo guardado en Supabase');
+          }
+        } catch (e) {
+          console.error('Error de red al guardar timer:', e);
+        }
+
+        set({ activeTimer: newTimer });
+      },
+
+      pauseActiveTimer: async () => {
+        const currentTimer = get().activeTimer;
+        if (!currentTimer || currentTimer.is_paused) return;
+
+        const now = new Date().toISOString();
+        const startTime = new Date(currentTimer.started_at).getTime();
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+        const updatedTimer: ActiveTimer = {
+          ...currentTimer,
+          is_paused: true,
+          paused_at: now,
+          elapsed_when_paused: elapsed
+        };
+
+        // Actualizar en Supabase
+        try {
+          await supabase.from('active_timers').update({
+            is_paused: true,
+            paused_at: now,
+            elapsed_when_paused: elapsed
+          }).eq('id', currentTimer.id);
+          console.log('⏸️ Timer pausado');
+        } catch (e) {
+          console.error('Error al pausar timer:', e);
+        }
+
+        set({ activeTimer: updatedTimer });
+      },
+
+      resumeActiveTimer: async () => {
+        const currentTimer = get().activeTimer;
+        if (!currentTimer || !currentTimer.is_paused) return;
+
+        // Calcular nuevo started_at para que el tiempo restante sea correcto
+        const elapsedWhenPaused = currentTimer.elapsed_when_paused || 0;
+        const newStartedAt = new Date(Date.now() - (elapsedWhenPaused * 1000)).toISOString();
+
+        const updatedTimer: ActiveTimer = {
+          ...currentTimer,
+          is_paused: false,
+          started_at: newStartedAt,
+          paused_at: undefined,
+          elapsed_when_paused: undefined
+        };
+
+        // Actualizar en Supabase
+        try {
+          await supabase.from('active_timers').update({
+            is_paused: false,
+            started_at: newStartedAt,
+            paused_at: null,
+            elapsed_when_paused: null
+          }).eq('id', currentTimer.id);
+          console.log('▶️ Timer reanudado');
+        } catch (e) {
+          console.error('Error al reanudar timer:', e);
+        }
+
+        set({ activeTimer: updatedTimer });
+      },
+
+      stopActiveTimer: async () => {
+        const currentTimer = get().activeTimer;
+        if (!currentTimer) return;
+
+        // Eliminar de Supabase
+        try {
+          await supabase.from('active_timers').delete().eq('id', currentTimer.id);
+          console.log('⏹️ Timer detenido y eliminado');
+        } catch (e) {
+          console.error('Error al detener timer:', e);
+        }
+
+        set({ activeTimer: null });
+      },
+
+      loadActiveTimer: async () => {
+        const profileId = get().activeProfileId;
+        if (!profileId) return null;
+
+        try {
+          const { data, error } = await supabase
+            .from('active_timers')
+            .select('*')
+            .eq('profile_id', profileId)
+            .single();
+
+          if (error || !data) {
+            console.log('ℹ️ No hay timer activo guardado');
+            set({ activeTimer: null });
+            return null;
+          }
+
+          // Verificar si el timer ya expiró
+          const startTime = new Date(data.started_at).getTime();
+          const elapsed = data.is_paused
+            ? data.elapsed_when_paused || 0
+            : Math.floor((Date.now() - startTime) / 1000);
+
+          if (elapsed >= data.duration_seconds) {
+            // El timer expiró mientras la app estaba cerrada
+            console.log('⏰ Timer expirado - limpiando');
+            await supabase.from('active_timers').delete().eq('id', data.id);
+            set({ activeTimer: null });
+            return null;
+          }
+
+          console.log('🔄 Timer activo restaurado:', data);
+          set({ activeTimer: data as ActiveTimer });
+          return data as ActiveTimer;
+        } catch (e) {
+          console.error('Error al cargar timer activo:', e);
+          return null;
+        }
+      },
+
+      getElapsedSeconds: () => {
+        const timer = get().activeTimer;
+        if (!timer) return 0;
+
+        if (timer.is_paused) {
+          return timer.elapsed_when_paused || 0;
+        }
+
+        const startTime = new Date(timer.started_at).getTime();
+        return Math.floor((Date.now() - startTime) / 1000);
+      },
 
       // ================================================================
       // SEGUNDO CEREBRO: Content Blocks (Notion-style)

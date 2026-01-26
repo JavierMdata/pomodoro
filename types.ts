@@ -128,6 +128,26 @@ export interface PomodoroSession {
   completed_at: string;
 }
 
+// Timer activo persistente - sigue corriendo aunque cierres la app
+export interface ActiveTimer {
+  id: string;
+  profile_id: string;
+  mode: 'work' | 'short_break' | 'long_break';
+  started_at: string; // Timestamp ISO de cuando empezó
+  duration_seconds: number; // Duración total en segundos
+  is_paused: boolean;
+  paused_at?: string; // Timestamp de cuando se pausó
+  elapsed_when_paused?: number; // Segundos transcurridos al pausar
+  session_count: number;
+
+  // Item seleccionado
+  selected_item_type?: 'task' | 'exam' | 'material';
+  selected_item_id?: string;
+  selected_meta_id?: string; // Para exam_topic
+  selected_subject_id?: string;
+  selected_display_title?: string;
+}
+
 export interface Alert {
   id: string;
   profile_id: string;

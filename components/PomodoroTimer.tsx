@@ -13,7 +13,8 @@ import { GoogleGenAI } from "@google/genai";
 const PomodoroTimer: React.FC = () => {
   const {
     theme, activeProfileId, profiles, settings, tasks,
-    subjects, examTopics, materials, exams, addSession
+    subjects, examTopics, materials, exams, addSession,
+    activeTimer, startActiveTimer, pauseActiveTimer, resumeActiveTimer, stopActiveTimer, getElapsedSeconds
   } = useAppStore();
 
   const activeProfile = profiles.find(p => p.id === activeProfileId);
@@ -46,13 +47,27 @@ const PomodoroTimer: React.FC = () => {
     });
   }, [examTopics, exams, subjects, activeProfileId]);
 
-  const [mode, setMode] = useState<'work' | 'short_break' | 'long_break'>('work');
+  // Estados derivados del timer persistente
+  const [mode, setMode] = useState<'work' | 'short_break' | 'long_break'>(() => {
+    return activeTimer?.mode || 'work';
+  });
   const [timeLeft, setTimeLeft] = useState(() => {
-    // Inicializar con los settings del perfil activo
+    if (activeTimer && !activeTimer.is_paused) {
+      const elapsed = Math.floor((Date.now() - new Date(activeTimer.started_at).getTime()) / 1000);
+      return Math.max(0, activeTimer.duration_seconds - elapsed);
+    } else if (activeTimer?.is_paused) {
+      const elapsed = activeTimer.elapsed_when_paused || 0;
+      return Math.max(0, activeTimer.duration_seconds - elapsed);
+    }
     const initialDuration = currentSettings?.work_duration || 25;
     return initialDuration * 60;
   });
-  const [isActive, setIsActive] = useState(false);
+  const [isActive, setIsActive] = useState(() => {
+    return activeTimer !== null && !activeTimer.is_paused;
+  });
+  const [isPaused, setIsPaused] = useState(() => {
+    return activeTimer?.is_paused || false;
+  });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     type: 'exam' | 'task' | 'material';
@@ -60,16 +75,74 @@ const PomodoroTimer: React.FC = () => {
     item: any;
     meta?: any;
     displayTitle: string;
-  } | null>(null);
-  const [sessionCount, setSessionCount] = useState(1);
+  } | null>(() => {
+    // Restaurar item seleccionado del timer activo
+    if (activeTimer?.selected_item_type) {
+      return {
+        type: activeTimer.selected_item_type,
+        subject: { id: activeTimer.selected_subject_id },
+        item: { id: activeTimer.selected_item_id },
+        meta: activeTimer.selected_meta_id ? { id: activeTimer.selected_meta_id } : undefined,
+        displayTitle: activeTimer.selected_display_title || ''
+      };
+    }
+    return null;
+  });
+  const [sessionCount, setSessionCount] = useState(() => activeTimer?.session_count || 1);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [motivation, setMotivation] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [aiTip, setAiTip] = useState<string | null>(null);
+  const [timerRestored, setTimerRestored] = useState(false);
 
   const timerRef = useRef<any>(null);
-  const startTimeRef = useRef<string | null>(null);
+  const startTimeRef = useRef<string | null>(activeTimer?.started_at || null);
+
+  // Efecto para restaurar timer al cargar la página
+  useEffect(() => {
+    if (activeTimer && !timerRestored) {
+      setTimerRestored(true);
+      setMode(activeTimer.mode);
+      setSessionCount(activeTimer.session_count);
+
+      if (!activeTimer.is_paused) {
+        setIsActive(true);
+        setIsPaused(false);
+        // Calcular tiempo restante
+        const elapsed = Math.floor((Date.now() - new Date(activeTimer.started_at).getTime()) / 1000);
+        const remaining = Math.max(0, activeTimer.duration_seconds - elapsed);
+        setTimeLeft(remaining);
+
+        if (remaining <= 0) {
+          // Timer expiró mientras la app estaba cerrada
+          handleComplete();
+        }
+      } else {
+        setIsActive(false);
+        setIsPaused(true);
+        const elapsed = activeTimer.elapsed_when_paused || 0;
+        setTimeLeft(Math.max(0, activeTimer.duration_seconds - elapsed));
+      }
+
+      // Restaurar item seleccionado
+      if (activeTimer.selected_item_type) {
+        setSelectedItem({
+          type: activeTimer.selected_item_type,
+          subject: { id: activeTimer.selected_subject_id },
+          item: { id: activeTimer.selected_item_id },
+          meta: activeTimer.selected_meta_id ? { id: activeTimer.selected_meta_id } : undefined,
+          displayTitle: activeTimer.selected_display_title || ''
+        });
+      }
+
+      console.log('🔄 Timer restaurado:', {
+        mode: activeTimer.mode,
+        isPaused: activeTimer.is_paused,
+        timeLeft: activeTimer.duration_seconds - (activeTimer.elapsed_when_paused || 0)
+      });
+    }
+  }, [activeTimer]);
 
   // Solicitar permiso para notificaciones al montar el componente
   useEffect(() => {
@@ -150,11 +223,14 @@ const PomodoroTimer: React.FC = () => {
   }, [isActive, mode]);
 
   useEffect(() => {
-    if (currentSettings) {
+    // No resetear si hay un timer activo (evita sobrescribir el tiempo restaurado)
+    if (activeTimer) return;
+
+    if (currentSettings && !isActive && !isPaused) {
       const mins = mode === 'work' ? currentSettings.work_duration : mode === 'short_break' ? currentSettings.short_break : currentSettings.long_break;
       setTimeLeft(mins * 60);
     }
-  }, [mode, currentSettings]);
+  }, [mode, currentSettings, activeTimer, isActive, isPaused]);
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
@@ -179,7 +255,7 @@ const PomodoroTimer: React.FC = () => {
     });
   };
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (mode === 'work' && !selectedItem) {
       soundService.playError();
       soundService.vibrate([100, 50, 100]);
@@ -192,12 +268,63 @@ const PomodoroTimer: React.FC = () => {
     soundService.playStart();
     soundService.vibrate([50, 100, 50]);
 
+    const now = new Date().toISOString();
+    startTimeRef.current = now;
+
+    // Si está pausado, reanudar
+    if (isPaused && activeTimer) {
+      await resumeActiveTimer();
+      setIsPaused(false);
+      setIsActive(true);
+      return;
+    }
+
+    // Iniciar nuevo timer
+    const durationMins = mode === 'work'
+      ? currentSettings?.work_duration || 25
+      : mode === 'short_break'
+        ? currentSettings?.short_break || 5
+        : currentSettings?.long_break || 15;
+
+    await startActiveTimer({
+      profile_id: activeProfileId!,
+      mode,
+      started_at: now,
+      duration_seconds: durationMins * 60,
+      is_paused: false,
+      session_count: sessionCount,
+      selected_item_type: selectedItem?.type,
+      selected_item_id: selectedItem?.item?.id,
+      selected_meta_id: selectedItem?.meta?.id,
+      selected_subject_id: selectedItem?.subject?.id,
+      selected_display_title: selectedItem?.displayTitle
+    });
+
     setIsActive(true);
-    if (!startTimeRef.current) startTimeRef.current = new Date().toISOString();
+    setIsPaused(false);
   };
 
-  const handleComplete = () => {
+  const handlePause = async () => {
+    soundService.playPause();
+    soundService.vibrate(25);
+    await pauseActiveTimer();
     setIsActive(false);
+    setIsPaused(true);
+  };
+
+  const handleReset = async () => {
+    soundService.playWhoosh();
+    soundService.vibrate(30);
+    await stopActiveTimer();
+    setIsActive(false);
+    setIsPaused(false);
+    setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60);
+    startTimeRef.current = null;
+  };
+
+  const handleComplete = async () => {
+    setIsActive(false);
+    setIsPaused(false);
 
     // Reproducir sonido de finalización
     soundService.playComplete();
@@ -215,11 +342,13 @@ const PomodoroTimer: React.FC = () => {
         '¡Descanso Terminado! ⚡',
         '¡Es hora de volver al trabajo con energía renovada!'
       );
+      // Limpiar timer activo antes de cambiar de modo
+      await stopActiveTimer();
       setMode('work');
     }
   };
 
-  const saveSession = () => {
+  const saveSession = async () => {
     if (!activeProfileId || !startTimeRef.current) return;
 
     soundService.playSuccess();
@@ -242,16 +371,28 @@ const PomodoroTimer: React.FC = () => {
       completed_at: new Date().toISOString(),
     });
 
+    // Limpiar timer activo
+    await stopActiveTimer();
+
     setShowCompletionModal(false);
     setRating(0);
     startTimeRef.current = null;
 
+    const newSessionCount = sessionCount + 1;
+
     if (mode === 'work') {
-      if (sessionCount % (currentSettings?.poms_before_long || 4) === 0) setMode('long_break');
-      else setMode('short_break');
-      setSessionCount(prev => prev + 1);
+      const nextMode = sessionCount % (currentSettings?.poms_before_long || 4) === 0 ? 'long_break' : 'short_break';
+      setMode(nextMode);
+      setSessionCount(newSessionCount);
+
+      // Iniciar automáticamente el descanso
+      const breakDuration = nextMode === 'long_break'
+        ? currentSettings?.long_break || 15
+        : currentSettings?.short_break || 5;
+      setTimeLeft(breakDuration * 60);
     } else {
       setMode('work');
+      setTimeLeft((currentSettings?.work_duration || 25) * 60);
     }
   };
 
@@ -376,12 +517,7 @@ const PomodoroTimer: React.FC = () => {
 
       <div className="flex items-center gap-8 md:gap-16 relative z-30">
         <button
-          onClick={() => {
-            soundService.playWhoosh();
-            soundService.vibrate(30);
-            setIsActive(false);
-            setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60);
-          }}
+          onClick={handleReset}
           className={`relative p-6 md:p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 group touch-manipulation ${
             theme === 'dark' || isFullscreen
               ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700'
@@ -393,11 +529,7 @@ const PomodoroTimer: React.FC = () => {
         </button>
 
         <button
-          onClick={isActive ? () => {
-            soundService.playPause();
-            soundService.vibrate(25);
-            setIsActive(false);
-          } : handleStart}
+          onClick={isActive ? handlePause : handleStart}
           className={`relative w-32 h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center text-white shadow-2xl transition-all hover:scale-110 active:scale-95 group overflow-hidden touch-manipulation ${
             isActive
               ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 shadow-amber-500/50'
@@ -442,7 +574,7 @@ const PomodoroTimer: React.FC = () => {
         </button>
       </div>
 
-      {!isActive && !isFullscreen && activeProfileId && (
+      {!isActive && !isPaused && !isFullscreen && activeProfileId && (
         <div className="mt-16 w-full max-w-4xl mx-auto">
           {/* Header con botón IA */}
           <div className="flex items-center justify-between mb-6 px-2">
