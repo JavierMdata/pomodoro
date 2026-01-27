@@ -19,7 +19,8 @@ import ProfileSettings from './components/ProfileSettings';
 import WelcomeScreen from './components/WelcomeScreen';
 import ProfileUnlock from './components/ProfileUnlock';
 import WelcomePage from './components/WelcomePage';
-import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save, LogOut, User, Crown } from 'lucide-react';
+import UpgradeModal from './components/UpgradeModal';
+import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save, LogOut, User, Crown, Gift } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 import { getCurrentUserId } from './lib/supabase';
 
@@ -54,6 +55,9 @@ const AppContent: React.FC = () => {
 
   // Estado para pantalla de bienvenida
   const [showWelcomeScreen, setShowWelcomeScreen] = useState(false);
+
+  // Estado para modal de upgrade
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Estado para manejo de PIN
   const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
@@ -220,6 +224,19 @@ const AppContent: React.FC = () => {
 
           {/* Botones de accion */}
           <div className="flex items-center gap-3">
+            {/* Boton Upgrade/Canjear codigo */}
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all hover:scale-105 ${
+                theme === 'dark'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-amber-500/50 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30'
+                  : 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-600 hover:from-amber-100 hover:to-orange-100'
+              } backdrop-blur-xl shadow-lg`}
+            >
+              <Gift size={18} />
+              <span className="font-medium hidden sm:inline">Canjear codigo</span>
+            </button>
+
             <button
               onClick={toggleTheme}
               className={`relative p-4 rounded-full border-2 transition-all hover:scale-110 active:scale-95 group ${
@@ -397,6 +414,12 @@ const AppContent: React.FC = () => {
           theme={theme}
         />
       )}
+
+      {/* Modal de Upgrade/Canjear codigo */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 };
