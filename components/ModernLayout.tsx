@@ -4,16 +4,19 @@ import { soundService } from '../lib/soundService';
 import {
   ClipboardList, BookOpen, Timer, BarChart3, Settings,
   LayoutDashboard, GraduationCap, FileText,
-  Moon, Sun, Flame, BookText, Network, Heart
+  Moon, Sun, Flame, BookText, Network, Heart, LogOut, Crown, User
 } from 'lucide-react';
 
 interface ModernLayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onLogout?: () => void;
+  userEmail?: string;
+  userPlan?: string;
 }
 
-const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setActiveTab }) => {
+const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setActiveTab, onLogout, userEmail, userPlan }) => {
   const { theme, toggleTheme, profiles, activeProfileId, setActiveProfile } = useAppStore();
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
@@ -83,22 +86,70 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
             </div>
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={() => {
-              soundService.playToggle();
-              soundService.vibrate(15);
-              toggleTheme();
-            }}
-            className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
-              theme === 'dark'
-                ? 'bg-slate-800 text-amber-400 hover:bg-slate-700'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-            aria-label="Cambiar tema"
-          >
-            {theme === 'dark' ? <Sun size={18} className="md:w-5 md:h-5" /> : <Moon size={18} className="md:w-5 md:h-5" />}
-          </button>
+          {/* User Info & Actions */}
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* User Info - Desktop only */}
+            {userEmail && (
+              <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl ${
+                theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-100/50'
+              }`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                  theme === 'dark' ? 'bg-indigo-500/20' : 'bg-indigo-100'
+                }`}>
+                  <User size={14} className="text-indigo-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className={`text-xs font-medium truncate max-w-[120px] ${
+                    theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
+                  }`}>
+                    {userEmail}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Crown size={10} className={userPlan === 'premium' || userPlan === 'lifetime' ? 'text-amber-500' : 'text-slate-400'} />
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">
+                      {userPlan || 'free'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Theme Toggle */}
+            <button
+              onClick={() => {
+                soundService.playToggle();
+                soundService.vibrate(15);
+                toggleTheme();
+              }}
+              className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                theme === 'dark'
+                  ? 'bg-slate-800 text-amber-400 hover:bg-slate-700'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+              aria-label="Cambiar tema"
+            >
+              {theme === 'dark' ? <Sun size={18} className="md:w-5 md:h-5" /> : <Moon size={18} className="md:w-5 md:h-5" />}
+            </button>
+
+            {/* Logout Button */}
+            {onLogout && (
+              <button
+                onClick={() => {
+                  soundService.playClick();
+                  onLogout();
+                }}
+                className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                  theme === 'dark'
+                    ? 'bg-slate-800 text-red-400 hover:bg-red-500/20'
+                    : 'bg-white text-red-500 hover:bg-red-50 border border-slate-200'
+                }`}
+                aria-label="Cerrar sesion"
+                title="Cerrar sesion"
+              >
+                <LogOut size={18} className="md:w-5 md:h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
