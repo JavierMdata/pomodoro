@@ -82,12 +82,12 @@ BEGIN
   FROM school_periods
   WHERE id = period_id;
 
-  -- Calcular total de semanas
-  p_total_weeks := CEIL(EXTRACT(EPOCH FROM (p_end_date - p_start_date)) / (7 * 24 * 60 * 60));
+  -- Calcular total de semanas (diferencia en días / 7)
+  p_total_weeks := CEIL((p_end_date - p_start_date) / 7.0);
 
   -- Calcular semana actual
   days_since_start := CURRENT_DATE - p_start_date;
-  calc_current_week := LEAST(CEIL(days_since_start::DECIMAL / 7), p_total_weeks);
+  calc_current_week := LEAST(CEIL(days_since_start / 7.0), p_total_weeks);
   calc_current_week := GREATEST(calc_current_week, 1); -- Mínimo semana 1
 
   RETURN QUERY SELECT
@@ -118,7 +118,7 @@ $$ LANGUAGE plpgsql;
 
 -- 6. ACTUALIZAR total_weeks EN PERIODOS EXISTENTES
 UPDATE school_periods
-SET total_weeks = CEIL(EXTRACT(EPOCH FROM (end_date - start_date)) / (7 * 24 * 60 * 60))
+SET total_weeks = CEIL((end_date - start_date) / 7.0)
 WHERE total_weeks IS NULL;
 
 -- Desactivar RLS para las nuevas tablas (modo público para pruebas)

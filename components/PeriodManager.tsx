@@ -10,8 +10,35 @@ import {
   Calendar, Plus, Trash2, Clock, TrendingUp, Edit2, Check, X,
   AlertCircle, CalendarDays, Timer
 } from 'lucide-react';
-import { format, differenceInWeeks, addWeeks, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, addWeeks } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+// Función helper para calcular progreso (fuera del componente)
+const calculatePeriodProgress = (period: SchoolPeriod): PeriodProgress => {
+  const start = new Date(period.start_date);
+  const end = new Date(period.end_date);
+  const today = new Date();
+
+  // Calcular diferencia en días y convertir a semanas
+  const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const daysSinceStart = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+  const totalWeeks = Math.ceil(totalDays / 7) || 1;
+  let currentWeek = Math.ceil(daysSinceStart / 7) + 1;
+
+  // Ajustar límites
+  currentWeek = Math.max(1, Math.min(currentWeek, totalWeeks));
+
+  const weeksRemaining = Math.max(0, totalWeeks - currentWeek);
+  const progressPercentage = Math.round((currentWeek / totalWeeks) * 100);
+
+  return {
+    current_week: currentWeek,
+    total_weeks: totalWeeks,
+    weeks_remaining: weeksRemaining,
+    progress_percentage: progressPercentage
+  };
+};
 
 const PeriodManager: React.FC = () => {
   const { theme, activeProfileId, profiles, periods, addPeriod, updatePeriod, deletePeriod } = useAppStore();
@@ -37,28 +64,6 @@ const PeriodManager: React.FC = () => {
       return { ...period, progress };
     });
   }, [profilePeriods]);
-
-  const calculatePeriodProgress = (period: SchoolPeriod): PeriodProgress => {
-    const start = new Date(period.start_date);
-    const end = new Date(period.end_date);
-    const today = new Date();
-
-    const totalWeeks = Math.ceil(differenceInWeeks(end, start)) || 1;
-    let currentWeek = Math.ceil(differenceInWeeks(today, start)) + 1;
-
-    // Ajustar límites
-    currentWeek = Math.max(1, Math.min(currentWeek, totalWeeks));
-
-    const weeksRemaining = Math.max(0, totalWeeks - currentWeek);
-    const progressPercentage = Math.round((currentWeek / totalWeeks) * 100);
-
-    return {
-      current_week: currentWeek,
-      total_weeks: totalWeeks,
-      weeks_remaining: weeksRemaining,
-      progress_percentage: progressPercentage
-    };
-  };
 
   const getPeriodTypeLabel = (type: PeriodType) => {
     const labels = {
@@ -109,7 +114,8 @@ const PeriodManager: React.FC = () => {
 
     const start = new Date(formData.start_date);
     const end = new Date(formData.end_date);
-    const totalWeeks = Math.ceil(differenceInWeeks(end, start));
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const totalWeeks = Math.ceil(totalDays / 7) || 1;
 
     if (editingId) {
       updatePeriod(editingId, {
