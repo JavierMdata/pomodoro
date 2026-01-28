@@ -6,7 +6,8 @@ import {
   Profile, SchoolPeriod, Subject, Task, Exam,
   ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert,
   ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
-  EntityType, EntityRef, ClassSchedule, ActiveTimer
+  EntityType, EntityRef, ClassSchedule, ActiveTimer,
+  WorkSchedule, SubjectTimeAllocation
 } from '../types';
 
 interface AppState {
@@ -27,6 +28,10 @@ interface AppState {
   // Timer activo persistente
   activeTimer: ActiveTimer | null;
 
+  // HORARIO Y DISTRIBUCIÓN DE TIEMPO
+  workSchedules: WorkSchedule[];
+  timeAllocations: SubjectTimeAllocation[];
+
   // SEGUNDO CEREBRO: Nuevos estados
   contentBlocks: ContentBlock[];
   noteLinks: NoteLink[];
@@ -39,6 +44,8 @@ interface AppState {
   deleteProfile: (id: string) => Promise<void>;
   setActiveProfile: (id: string | null) => void;
   addPeriod: (period: Omit<SchoolPeriod, 'id'>) => void;
+  updatePeriod: (id: string, updates: Partial<SchoolPeriod>) => Promise<void>;
+  deletePeriod: (id: string) => Promise<void>;
   addSubject: (subject: Omit<Subject, 'id'>) => Promise<void>;
   updateSubject: (id: string, updates: Partial<Subject>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
@@ -63,6 +70,15 @@ interface AppState {
   stopActiveTimer: () => Promise<void>;
   loadActiveTimer: () => Promise<ActiveTimer | null>;
   getElapsedSeconds: () => number;
+
+  // HORARIO DE TRABAJO Y DISTRIBUCIÓN DE TIEMPO
+  addWorkSchedule: (schedule: Omit<WorkSchedule, 'id'>) => Promise<void>;
+  updateWorkSchedule: (id: string, updates: Partial<WorkSchedule>) => Promise<void>;
+  deleteWorkSchedule: (id: string) => Promise<void>;
+  calculateWeeklyWorkHours: () => number;
+  addTimeAllocation: (allocation: Omit<SubjectTimeAllocation, 'id'>) => Promise<void>;
+  updateTimeAllocation: (id: string, updates: Partial<SubjectTimeAllocation>) => Promise<void>;
+  recalculateTimeAllocations: () => Promise<void>;
 
   // SEGUNDO CEREBRO: Content Blocks (Notion-style)
   addContentBlock: (block: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'>) => Promise<ContentBlock>;
@@ -114,6 +130,10 @@ export const useAppStore = create<AppState>()(
 
       // Timer activo persistente
       activeTimer: null,
+
+      // HORARIO Y DISTRIBUCIÓN DE TIEMPO
+      workSchedules: [],
+      timeAllocations: [],
 
       // SEGUNDO CEREBRO: Estados iniciales
       contentBlocks: [],
@@ -184,6 +204,17 @@ export const useAppStore = create<AppState>()(
             // Cargar horarios de clases
             const { data: schedulesData } = await supabase
               .from('class_schedule')
+              .select('*');
+
+            // Cargar horarios de trabajo
+            const { data: workSchedulesData } = await supabase
+              .from('work_schedule')
+              .select('*')
+              .order('day_of_week', { ascending: true });
+
+            // Cargar asignaciones de tiempo por materia
+            const { data: timeAllocationsData } = await supabase
+              .from('subject_time_allocation')
               .select('*');
 
             // Cargar sesiones (últimas 100)
@@ -280,6 +311,8 @@ export const useAppStore = create<AppState>()(
               sessions: sessionsData || [],
               alerts: alertsData || [],
               activeTimer: activeTimerData,
+              workSchedules: workSchedulesData || [],
+              timeAllocations: timeAllocationsData || [],
               contentBlocks: blocksData || [],
               noteLinks: linksData || [],
               focusJournals: journalsData || [],
@@ -393,6 +426,30 @@ export const useAppStore = create<AppState>()(
       addPeriod: (period) => set((state) => ({
         periods: [...state.periods, { ...period, id: crypto.randomUUID() }]
       })),
+
+      updatePeriod: async (id, updates) => {
+        try {
+          await supabase.from('school_periods').update(updates).eq('id', id);
+        } catch (e) {
+          console.error("Error al actualizar periodo en Supabase", e);
+        }
+
+        set((state) => ({
+          periods: state.periods.map(p => p.id === id ? { ...p, ...updates } : p)
+        }));
+      },
+
+      deletePeriod: async (id) => {
+        try {
+          await supabase.from('school_periods').delete().eq('id', id);
+        } catch (e) {
+          console.error("Error al eliminar periodo en Supabase", e);
+        }
+
+        set((state) => ({
+          periods: state.periods.filter(p => p.id !== id)
+        }));
+      },
 
       addSubject: async (subject) => {
         const id = crypto.randomUUID();
@@ -1239,6 +1296,191 @@ export const useAppStore = create<AppState>()(
             // Luego por tiempo dedicado
             return b.total_time_seconds - a.total_time_seconds;
           });
+      },
+
+      // ================================================================
+      // HORARIO DE TRABAJO Y DISTRIBUCIÓN DE TIEMPO
+      // ================================================================
+
+      addWorkSchedule: async (schedule) => {
+        const id = crypto.randomUUID();
+        const newSchedule = { ...schedule, id };
+
+        try {
+          await supabase.from('work_schedule').insert([newSchedule]);
+        } catch (e) {
+          console.error("Error al guardar horario de trabajo en Supabase", e);
+        }
+
+        set((state) => ({
+          workSchedules: [...state.workSchedules, newSchedule]
+        }));
+
+        // Recalcular distribución de tiempo automáticamente
+        await get().recalculateTimeAllocations();
+      },
+
+      updateWorkSchedule: async (id, updates) => {
+        try {
+          await supabase.from('work_schedule').update(updates).eq('id', id);
+        } catch (e) {
+          console.error("Error al actualizar horario de trabajo en Supabase", e);
+        }
+
+        set((state) => ({
+          workSchedules: state.workSchedules.map(s => s.id === id ? { ...s, ...updates } : s)
+        }));
+
+        // Recalcular distribución de tiempo automáticamente
+        await get().recalculateTimeAllocations();
+      },
+
+      deleteWorkSchedule: async (id) => {
+        try {
+          await supabase.from('work_schedule').delete().eq('id', id);
+        } catch (e) {
+          console.error("Error al eliminar horario de trabajo en Supabase", e);
+        }
+
+        set((state) => ({
+          workSchedules: state.workSchedules.filter(s => s.id !== id)
+        }));
+
+        // Recalcular distribución de tiempo automáticamente
+        await get().recalculateTimeAllocations();
+      },
+
+      calculateWeeklyWorkHours: () => {
+        const state = get();
+        const profileSchedules = state.workSchedules.filter(
+          s => s.profile_id === state.activeProfileId && s.is_active && s.block_type === 'study'
+        );
+
+        const totalHours = profileSchedules.reduce((total, schedule) => {
+          const [startHour, startMin] = schedule.start_time.split(':').map(Number);
+          const [endHour, endMin] = schedule.end_time.split(':').map(Number);
+
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+          const durationHours = (endMinutes - startMinutes) / 60;
+
+          return total + durationHours;
+        }, 0);
+
+        return totalHours;
+      },
+
+      addTimeAllocation: async (allocation) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newAllocation = { ...allocation, id, last_updated: now };
+
+        try {
+          await supabase.from('subject_time_allocation').insert([newAllocation]);
+        } catch (e) {
+          console.error("Error al guardar asignación de tiempo en Supabase", e);
+        }
+
+        set((state) => ({
+          timeAllocations: [...state.timeAllocations, newAllocation]
+        }));
+      },
+
+      updateTimeAllocation: async (id, updates) => {
+        const now = new Date().toISOString();
+        const updatedData = { ...updates, last_updated: now };
+
+        try {
+          await supabase.from('subject_time_allocation').update(updatedData).eq('id', id);
+        } catch (e) {
+          console.error("Error al actualizar asignación de tiempo en Supabase", e);
+        }
+
+        set((state) => ({
+          timeAllocations: state.timeAllocations.map(a => a.id === id ? { ...a, ...updatedData } : a)
+        }));
+      },
+
+      recalculateTimeAllocations: async () => {
+        const state = get();
+        const profileId = state.activeProfileId;
+        if (!profileId) return;
+
+        // Obtener horas totales disponibles
+        const totalAvailableHours = get().calculateWeeklyWorkHours();
+        if (totalAvailableHours === 0) return;
+
+        // Obtener materias activas del perfil
+        const profileSubjects = state.subjects.filter(s => s.profile_id === profileId);
+        if (profileSubjects.length === 0) return;
+
+        // Calcular prioridad basada en exámenes próximos y tareas pendientes
+        const subjectPriorities = profileSubjects.map(subject => {
+          const subjectExams = state.exams.filter(e =>
+            e.subject_id === subject.id &&
+            e.status === 'upcoming' &&
+            new Date(e.exam_date) > new Date()
+          );
+
+          const subjectTasks = state.tasks.filter(t =>
+            t.subject_id === subject.id &&
+            t.status !== 'completed' &&
+            new Date(t.due_date) > new Date()
+          );
+
+          // Calcular prioridad: más alta si tiene exámenes próximos
+          let priority = 3; // Prioridad base
+
+          if (subjectExams.length > 0) {
+            const nearestExam = subjectExams.sort((a, b) =>
+              new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime()
+            )[0];
+
+            const daysUntilExam = Math.ceil(
+              (new Date(nearestExam.exam_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+            );
+
+            if (daysUntilExam <= 7) priority = 5;
+            else if (daysUntilExam <= 14) priority = 4;
+          }
+
+          if (subjectTasks.length > 0) {
+            priority = Math.min(5, priority + 1);
+          }
+
+          return { subject, priority, examCount: subjectExams.length, taskCount: subjectTasks.length };
+        });
+
+        // Distribuir horas proporcionalmente según prioridad
+        const totalPriorityPoints = subjectPriorities.reduce((sum, sp) => sum + sp.priority, 0);
+
+        for (const sp of subjectPriorities) {
+          const allocatedHours = (sp.priority / totalPriorityPoints) * totalAvailableHours;
+
+          // Buscar si ya existe una asignación
+          const existing = state.timeAllocations.find(
+            a => a.profile_id === profileId && a.subject_id === sp.subject.id
+          );
+
+          if (existing) {
+            await get().updateTimeAllocation(existing.id, {
+              allocated_hours_per_week: Number(allocatedHours.toFixed(2)),
+              priority_level: sp.priority,
+              auto_calculated: true
+            });
+          } else {
+            await get().addTimeAllocation({
+              profile_id: profileId,
+              subject_id: sp.subject.id,
+              allocated_hours_per_week: Number(allocatedHours.toFixed(2)),
+              priority_level: sp.priority,
+              auto_calculated: true,
+              last_updated: new Date().toISOString()
+            });
+          }
+        }
+
+        console.log(`✅ Distribución de tiempo recalculada: ${totalAvailableHours}h disponibles distribuidas entre ${profileSubjects.length} materias`);
       }
     }),
     { name: 'pomosmart-cloud-v1' }

@@ -17,6 +17,7 @@ import FocusJournal from './components/FocusJournal';
 import ProfileSettings from './components/ProfileSettings';
 import WelcomeScreen from './components/WelcomeScreen';
 import ProfileUnlock from './components/ProfileUnlock';
+import PeriodManager from './components/PeriodManager';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -324,6 +325,7 @@ const App: React.FC = () => {
       <ModernLayout activeTab={activeTab} setActiveTab={setActiveTab}>
         <div className="animate-in fade-in duration-500">
           {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'periods' && <PeriodManager />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <EnhancedTaskProgress />}
