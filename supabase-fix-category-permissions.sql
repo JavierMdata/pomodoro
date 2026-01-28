@@ -13,40 +13,65 @@ DROP POLICY IF EXISTS "Users can update their own category instances" ON categor
 DROP POLICY IF EXISTS "Users can delete their own category instances" ON category_instances;
 
 -- Política para SELECT (ver)
--- NOTA: Ambos profile_id y profiles.id son UUID, no necesitan cast
+-- NOTA: Usar EXISTS con (SELECT auth.uid()) para mejor performance y evitar problemas de tipos
 CREATE POLICY "Users can view their own category instances"
 ON category_instances
 FOR SELECT
-USING (profile_id IN (
-  SELECT id FROM profiles WHERE user_id = auth.uid()::text
-));
+USING (
+  EXISTS (
+    SELECT 1
+    FROM profiles p
+    WHERE p.id = category_instances.profile_id
+      AND p.user_id = (SELECT auth.uid())
+  )
+);
 
 -- Política para INSERT (crear)
 CREATE POLICY "Users can insert their own category instances"
 ON category_instances
 FOR INSERT
-WITH CHECK (profile_id IN (
-  SELECT id FROM profiles WHERE user_id = auth.uid()::text
-));
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM profiles p
+    WHERE p.id = category_instances.profile_id
+      AND p.user_id = (SELECT auth.uid())
+  )
+);
 
 -- Política para UPDATE (actualizar)
 CREATE POLICY "Users can update their own category instances"
 ON category_instances
 FOR UPDATE
-USING (profile_id IN (
-  SELECT id FROM profiles WHERE user_id = auth.uid()::text
-))
-WITH CHECK (profile_id IN (
-  SELECT id FROM profiles WHERE user_id = auth.uid()::text
-));
+USING (
+  EXISTS (
+    SELECT 1
+    FROM profiles p
+    WHERE p.id = category_instances.profile_id
+      AND p.user_id = (SELECT auth.uid())
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM profiles p
+    WHERE p.id = category_instances.profile_id
+      AND p.user_id = (SELECT auth.uid())
+  )
+);
 
 -- Política para DELETE (eliminar)
 CREATE POLICY "Users can delete their own category instances"
 ON category_instances
 FOR DELETE
-USING (profile_id IN (
-  SELECT id FROM profiles WHERE user_id = auth.uid()::text
-));
+USING (
+  EXISTS (
+    SELECT 1
+    FROM profiles p
+    WHERE p.id = category_instances.profile_id
+      AND p.user_id = (SELECT auth.uid())
+  )
+);
 
 -- Verificar que las políticas se crearon correctamente
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
