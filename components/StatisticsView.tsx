@@ -219,7 +219,18 @@ const StatisticsView: React.FC = () => {
             <h1 className="text-5xl font-black tracking-tight bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Estadísticas
             </h1>
-            <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-bold mt-1`}>Visualiza tu evolución y optimiza tus sesiones.</p>
+            <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} font-bold mt-1`}>
+              {activeProfile ? (
+                <>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: activeProfile.color }}></span>
+                    <span>{activeProfile.name}</span>
+                  </span>
+                  {' - '}
+                </>
+              ) : null}
+              Visualiza tu evolución y optimiza tus sesiones.
+            </p>
           </div>
         </div>
 
