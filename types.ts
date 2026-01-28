@@ -20,6 +20,8 @@ export interface Profile {
   last_accessed_at?: string; // Última vez que se accedió al perfil
 }
 
+export type PeriodType = 'trimestre' | 'semestre' | 'año' | 'custom';
+
 export interface SchoolPeriod {
   id: string;
   profile_id: string;
@@ -27,6 +29,16 @@ export interface SchoolPeriod {
   start_date: string;
   end_date: string;
   is_active: boolean;
+  period_type?: PeriodType;
+  total_weeks?: number;
+  description?: string;
+}
+
+export interface PeriodProgress {
+  current_week: number;
+  total_weeks: number;
+  weeks_remaining: number;
+  progress_percentage: number;
 }
 
 export interface Subject {
@@ -49,6 +61,29 @@ export interface ClassSchedule {
   day_of_week: number;
   start_time: string;
   end_time: string;
+}
+
+export type WorkBlockType = 'study' | 'work' | 'break' | 'other';
+
+export interface WorkSchedule {
+  id: string;
+  profile_id: string;
+  day_of_week: number; // 0=Domingo, 1=Lunes, ..., 6=Sábado
+  start_time: string;
+  end_time: string;
+  block_type: WorkBlockType;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface SubjectTimeAllocation {
+  id: string;
+  profile_id: string;
+  subject_id: string;
+  allocated_hours_per_week: number;
+  priority_level: number; // 1-5
+  auto_calculated: boolean;
+  last_updated: string;
 }
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
