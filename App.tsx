@@ -37,6 +37,7 @@ const App: React.FC = () => {
 
   // Estado para manejo de PIN
   const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
+  const [isProfileLocked, setIsProfileLocked] = useState(false);
   const pendingProfile = profiles.find(p => p.id === pendingProfileId);
 
   // Get active profile (con protección contra undefined)
@@ -46,6 +47,26 @@ const App: React.FC = () => {
   useEffect(() => {
     syncWithSupabase();
   }, []);
+
+  // Verificar si el perfil activo necesita desbloqueo al cargar
+  useEffect(() => {
+    if (activeProfileId && profiles.length > 0) {
+      const profile = profiles.find(p => p.id === activeProfileId);
+      const needsUnlock = localStorage.getItem('profile_needs_unlock');
+
+      if (profile && profile.requires_pin && profile.pin_hash) {
+        // Siempre pedir PIN al cargar si el perfil lo requiere
+        setIsProfileLocked(true);
+        setPendingProfileId(activeProfileId);
+        setActiveProfile(null); // Desactivar hasta que se desbloquee
+
+        // Limpiar flag de localStorage
+        if (needsUnlock === activeProfileId) {
+          localStorage.removeItem('profile_needs_unlock');
+        }
+      }
+    }
+  }, [profiles]);
 
   useEffect(() => {
     if (activeProfileId && settings[activeProfileId]) {
@@ -112,13 +133,55 @@ const App: React.FC = () => {
     if (pendingProfileId) {
       setActiveProfile(pendingProfileId);
       setPendingProfileId(null);
+      setIsProfileLocked(false);
     }
   };
 
   // Cancelar desbloqueo
   const handleUnlockCancel = () => {
     setPendingProfileId(null);
+    setIsProfileLocked(false);
   };
+
+  // Bloquear perfil cuando se cierra/minimiza la ventana
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Al cerrar/recargar, el perfil quedará bloqueado para el próximo inicio
+      if (activeProfileId && activeProfile?.requires_pin) {
+        localStorage.setItem('profile_needs_unlock', activeProfileId);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      // Si la página se oculta (minimizar/cambiar tab) y el perfil tiene auto-lock inmediato
+      if (document.hidden && activeProfileId && activeProfile?.requires_pin) {
+        // Guardar que necesita desbloqueo
+        localStorage.setItem('profile_needs_unlock', activeProfileId);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activeProfileId, activeProfile]);
+
+  // Mostrar pantalla de desbloqueo si hay un perfil pendiente (antes de todo)
+  if (pendingProfile) {
+    return (
+      <div className={theme === 'dark' ? 'dark' : ''}>
+        <ProfileUnlock
+          profile={pendingProfile}
+          onUnlock={handleUnlockSuccess}
+          onCancel={handleUnlockCancel}
+          theme={theme}
+        />
+      </div>
+    );
+  }
 
   // Profile Selector View
   if (!activeProfileId) {
@@ -279,16 +342,6 @@ const App: React.FC = () => {
         <WelcomeScreen
           profile={activeProfile}
           onDismiss={() => setShowWelcomeScreen(false)}
-        />
-      )}
-
-      {/* Pantalla de desbloqueo con PIN */}
-      {pendingProfile && (
-        <ProfileUnlock
-          profile={pendingProfile}
-          onUnlock={handleUnlockSuccess}
-          onCancel={handleUnlockCancel}
-          theme={theme}
         />
       )}
     </div>
