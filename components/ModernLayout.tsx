@@ -4,7 +4,7 @@ import { soundService } from '../lib/soundService';
 import {
   ClipboardList, BookOpen, Timer, BarChart3, Settings,
   LayoutDashboard, GraduationCap, FileText,
-  Moon, Sun, Flame, BookText, Network, Heart, CalendarDays
+  Moon, Sun, Flame, BookText, Network, Heart, CalendarDays, Clock
 } from 'lucide-react';
 
 interface ModernLayoutProps {
@@ -20,6 +20,7 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
   const menuItems = [
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, color: '#3B82F6', emoji: '🏠' },
     { id: 'periods', label: 'Periodos', icon: CalendarDays, color: '#10B981', emoji: '📅' },
+    { id: 'schedule', label: 'Horario', icon: Clock, color: '#A855F7', emoji: '⏰' },
     { id: 'subjects', label: 'Materias', icon: GraduationCap, color: '#EC4899', emoji: '📚' },
     { id: 'exams', label: 'Exámenes', icon: FileText, color: '#F59E0B', emoji: '📝' },
     { id: 'tasks', label: 'Tareas', icon: ClipboardList, color: '#6366F1', emoji: '✅' },

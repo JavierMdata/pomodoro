@@ -18,6 +18,7 @@ import ProfileSettings from './components/ProfileSettings';
 import WelcomeScreen from './components/WelcomeScreen';
 import ProfileUnlock from './components/ProfileUnlock';
 import PeriodManager from './components/PeriodManager';
+import WorkScheduleManager from './components/WorkScheduleManager';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -326,6 +327,7 @@ const App: React.FC = () => {
         <div className="animate-in fade-in duration-500">
           {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'periods' && <PeriodManager />}
+          {activeTab === 'schedule' && <WorkScheduleManager />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <EnhancedTaskProgress />}
