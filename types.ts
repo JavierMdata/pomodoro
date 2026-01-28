@@ -64,6 +64,7 @@ export interface ClassSchedule {
 }
 
 export type WorkBlockType = 'study' | 'work' | 'break' | 'other';
+export type WorkCategory = 'materia' | 'idioma' | 'trabajo' | 'gym' | 'proyecto' | 'otro';
 
 export interface WorkSchedule {
   id: string;
@@ -72,6 +73,8 @@ export interface WorkSchedule {
   start_time: string;
   end_time: string;
   block_type: WorkBlockType;
+  category?: WorkCategory; // Categoría del bloque (materia, idioma, trabajo, gym, etc.)
+  subject_id?: string; // Si es materia, vínculo a Subject
   description?: string;
   is_active: boolean;
 }
