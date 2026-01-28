@@ -35,6 +35,7 @@ interface AppState {
 
   toggleTheme: () => void;
   addProfile: (profile: Omit<Profile, 'id'>) => Promise<void>;
+  updateProfile: (id: string, updates: Partial<Profile>) => Promise<void>;
   deleteProfile: (id: string) => Promise<void>;
   setActiveProfile: (id: string | null) => void;
   addPeriod: (period: Omit<SchoolPeriod, 'id'>) => void;
@@ -331,7 +332,12 @@ export const useAppStore = create<AppState>()(
 
       addProfile: async (profile) => {
         const id = crypto.randomUUID();
-        const newProfile = { ...profile, id };
+        const newProfile = {
+          ...profile,
+          id,
+          requires_pin: false,
+          biometric_enabled: false
+        };
         const defaultSettings: PomodoroSettings = {
           profile_id: id,
           work_duration: 25,
@@ -351,6 +357,19 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           profiles: [...state.profiles, newProfile],
           settings: { ...state.settings, [id]: defaultSettings }
+        }));
+      },
+
+      updateProfile: async (id, updates) => {
+        try {
+          await supabase.from('profiles').update(updates).eq('id', id);
+          console.log('✅ Perfil actualizado en Supabase');
+        } catch (e) {
+          console.error("Error al actualizar perfil en Supabase", e);
+        }
+
+        set((state) => ({
+          profiles: state.profiles.map(p => p.id === id ? { ...p, ...updates } : p)
         }));
       },
 
