@@ -13,10 +13,11 @@ DROP POLICY IF EXISTS "Users can update their own category instances" ON categor
 DROP POLICY IF EXISTS "Users can delete their own category instances" ON category_instances;
 
 -- Política para SELECT (ver)
+-- NOTA: category_instances NO tiene campo user_id, solo profile_id
 CREATE POLICY "Users can view their own category instances"
 ON category_instances
 FOR SELECT
-USING (auth.uid()::text = user_id OR profile_id IN (
+USING (profile_id::text IN (
   SELECT id FROM profiles WHERE user_id = auth.uid()::text
 ));
 
@@ -24,7 +25,7 @@ USING (auth.uid()::text = user_id OR profile_id IN (
 CREATE POLICY "Users can insert their own category instances"
 ON category_instances
 FOR INSERT
-WITH CHECK (profile_id IN (
+WITH CHECK (profile_id::text IN (
   SELECT id FROM profiles WHERE user_id = auth.uid()::text
 ));
 
@@ -32,10 +33,10 @@ WITH CHECK (profile_id IN (
 CREATE POLICY "Users can update their own category instances"
 ON category_instances
 FOR UPDATE
-USING (profile_id IN (
+USING (profile_id::text IN (
   SELECT id FROM profiles WHERE user_id = auth.uid()::text
 ))
-WITH CHECK (profile_id IN (
+WITH CHECK (profile_id::text IN (
   SELECT id FROM profiles WHERE user_id = auth.uid()::text
 ));
 
@@ -43,7 +44,7 @@ WITH CHECK (profile_id IN (
 CREATE POLICY "Users can delete their own category instances"
 ON category_instances
 FOR DELETE
-USING (profile_id IN (
+USING (profile_id::text IN (
   SELECT id FROM profiles WHERE user_id = auth.uid()::text
 ));
 
