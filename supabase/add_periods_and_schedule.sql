@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS work_schedule (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   block_type VARCHAR(50) DEFAULT 'study', -- 'study', 'work', 'break', 'other'
+  category VARCHAR(50), -- 'materia', 'idioma', 'trabajo', 'gym', 'proyecto', 'otro'
+  subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL, -- Vínculo opcional a materia
   description TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -34,10 +36,14 @@ CREATE TABLE IF NOT EXISTS work_schedule (
 CREATE INDEX IF NOT EXISTS idx_work_schedule_profile ON work_schedule(profile_id);
 CREATE INDEX IF NOT EXISTS idx_work_schedule_day ON work_schedule(day_of_week);
 CREATE INDEX IF NOT EXISTS idx_work_schedule_active ON work_schedule(is_active);
+CREATE INDEX IF NOT EXISTS idx_work_schedule_subject ON work_schedule(subject_id);
+CREATE INDEX IF NOT EXISTS idx_work_schedule_category ON work_schedule(category);
 
 COMMENT ON TABLE work_schedule IS 'Bloques de tiempo de trabajo/estudio del usuario (motor de la app)';
 COMMENT ON COLUMN work_schedule.day_of_week IS '0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado';
 COMMENT ON COLUMN work_schedule.block_type IS 'Tipo de bloque: study (estudio), work (trabajo), break (descanso), other (otro)';
+COMMENT ON COLUMN work_schedule.category IS 'Categoría: materia, idioma, trabajo, gym, proyecto, otro';
+COMMENT ON COLUMN work_schedule.subject_id IS 'Si es materia, referencia a subjects (opcional)';
 
 -- 3. CREAR TABLA DE DISTRIBUCIÓN DE TIEMPO POR MATERIA
 -- Almacena cómo se distribuyen las horas de trabajo entre las materias
