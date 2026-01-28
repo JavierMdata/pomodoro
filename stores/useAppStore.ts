@@ -7,7 +7,7 @@ import {
   ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert,
   ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
   EntityType, EntityRef, ClassSchedule, ActiveTimer,
-  WorkSchedule, SubjectTimeAllocation
+  WorkSchedule, SubjectTimeAllocation, CategoryInstance, WorkCategory
 } from '../types';
 
 interface AppState {
@@ -31,6 +31,7 @@ interface AppState {
   // HORARIO Y DISTRIBUCIÓN DE TIEMPO
   workSchedules: WorkSchedule[];
   timeAllocations: SubjectTimeAllocation[];
+  categoryInstances: CategoryInstance[];
 
   // SEGUNDO CEREBRO: Nuevos estados
   contentBlocks: ContentBlock[];
@@ -79,6 +80,13 @@ interface AppState {
   addTimeAllocation: (allocation: Omit<SubjectTimeAllocation, 'id'>) => Promise<void>;
   updateTimeAllocation: (id: string, updates: Partial<SubjectTimeAllocation>) => Promise<void>;
   recalculateTimeAllocations: () => Promise<void>;
+
+  // GESTIÓN DE CATEGORÍAS
+  loadCategoryInstances: () => Promise<void>;
+  addCategoryInstance: (instance: Omit<CategoryInstance, 'id' | 'created_at'>) => Promise<void>;
+  updateCategoryInstance: (id: string, updates: Partial<CategoryInstance>) => Promise<void>;
+  deleteCategoryInstance: (id: string) => Promise<void>;
+  getCategoryInstancesByType: (type: WorkCategory) => CategoryInstance[];
 
   // SEGUNDO CEREBRO: Content Blocks (Notion-style)
   addContentBlock: (block: Omit<ContentBlock, 'id' | 'created_at' | 'updated_at'>) => Promise<ContentBlock>;
@@ -134,6 +142,7 @@ export const useAppStore = create<AppState>()(
       // HORARIO Y DISTRIBUCIÓN DE TIEMPO
       workSchedules: [],
       timeAllocations: [],
+      categoryInstances: [],
 
       // SEGUNDO CEREBRO: Estados iniciales
       contentBlocks: [],
@@ -216,6 +225,12 @@ export const useAppStore = create<AppState>()(
             const { data: timeAllocationsData } = await supabase
               .from('subject_time_allocation')
               .select('*');
+
+            // Cargar instancias de categorías
+            const { data: categoryInstancesData } = await supabase
+              .from('category_instances')
+              .select('*')
+              .order('created_at', { ascending: false });
 
             // Cargar sesiones (últimas 100)
             const { data: sessionsData } = await supabase
@@ -313,6 +328,7 @@ export const useAppStore = create<AppState>()(
               activeTimer: activeTimerData,
               workSchedules: workSchedulesData || [],
               timeAllocations: timeAllocationsData || [],
+              categoryInstances: categoryInstancesData || [],
               contentBlocks: blocksData || [],
               noteLinks: linksData || [],
               focusJournals: journalsData || [],
@@ -1481,6 +1497,143 @@ export const useAppStore = create<AppState>()(
         }
 
         console.log(`✅ Distribución de tiempo recalculada: ${totalAvailableHours}h disponibles distribuidas entre ${profileSubjects.length} materias`);
+      },
+
+      // ================================================================
+      // GESTIÓN DE CATEGORÍAS
+      // ================================================================
+
+      loadCategoryInstances: async () => {
+        try {
+          const { data, error } = await supabase
+            .from('category_instances')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.error('Error al cargar instancias de categorías:', error);
+            return;
+          }
+
+          set({ categoryInstances: data || [] });
+          console.log(`✅ Cargadas ${(data || []).length} instancias de categorías`);
+        } catch (e) {
+          console.error('Error al cargar instancias de categorías:', e);
+        }
+      },
+
+      addCategoryInstance: async (instance) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newInstance: CategoryInstance = {
+          ...instance,
+          id,
+          created_at: now
+        };
+
+        // Primero actualizar estado local para respuesta inmediata
+        set((state) => ({
+          categoryInstances: [...state.categoryInstances, newInstance]
+        }));
+
+        // Luego sincronizar con Supabase
+        try {
+          const { error } = await supabase
+            .from('category_instances')
+            .insert([newInstance]);
+
+          if (error) {
+            console.error('Error al guardar instancia de categoría en Supabase:', error);
+            // Revertir cambio local si falla
+            set((state) => ({
+              categoryInstances: state.categoryInstances.filter(ci => ci.id !== id)
+            }));
+          } else {
+            console.log('✅ Instancia de categoría guardada correctamente en Supabase:', id);
+          }
+        } catch (e) {
+          console.error('Error de red al guardar instancia de categoría:', e);
+          // Revertir cambio local si falla
+          set((state) => ({
+            categoryInstances: state.categoryInstances.filter(ci => ci.id !== id)
+          }));
+        }
+      },
+
+      updateCategoryInstance: async (id, updates) => {
+        const updatedData = {
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        // Actualizar estado local primero
+        set((state) => ({
+          categoryInstances: state.categoryInstances.map(ci =>
+            ci.id === id ? { ...ci, ...updatedData } : ci
+          )
+        }));
+
+        // Sincronizar con Supabase
+        try {
+          const { error } = await supabase
+            .from('category_instances')
+            .update(updatedData)
+            .eq('id', id);
+
+          if (error) {
+            console.error('Error al actualizar instancia de categoría en Supabase:', error);
+          } else {
+            console.log('✅ Instancia de categoría actualizada en Supabase');
+          }
+        } catch (e) {
+          console.error('Error al actualizar instancia de categoría:', e);
+        }
+      },
+
+      deleteCategoryInstance: async (id) => {
+        // Guardar instancia para poder revertir
+        const state = get();
+        const instanceToDelete = state.categoryInstances.find(ci => ci.id === id);
+
+        // Eliminar de estado local primero
+        set((state) => ({
+          categoryInstances: state.categoryInstances.filter(ci => ci.id !== id)
+        }));
+
+        // Sincronizar con Supabase
+        try {
+          const { error } = await supabase
+            .from('category_instances')
+            .delete()
+            .eq('id', id);
+
+          if (error) {
+            console.error('Error al eliminar instancia de categoría en Supabase:', error);
+            // Revertir si falla
+            if (instanceToDelete) {
+              set((state) => ({
+                categoryInstances: [...state.categoryInstances, instanceToDelete]
+              }));
+            }
+          } else {
+            console.log('✅ Instancia de categoría eliminada de Supabase');
+          }
+        } catch (e) {
+          console.error('Error al eliminar instancia de categoría:', e);
+          // Revertir si falla
+          if (instanceToDelete) {
+            set((state) => ({
+              categoryInstances: [...state.categoryInstances, instanceToDelete]
+            }));
+          }
+        }
+      },
+
+      getCategoryInstancesByType: (type) => {
+        const state = get();
+        return state.categoryInstances
+          .filter(ci => ci.category_type === type)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       }
     }),
     { name: 'pomosmart-cloud-v1' }
