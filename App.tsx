@@ -19,6 +19,8 @@ import WelcomeScreen from './components/WelcomeScreen';
 import ProfileUnlock from './components/ProfileUnlock';
 import PeriodManager from './components/PeriodManager';
 import WorkScheduleManager from './components/WorkScheduleManager';
+import CategoryManager from './components/CategoryManager';
+import CommandCenterDashboard from './components/CommandCenterDashboard';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -325,9 +327,10 @@ const App: React.FC = () => {
     <div className={theme === 'dark' ? 'dark' : ''}>
       <ModernLayout activeTab={activeTab} setActiveTab={setActiveTab}>
         <div className="animate-in fade-in duration-500">
-          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard' && <CommandCenterDashboard />}
           {activeTab === 'periods' && <PeriodManager />}
           {activeTab === 'schedule' && <WorkScheduleManager />}
+          {activeTab === 'categories' && <CategoryManager />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <EnhancedTaskProgress />}
