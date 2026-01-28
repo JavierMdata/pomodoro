@@ -64,7 +64,7 @@ export interface ClassSchedule {
 }
 
 export type WorkBlockType = 'study' | 'work' | 'break' | 'other';
-export type WorkCategory = 'materia' | 'idioma' | 'trabajo' | 'gym' | 'proyecto' | 'otro';
+export type WorkCategory = 'materia' | 'idioma' | 'trabajo' | 'gym' | 'proyecto' | 'descanso' | 'otro';
 
 export interface WorkSchedule {
   id: string;
