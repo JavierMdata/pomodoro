@@ -9,6 +9,7 @@ import {
   Plus, BookOpen, Languages, Briefcase, Dumbbell, FolderKanban,
   Clock, Calendar, Edit2, Trash2, CheckCircle, X
 } from 'lucide-react';
+import CategoryView from './CategoryView';
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -17,6 +18,7 @@ const CategoryManager: React.FC = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [editingInstance, setEditingInstance] = useState<CategoryInstance | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryInstance | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category_type: 'materia' as WorkCategory,
@@ -139,6 +141,11 @@ const CategoryManager: React.FC = () => {
     setFormData({ ...formData, schedule_days: newDays, times_per_week: newDays.length });
   };
 
+  // Si hay categoría seleccionada, mostrar su vista
+  if (selectedCategory) {
+    return <CategoryView category={selectedCategory} onBack={() => setSelectedCategory(null)} />;
+  }
+
   return (
     <div className={`max-w-7xl mx-auto space-y-6 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
       {/* Header */}
@@ -163,7 +170,8 @@ const CategoryManager: React.FC = () => {
         {profileInstances.map(instance => (
           <div
             key={instance.id}
-            className={`p-5 rounded-xl border transition-all hover:scale-105 ${
+            onClick={() => setSelectedCategory(instance)}
+            className={`p-5 rounded-xl border transition-all hover:scale-105 cursor-pointer ${
               theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
             }`}
             style={{ borderLeftWidth: '4px', borderLeftColor: instance.color }}
@@ -183,13 +191,13 @@ const CategoryManager: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleOpenModal(instance)}
+                  onClick={(e) => { e.stopPropagation(); handleOpenModal(instance); }}
                   className="p-2 rounded-lg hover:bg-slate-800 transition-colors"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button
-                  onClick={() => handleDelete(instance.id)}
+                  onClick={(e) => { e.stopPropagation(); handleDelete(instance.id); }}
                   className="p-2 rounded-lg hover:bg-red-500 transition-colors"
                 >
                   <Trash2 size={16} />
