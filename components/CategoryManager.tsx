@@ -7,18 +7,29 @@ import { useAppStore } from '../stores/useAppStore';
 import { WorkCategory, CategoryPeriodType, CategoryInstance } from '../types';
 import {
   Plus, BookOpen, Languages, Briefcase, Dumbbell, FolderKanban,
-  Clock, Calendar, Edit2, Trash2, CheckCircle, X
+  Clock, Calendar, Edit2, Trash2, CheckCircle, X, AlertCircle
 } from 'lucide-react';
 import CategoryView from './CategoryView';
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 const CategoryManager: React.FC = () => {
-  const { theme, activeProfileId, categoryInstances, addCategoryInstance, updateCategoryInstance, deleteCategoryInstance } = useAppStore();
+  const {
+    theme,
+    activeProfileId,
+    categoryInstances,
+    subjects,
+    periods,
+    addCategoryInstance,
+    updateCategoryInstance,
+    deleteCategoryInstance,
+    updateSubject
+  } = useAppStore();
 
   const [showModal, setShowModal] = useState(false);
   const [editingInstance, setEditingInstance] = useState<CategoryInstance | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryInstance | null>(null);
+  const [showLegacySubjects, setShowLegacySubjects] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
     category_type: 'materia' as WorkCategory,
@@ -34,6 +45,8 @@ const CategoryManager: React.FC = () => {
   });
 
   const profileInstances = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
+  const legacySubjects = subjects.filter(s => s.profile_id === activeProfileId);
+  const profilePeriods = periods.filter(p => p.profile_id === activeProfileId);
 
   const getCategoryIcon = (type: WorkCategory, size = 24) => {
     const icons = {
@@ -141,6 +154,16 @@ const CategoryManager: React.FC = () => {
     setFormData({ ...formData, schedule_days: newDays, times_per_week: newDays.length });
   };
 
+  const handleMigrateSubject = async (subjectId: string, periodId: string) => {
+    if (!periodId) {
+      alert('Por favor selecciona un período primero');
+      return;
+    }
+
+    await updateSubject(subjectId, { school_period_id: periodId });
+    alert('Materia actualizada correctamente');
+  };
+
   // Si hay categoría seleccionada, mostrar su vista
   if (selectedCategory) {
     return <CategoryView category={selectedCategory} onBack={() => setSelectedCategory(null)} />;
@@ -165,8 +188,134 @@ const CategoryManager: React.FC = () => {
         </button>
       </div>
 
-      {/* Grid de Categorías */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Sección de Materias Existentes (Legacy) */}
+      {legacySubjects.length > 0 && (
+        <div className={`p-6 rounded-xl border-2 ${theme === 'dark' ? 'bg-slate-800/50 border-yellow-500/30' : 'bg-yellow-50 border-yellow-300'}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-yellow-500 text-white">
+                <BookOpen size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black flex items-center gap-2">
+                  Materias de tu Base de Datos
+                  <span className="px-3 py-1 rounded-full text-sm bg-yellow-500 text-white">
+                    {legacySubjects.length}
+                  </span>
+                </h2>
+                <p className={`text-sm font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                  Completa la información de tus materias recuperadas
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowLegacySubjects(!showLegacySubjects)}
+              className="px-4 py-2 rounded-lg font-bold transition-all hover:scale-105"
+            >
+              {showLegacySubjects ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
+
+          {showLegacySubjects && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {legacySubjects.map(subject => {
+                const needsPeriod = !subject.school_period_id;
+                const currentPeriod = subject.school_period_id
+                  ? profilePeriods.find(p => p.id === subject.school_period_id)
+                  : null;
+
+                return (
+                  <div
+                    key={subject.id}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      theme === 'dark'
+                        ? 'bg-slate-900 border-slate-700'
+                        : 'bg-white border-slate-200'
+                    }`}
+                    style={{ borderLeftWidth: '4px', borderLeftColor: subject.color }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div
+                          className="p-2 rounded-lg text-white"
+                          style={{ backgroundColor: subject.color }}
+                        >
+                          <BookOpen size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-black text-lg">{subject.name}</h3>
+                          {needsPeriod ? (
+                            <div className="flex items-center gap-2 text-xs mt-1">
+                              <AlertCircle size={12} className="text-yellow-500" />
+                              <span className="text-yellow-500 font-bold">Sin período asignado</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs mt-1">
+                              <CheckCircle size={12} className="text-green-500" />
+                              <span className="text-green-500 font-bold">
+                                {currentPeriod?.name || 'Período asignado'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Selector de período */}
+                    <div className="mt-4">
+                      <label className={`block text-xs font-bold mb-2 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                        Período Escolar
+                      </label>
+                      <select
+                        value={subject.school_period_id || ''}
+                        onChange={(e) => handleMigrateSubject(subject.id, e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg text-sm font-semibold ${
+                          theme === 'dark'
+                            ? 'bg-slate-800 border border-slate-700 text-white'
+                            : 'bg-slate-50 border border-slate-200 text-slate-900'
+                        }`}
+                      >
+                        <option value="">Seleccionar período...</option>
+                        {profilePeriods.map(period => (
+                          <option key={period.id} value={period.id}>
+                            {period.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Información adicional */}
+                    {subject.professor_name && (
+                      <div className="mt-3 text-sm">
+                        <span className="font-bold text-slate-400">Profesor: </span>
+                        <span>{subject.professor_name}</span>
+                      </div>
+                    )}
+                    {subject.classroom && (
+                      <div className="mt-1 text-sm">
+                        <span className="font-bold text-slate-400">Aula: </span>
+                        <span>{subject.classroom}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Grid de Categorías Nuevas */}
+      <div>
+        <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
+          Nuevas Categorías
+          <span className={`px-3 py-1 rounded-full text-sm ${
+            theme === 'dark' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'
+          }`}>
+            {profileInstances.length}
+          </span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {profileInstances.map(instance => (
           <div
             key={instance.id}
@@ -237,6 +386,7 @@ const CategoryManager: React.FC = () => {
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* Modal */}
