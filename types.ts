@@ -65,6 +65,36 @@ export interface ClassSchedule {
 
 export type WorkBlockType = 'study' | 'work' | 'break' | 'other';
 export type WorkCategory = 'materia' | 'idioma' | 'trabajo' | 'gym' | 'proyecto' | 'descanso' | 'otro';
+export type CategoryPeriodType = 'mensual' | 'trimestral' | 'semestral' | 'anual' | 'indefinido' | 'custom';
+
+// Instancia de categoría creada por el usuario desde el gestor central
+export interface CategoryInstance {
+  id: string;
+  profile_id: string;
+  name: string; // Ej: "Inglés B2", "Matemáticas I", "Freelance Dev", "Gym Matutino"
+  category_type: WorkCategory; // materia, idioma, trabajo, gym, proyecto, descanso, otro
+
+  // Configuración de periodo
+  period_type: CategoryPeriodType; // mensual, trimestral, semestral, anual, indefinido, custom
+  start_date?: string; // Para custom o periodos definidos
+  end_date?: string; // Para custom o periodos definidos
+
+  // Horario y frecuencia semanal
+  schedule_days: number[]; // [1, 3, 5] = Lunes, Miércoles, Viernes
+  schedule_start_time: string; // "14:00"
+  schedule_end_time: string; // "16:00"
+  times_per_week: number; // Cuántas veces se repite en la semana
+
+  // Vinculación opcional con subject si es materia
+  subject_id?: string; // Si category_type='materia', puede vincular a Subject existente
+
+  // Presentación
+  color: string; // Color hex para identificación visual
+  icon?: string; // Emoji o nombre de icono
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
 
 export interface WorkSchedule {
   id: string;
