@@ -9,7 +9,7 @@ import { Clock, Save, Shield } from 'lucide-react';
 import { soundService } from '../lib/soundService';
 
 const ProfileSettings: React.FC = () => {
-  const { theme, activeProfileId, profiles, settings, updateSettings } = useAppStore();
+  const { theme, activeProfileId, profiles, settings, updateSettings, updateProfile } = useAppStore();
 
   const activeProfile = profiles.find(p => p.id === activeProfileId);
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
@@ -65,11 +65,12 @@ const ProfileSettings: React.FC = () => {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleSecurityUpdate = (updates: Partial<typeof activeProfile>) => {
-    // Aquí se debería actualizar el perfil en el store
-    // Por ahora solo mostramos el componente
-    console.log('Security updates:', updates);
+  const handleSecurityUpdate = async (updates: Partial<typeof activeProfile>) => {
+    if (!activeProfileId) return;
+
+    await updateProfile(activeProfileId, updates);
     soundService.playSuccess();
+    soundService.vibrate([100, 50, 100]);
   };
 
   return (
