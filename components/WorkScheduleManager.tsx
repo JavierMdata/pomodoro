@@ -8,7 +8,7 @@ import { useAppStore } from '../stores/useAppStore';
 import { WorkSchedule, WorkCategory } from '../types';
 import {
   Clock, ChevronLeft, ChevronRight, Plus, X, BookOpen,
-  Briefcase, Dumbbell, Languages, FolderKanban, MoreHorizontal
+  Briefcase, Dumbbell, Languages, FolderKanban, MoreHorizontal, Coffee
 } from 'lucide-react';
 import { format, addWeeks, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -84,6 +84,7 @@ const WorkScheduleManager: React.FC = () => {
       'trabajo': <Briefcase size={14} />,
       'gym': <Dumbbell size={14} />,
       'proyecto': <FolderKanban size={14} />,
+      'descanso': <Coffee size={14} />,
       'otro': <MoreHorizontal size={14} />
     };
     return icons[category] || icons.otro;
@@ -96,6 +97,7 @@ const WorkScheduleManager: React.FC = () => {
       'trabajo': 'bg-emerald-500',
       'gym': 'bg-orange-500',
       'proyecto': 'bg-cyan-500',
+      'descanso': 'bg-amber-500',
       'otro': 'bg-slate-500'
     };
     return colors[category] || colors.otro;
@@ -108,6 +110,7 @@ const WorkScheduleManager: React.FC = () => {
       'trabajo': 'Trabajo',
       'gym': 'Gym',
       'proyecto': 'Proyecto',
+      'descanso': 'Descanso',
       'otro': 'Otro'
     };
     return labels[category] || category;
@@ -142,11 +145,21 @@ const WorkScheduleManager: React.FC = () => {
   const handleSaveBlock = async () => {
     if (!activeProfileId) return;
 
+    // Determinar block_type según categoría
+    let blockType: 'study' | 'work' | 'break' | 'other' = 'study';
+    if (formData.category === 'trabajo') {
+      blockType = 'work';
+    } else if (formData.category === 'descanso') {
+      blockType = 'break';
+    } else if (formData.category === 'otro') {
+      blockType = 'other';
+    }
+
     const blockData = {
       ...formData,
       profile_id: activeProfileId,
       is_active: true,
-      block_type: 'study' as const
+      block_type: blockType
     };
 
     if (editingBlock) {
@@ -244,7 +257,7 @@ const WorkScheduleManager: React.FC = () => {
 
       {/* Calendario compacto */}
       <div className={`rounded-xl overflow-hidden border ${
-        theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+        theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border border-slate-200'
       }`}>
         {/* Header de días */}
         <div className="grid grid-cols-8 border-b border-slate-700">
@@ -367,7 +380,7 @@ const WorkScheduleManager: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">Categoría</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['materia', 'idioma', 'trabajo', 'gym', 'proyecto', 'otro'] as WorkCategory[]).map(cat => (
+                  {(['materia', 'trabajo', 'idioma', 'gym', 'proyecto', 'descanso'] as WorkCategory[]).map(cat => (
                     <button
                       key={cat}
                       onClick={() => setFormData({ ...formData, category: cat })}
@@ -411,13 +424,24 @@ const WorkScheduleManager: React.FC = () => {
               {/* Descripción */}
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">
-                  Descripción {formData.category !== 'materia' && '(opcional)'}
+                  {formData.category === 'trabajo' && 'Empresa o Freelance'}
+                  {formData.category === 'descanso' && 'Tipo de descanso (ej: Almuerzo)'}
+                  {formData.category !== 'trabajo' && formData.category !== 'descanso' && 'Descripción'}
+                  {formData.category !== 'materia' && ' (opcional)'}
                 </label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Ej: Programación Python, Rutina pecho..."
+                  placeholder={
+                    formData.category === 'trabajo'
+                      ? 'Ej: Google, Freelance Dev, Consultora XYZ...'
+                      : formData.category === 'descanso'
+                      ? 'Ej: Almuerzo, Merienda, Coffee break...'
+                      : formData.category === 'gym'
+                      ? 'Ej: Rutina pecho, Cardio, Fullbody...'
+                      : 'Ej: Programación Python, Inglés avanzado...'
+                  }
                   className={`w-full px-3 py-2 rounded-lg text-sm outline-none ${
                     theme === 'dark'
                       ? 'bg-slate-800 border border-slate-700 text-white'
