@@ -74,7 +74,8 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
     };
   }, [subjects, tasks, exams, sessions, categoryInstances, activeProfileId]);
 
-  const sections: SidebarSection[] = [
+  // Memoizar sections para evitar re-renders innecesarios y problemas de inicialización
+  const sections: SidebarSection[] = useMemo(() => [
     {
       id: 'core',
       label: 'CENTRO DE MANDO',
@@ -145,7 +146,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
         { id: 'settings', label: 'Ajustes', icon: Settings, tab: 'settings', color: '#475569' },
       ]
     }
-  ];
+  ], [badges]);
 
   const toggleSection = (sectionId: string) => {
     soundService.playClick();
