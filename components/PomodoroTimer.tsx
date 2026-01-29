@@ -14,7 +14,8 @@ const PomodoroTimer: React.FC = () => {
   const {
     theme, activeProfileId, profiles, settings, tasks,
     subjects, examTopics, materials, exams, addSession,
-    activeTimer, startActiveTimer, pauseActiveTimer, resumeActiveTimer, stopActiveTimer, getElapsedSeconds
+    activeTimer, startActiveTimer, pauseActiveTimer, resumeActiveTimer, stopActiveTimer, getElapsedSeconds,
+    selectedSectionForPomodoro, clearSelectedSectionForPomodoro, categoryInstances
   } = useAppStore();
 
   const activeProfile = profiles.find(p => p.id === activeProfileId);
@@ -70,7 +71,7 @@ const PomodoroTimer: React.FC = () => {
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
-    type: 'exam' | 'task' | 'material';
+    type: 'exam' | 'task' | 'material' | 'section';
     subject: any;
     item: any;
     meta?: any;
@@ -150,6 +151,38 @@ const PomodoroTimer: React.FC = () => {
       Notification.requestPermission();
     }
   }, []);
+
+  // Efecto para manejar sección seleccionada desde el menú desplegable
+  useEffect(() => {
+    if (selectedSectionForPomodoro) {
+      const { id, type } = selectedSectionForPomodoro;
+
+      if (type === 'subject') {
+        const subject = subjects.find(s => s.id === id);
+        if (subject) {
+          setSelectedItem({
+            type: 'section',
+            subject: subject,
+            item: subject,
+            displayTitle: subject.name
+          });
+        }
+      } else if (type === 'category') {
+        const category = categoryInstances.find(ci => ci.id === id);
+        if (category) {
+          setSelectedItem({
+            type: 'section',
+            subject: category,
+            item: category,
+            displayTitle: category.name
+          });
+        }
+      }
+
+      // Limpiar la selección del store después de procesarla
+      clearSelectedSectionForPomodoro();
+    }
+  }, [selectedSectionForPomodoro, subjects, categoryInstances, clearSelectedSectionForPomodoro]);
 
   // Función para mostrar notificación del sistema
   const showNotification = (title: string, body: string) => {

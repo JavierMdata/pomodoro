@@ -39,6 +39,12 @@ interface AppState {
   focusJournals: FocusJournal[];
   knowledgeNodes: KnowledgeNode[];
 
+  // SECCIÓN SELECCIONADA PARA POMODORO
+  selectedSectionForPomodoro: {
+    id: string;
+    type: 'subject' | 'category';
+  } | null;
+
   toggleTheme: () => void;
   addProfile: (profile: Omit<Profile, 'id'>) => Promise<void>;
   updateProfile: (id: string, updates: Partial<Profile>) => Promise<void>;
@@ -115,6 +121,10 @@ interface AppState {
   refreshKnowledgeGraph: () => Promise<void>;
   searchNodes: (term: string) => KnowledgeNode[];
 
+  // SECCIÓN SELECCIONADA PARA POMODORO
+  setSelectedSectionForPomodoro: (id: string, type: 'subject' | 'category') => void;
+  clearSelectedSectionForPomodoro: () => void;
+
   // Acción para cargar todo desde Supabase
   syncWithSupabase: () => Promise<void>;
 }
@@ -149,6 +159,9 @@ export const useAppStore = create<AppState>()(
       noteLinks: [],
       focusJournals: [],
       knowledgeNodes: [],
+
+      // SECCIÓN SELECCIONADA PARA POMODORO
+      selectedSectionForPomodoro: null,
 
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
@@ -1634,6 +1647,15 @@ export const useAppStore = create<AppState>()(
         return state.categoryInstances
           .filter(ci => ci.category_type === type)
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      },
+
+      // SECCIÓN SELECCIONADA PARA POMODORO
+      setSelectedSectionForPomodoro: (id, type) => {
+        set({ selectedSectionForPomodoro: { id, type } });
+      },
+
+      clearSelectedSectionForPomodoro: () => {
+        set({ selectedSectionForPomodoro: null });
       }
     }),
     { name: 'pomosmart-cloud-v1' }
