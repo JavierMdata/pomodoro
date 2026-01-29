@@ -158,6 +158,29 @@ const CategoryManager: React.FC = () => {
   const handleSave = async () => {
     if (!activeProfileId || !formData.name) return;
 
+    // SOLUCIÓN TEMPORAL: Usar la tabla subjects que SÍ funciona
+    // en lugar de category_instances que tiene problemas de permisos
+    if (formData.category_type === 'materia' && !editingInstance) {
+      // Crear como Subject en lugar de CategoryInstance
+      const { addSubject } = useAppStore.getState();
+      await addSubject({
+        profile_id: activeProfileId,
+        school_period_id: null,
+        name: formData.name,
+        code: '',
+        color: formData.color,
+        professor_name: '',
+        classroom: '',
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null
+      });
+
+      setShowModal(false);
+      alert('✅ Materia creada correctamente usando la tabla subjects');
+      return;
+    }
+
+    // Para otras categorías o edición, intentar con category_instances
     const instanceData = {
       ...formData,
       profile_id: activeProfileId,
