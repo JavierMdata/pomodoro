@@ -10,6 +10,7 @@ import {
   Clock, Calendar, Edit2, Trash2, CheckCircle, X, AlertCircle
 } from 'lucide-react';
 import CategoryView from './CategoryView';
+import ScheduleEditor, { ScheduleSlot } from './ScheduleEditor';
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -30,6 +31,7 @@ const CategoryManager: React.FC = () => {
   const [editingInstance, setEditingInstance] = useState<CategoryInstance | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryInstance | null>(null);
   const [showLegacySubjects, setShowLegacySubjects] = useState(true);
+  const [schedules, setSchedules] = useState<ScheduleSlot[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     category_type: 'materia' as WorkCategory,
@@ -123,6 +125,7 @@ const CategoryManager: React.FC = () => {
   const handleOpenModal = (instance?: CategoryInstance) => {
     if (instance) {
       setEditingInstance(instance);
+      setSchedules([]); // Reset schedules for editing
       setFormData({
         name: instance.name,
         category_type: instance.category_type,
@@ -138,6 +141,7 @@ const CategoryManager: React.FC = () => {
       });
     } else {
       setEditingInstance(null);
+      setSchedules([]); // Reset schedules for new category
       setFormData({
         name: '',
         category_type: 'materia',
@@ -161,22 +165,62 @@ const CategoryManager: React.FC = () => {
     // SOLUCIÓN TEMPORAL: Usar la tabla subjects que SÍ funciona
     // en lugar de category_instances que tiene problemas de permisos
     if (formData.category_type === 'materia' && !editingInstance) {
+      // Validar que haya al menos un horario para materias
+      if (schedules.length === 0) {
+        alert('⚠️ Debes agregar al menos un horario de clase para esta materia');
+        return;
+      }
+
       // Crear como Subject en lugar de CategoryInstance
-      const { addSubject } = useAppStore.getState();
-      await addSubject({
-        profile_id: activeProfileId,
-        school_period_id: null,
-        name: formData.name,
-        code: '',
-        color: formData.color,
-        professor_name: '',
-        classroom: '',
-        start_date: formData.start_date || null,
-        end_date: formData.end_date || null
-      });
+      const { supabase } = await import('../lib/supabase');
+
+      // 1. Crear la materia
+      const { data: newSubject, error: subjectError } = await supabase
+        .from('subjects')
+        .insert({
+          profile_id: activeProfileId,
+          school_period_id: null,
+          name: formData.name,
+          code: '',
+          color: formData.color,
+          professor_name: '',
+          classroom: '',
+          start_date: formData.start_date || null,
+          end_date: formData.end_date || null
+        })
+        .select()
+        .single();
+
+      if (subjectError || !newSubject) {
+        console.error('Error creando materia:', subjectError);
+        alert('❌ Error al crear la materia');
+        return;
+      }
+
+      // 2. Crear los horarios de clase
+      const scheduleRecords = schedules.map(schedule => ({
+        subject_id: newSubject.id,
+        day_of_week: schedule.day_of_week,
+        start_time: schedule.start_time,
+        end_time: schedule.end_time
+      }));
+
+      const { error: scheduleError } = await supabase
+        .from('class_schedule')
+        .insert(scheduleRecords);
+
+      if (scheduleError) {
+        console.error('Error creando horarios:', scheduleError);
+        alert('⚠️ Materia creada pero hubo un error al guardar algunos horarios');
+      }
+
+      // 3. Recargar datos en el store
+      const { syncWithSupabase } = useAppStore.getState();
+      await syncWithSupabase();
 
       setShowModal(false);
-      alert('✅ Materia creada correctamente usando la tabla subjects');
+      setSchedules([]);
+      alert(`✅ Materia "${formData.name}" creada correctamente con ${schedules.length} horarios`);
       return;
     }
 
@@ -522,60 +566,73 @@ const CategoryManager: React.FC = () => {
                 </div>
               )}
 
-              {/* Días de la semana */}
-              <div>
-                <label className="block text-sm font-bold text-slate-400 mb-2">
-                  Días de la Semana ({formData.schedule_days.length} seleccionados)
-                </label>
-                <div className="flex gap-2">
-                  {DAYS.map((day, index) => (
-                    <button
-                      key={index}
-                      onClick={() => toggleDay(index)}
-                      className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-                        formData.schedule_days.includes(index)
-                          ? 'text-white shadow-lg'
-                          : theme === 'dark'
-                          ? 'bg-slate-800 text-slate-400'
-                          : 'bg-slate-100 text-slate-500'
-                      }`}
-                      style={formData.schedule_days.includes(index) ? { backgroundColor: formData.color } : {}}
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* Horarios - Diferentes según tipo de categoría */}
+              {formData.category_type === 'materia' ? (
+                // Editor de horarios múltiples para materias
+                <ScheduleEditor
+                  schedules={schedules}
+                  onChange={setSchedules}
+                  theme={theme}
+                />
+              ) : (
+                // Selector simple de días/horario para otras categorías
+                <>
+                  {/* Días de la semana */}
+                  <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-2">
+                      Días de la Semana ({formData.schedule_days.length} seleccionados)
+                    </label>
+                    <div className="flex gap-2">
+                      {DAYS.map((day, index) => (
+                        <button
+                          key={index}
+                          onClick={() => toggleDay(index)}
+                          className={`flex-1 py-3 rounded-lg font-bold transition-all ${
+                            formData.schedule_days.includes(index)
+                              ? 'text-white shadow-lg'
+                              : theme === 'dark'
+                              ? 'bg-slate-800 text-slate-400'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                          style={formData.schedule_days.includes(index) ? { backgroundColor: formData.color } : {}}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Horario */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold text-slate-400 mb-2">Hora Inicio</label>
-                  <input
-                    type="time"
-                    value={formData.schedule_start_time}
-                    onChange={(e) => setFormData({ ...formData, schedule_start_time: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-lg outline-none ${
-                      theme === 'dark'
-                        ? 'bg-slate-800 border border-slate-700 text-white'
-                        : 'bg-slate-50 border border-slate-200 text-slate-900'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-400 mb-2">Hora Fin</label>
-                  <input
-                    type="time"
-                    value={formData.schedule_end_time}
-                    onChange={(e) => setFormData({ ...formData, schedule_end_time: e.target.value })}
-                    className={`w-full px-4 py-3 rounded-lg outline-none ${
-                      theme === 'dark'
-                        ? 'bg-slate-800 border border-slate-700 text-white'
-                        : 'bg-slate-50 border border-slate-200 text-slate-900'
-                    }`}
-                  />
-                </div>
-              </div>
+                  {/* Horario */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 mb-2">Hora Inicio</label>
+                      <input
+                        type="time"
+                        value={formData.schedule_start_time}
+                        onChange={(e) => setFormData({ ...formData, schedule_start_time: e.target.value })}
+                        className={`w-full px-4 py-3 rounded-lg outline-none ${
+                          theme === 'dark'
+                            ? 'bg-slate-800 border border-slate-700 text-white'
+                            : 'bg-slate-50 border border-slate-200 text-slate-900'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-400 mb-2">Hora Fin</label>
+                      <input
+                        type="time"
+                        value={formData.schedule_end_time}
+                        onChange={(e) => setFormData({ ...formData, schedule_end_time: e.target.value })}
+                        className={`w-full px-4 py-3 rounded-lg outline-none ${
+                          theme === 'dark'
+                            ? 'bg-slate-800 border border-slate-700 text-white'
+                            : 'bg-slate-50 border border-slate-200 text-slate-900'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Botones */}
               <div className="flex gap-3 pt-4">
