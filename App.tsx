@@ -21,6 +21,7 @@ import PeriodManager from './components/PeriodManager';
 import WorkScheduleManager from './components/WorkScheduleManager';
 import CategoryManager from './components/CategoryManager';
 import CommandCenterDashboard from './components/CommandCenterDashboard';
+import BooksManagerSafe from './components/BooksManagerSafe';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -332,6 +333,7 @@ const App: React.FC = () => {
           {activeTab === 'schedule' && <WorkScheduleManager />}
           {activeTab === 'categories' && <CategoryManager />}
           {activeTab === 'subjects' && <SubjectsManager />}
+          {activeTab === 'books' && <BooksManagerSafe />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <EnhancedTaskProgress />}
           {activeTab === 'materials' && <MaterialManager />}
@@ -341,6 +343,8 @@ const App: React.FC = () => {
           {activeTab === 'graph' && <KnowledgeGraph />}
           {activeTab === 'journal' && <FocusJournal />}
           {activeTab === 'settings' && <ProfileSettings />}
+          {activeTab === 'projects' && <CategoryManager />}
+          {activeTab === 'gym' && <CategoryManager />}
         </div>
       </ModernLayout>
 
