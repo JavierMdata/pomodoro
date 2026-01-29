@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { soundService } from '../lib/soundService';
+import SectionsDropdownMenu from './SectionsDropdownMenu';
 import {
   ClipboardList, BookOpen, Timer, BarChart3, Settings,
   LayoutDashboard, GraduationCap, FileText,
@@ -14,16 +15,21 @@ interface ModernLayoutProps {
 }
 
 const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setActiveTab }) => {
-  const { theme, toggleTheme, profiles, activeProfileId, setActiveProfile } = useAppStore();
+  const { theme, toggleTheme, profiles, activeProfileId, setActiveProfile, setSelectedSectionForPomodoro } = useAppStore();
   const activeProfile = profiles.find(p => p.id === activeProfileId);
 
   const menuItems = [
     { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, color: '#3B82F6', emoji: '🏠' },
-    { id: 'categories', label: 'Categorías', icon: Layers, color: '#8B5CF6', emoji: '🎯' },
     { id: 'graph', label: 'Grafo', icon: Network, color: '#7C3AED', emoji: '🕸️' },
     { id: 'statistics', label: 'Stats', icon: BarChart3, color: '#06B6D4', emoji: '📊' },
     { id: 'settings', label: 'Config', icon: Settings, color: '#64748B', emoji: '⚙️' },
   ];
+
+  // Manejar selección de sección desde el menú desplegable
+  const handleSelectSection = (sectionId: string, sectionType: 'subject' | 'category') => {
+    setSelectedSectionForPomodoro(sectionId, sectionType);
+    setActiveTab('pomodoro');
+  };
 
   if (!activeProfile) return <>{children}</>;
 
@@ -77,22 +83,31 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
             </div>
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={() => {
-              soundService.playToggle();
-              soundService.vibrate(15);
-              toggleTheme();
-            }}
-            className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
-              theme === 'dark'
-                ? 'bg-slate-800 text-amber-400 hover:bg-slate-700'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-            aria-label="Cambiar tema"
-          >
-            {theme === 'dark' ? <Sun size={18} className="md:w-5 md:h-5" /> : <Moon size={18} className="md:w-5 md:h-5" />}
-          </button>
+          {/* Sections Menu & Theme Toggle */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Menú de secciones */}
+            <SectionsDropdownMenu
+              theme={theme}
+              onSelectSection={handleSelectSection}
+            />
+
+            {/* Theme Toggle */}
+            <button
+              onClick={() => {
+                soundService.playToggle();
+                soundService.vibrate(15);
+                toggleTheme();
+              }}
+              className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                theme === 'dark'
+                  ? 'bg-slate-800 text-amber-400 hover:bg-slate-700'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+              aria-label="Cambiar tema"
+            >
+              {theme === 'dark' ? <Sun size={18} className="md:w-5 md:h-5" /> : <Moon size={18} className="md:w-5 md:h-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
