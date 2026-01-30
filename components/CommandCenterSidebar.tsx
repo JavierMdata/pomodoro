@@ -3,7 +3,7 @@
  * Inspirado en Notion, Linear, y Arc Browser
  * Organiza toda la vida en categorías visuales
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { soundService } from '../lib/soundService';
 import {

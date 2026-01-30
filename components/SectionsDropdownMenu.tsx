@@ -3,7 +3,7 @@
  * Muestra todas las categorías/materias en un menú desplegable simple
  * Al seleccionar una, navega al Pomodoro con esa sección preseleccionada
  */
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { soundService } from '../lib/soundService';
 import {
@@ -24,53 +24,59 @@ const SectionsDropdownMenu: React.FC<SectionsDropdownMenuProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Filtrar por perfil activo
-  const profileSubjects = useMemo(() => {
-    return subjects.filter(s => s.profile_id === activeProfileId);
-  }, [subjects, activeProfileId]);
+  // Helper function for category icons
+  const getCategoryIcon = (type: string, size = 18) => {
+    const icons: Record<string, any> = {
+      'materia': <BookOpen size={size} />,
+      'idioma': <Languages size={size} />,
+      'trabajo': <Briefcase size={size} />,
+      'gym': <Dumbbell size={size} />,
+      'proyecto': <FolderKanban size={size} />,
+      'descanso': <Coffee size={size} />,
+      'otro': <MoreHorizontal size={size} />
+    };
+    return icons[type] || icons.otro;
+  };
 
-  const profileCategories = useMemo(() => {
-    return categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
-  }, [categoryInstances, activeProfileId]);
+  // Filtrar por perfil activo y combinar secciones (sin useMemo para evitar problemas de minificación)
+  const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
+  const profileCategories = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
 
-  // Combinar todas las secciones
-  const allSections = useMemo(() => {
-    const sections: Array<{
-      id: string;
-      name: string;
-      color: string;
-      type: 'subject' | 'category';
-      categoryType?: string;
-      icon: any;
-    }> = [];
+  const sections: Array<{
+    id: string;
+    name: string;
+    color: string;
+    type: 'subject' | 'category';
+    categoryType?: string;
+    icon: any;
+  }> = [];
 
-    // Agregar subjects
-    profileSubjects.forEach(subject => {
-      sections.push({
-        id: subject.id,
-        name: subject.name,
-        color: subject.color,
-        type: 'subject',
-        categoryType: 'materia',
-        icon: <BookOpen size={18} />
-      });
+  // Agregar subjects
+  profileSubjects.forEach(subject => {
+    sections.push({
+      id: subject.id,
+      name: subject.name,
+      color: subject.color,
+      type: 'subject',
+      categoryType: 'materia',
+      icon: <BookOpen size={18} />
     });
+  });
 
-    // Agregar category instances
-    profileCategories.forEach(category => {
-      const icon = getCategoryIcon(category.category_type);
-      sections.push({
-        id: category.id,
-        name: category.name,
-        color: category.color,
-        type: 'category',
-        categoryType: category.category_type,
-        icon
-      });
+  // Agregar category instances
+  profileCategories.forEach(category => {
+    const icon = getCategoryIcon(category.category_type);
+    sections.push({
+      id: category.id,
+      name: category.name,
+      color: category.color,
+      type: 'category',
+      categoryType: category.category_type,
+      icon
     });
+  });
 
-    return sections.sort((a, b) => a.name.localeCompare(b.name));
-  }, [profileSubjects, profileCategories]);
+  const allSections = sections.sort((a, b) => a.name.localeCompare(b.name));
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -100,19 +106,6 @@ const SectionsDropdownMenu: React.FC<SectionsDropdownMenuProps> = ({
     soundService.vibrate([50, 100, 50]);
     setIsOpen(false);
     onSelectSection(section.id, section.type);
-  };
-
-  const getCategoryIcon = (type: string, size = 18) => {
-    const icons: Record<string, any> = {
-      'materia': <BookOpen size={size} />,
-      'idioma': <Languages size={size} />,
-      'trabajo': <Briefcase size={size} />,
-      'gym': <Dumbbell size={size} />,
-      'proyecto': <FolderKanban size={size} />,
-      'descanso': <Coffee size={size} />,
-      'otro': <MoreHorizontal size={size} />
-    };
-    return icons[type] || icons.otro;
   };
 
   return (
