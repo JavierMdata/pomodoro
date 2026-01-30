@@ -14,7 +14,11 @@ import ScheduleEditor, { ScheduleSlot } from './ScheduleEditor';
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-const CategoryManager: React.FC = () => {
+interface CategoryManagerProps {
+  filterType?: 'all' | 'all-except-materia' | WorkCategory;
+}
+
+const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all' }) => {
   const {
     theme,
     activeProfileId,
@@ -46,25 +50,37 @@ const CategoryManager: React.FC = () => {
     icon: '📚'
   });
 
-  const profileInstances = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
+  // Filtrar category_instances según el filterType
+  let profileInstances = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
+
+  if (filterType === 'all-except-materia') {
+    // Excluir materias (para "Mis Categorías")
+    profileInstances = profileInstances.filter(ci => ci.category_type !== 'materia');
+  } else if (filterType !== 'all') {
+    // Filtrar por tipo específico (para "Proyectos" o "Gym")
+    profileInstances = profileInstances.filter(ci => ci.category_type === filterType);
+  }
+
   const legacySubjects = subjects.filter(s => s.profile_id === activeProfileId);
   const profilePeriods = periods.filter(p => p.profile_id === activeProfileId);
 
   // Combinar materias existentes y nuevas categorías en un solo array
   const allCategories = [
-    // Materias existentes (subjects) convertidas a formato de vista
-    ...legacySubjects.map(subject => ({
-      id: subject.id,
-      isLegacy: true,
-      name: subject.name,
-      color: subject.color,
-      category_type: 'materia' as WorkCategory,
-      period_type: 'semestral' as CategoryPeriodType,
-      school_period_id: subject.school_period_id,
-      professor_name: subject.professor_name,
-      classroom: subject.classroom,
-      needsPeriod: !subject.school_period_id
-    })),
+    // Materias existentes (subjects) - solo incluir si NO estamos filtrando para excluir materias
+    ...(filterType !== 'all-except-materia' && filterType !== 'proyecto' && filterType !== 'gym' && filterType !== 'trabajo' && filterType !== 'idioma' && filterType !== 'descanso' && filterType !== 'otro'
+      ? legacySubjects.map(subject => ({
+          id: subject.id,
+          isLegacy: true,
+          name: subject.name,
+          color: subject.color,
+          category_type: 'materia' as WorkCategory,
+          period_type: 'semestral' as CategoryPeriodType,
+          school_period_id: subject.school_period_id,
+          professor_name: subject.professor_name,
+          classroom: subject.classroom,
+          needsPeriod: !subject.school_period_id
+        }))
+      : []),
     // Nuevas categorías (category_instances)
     ...profileInstances.map(instance => ({
       id: instance.id,
