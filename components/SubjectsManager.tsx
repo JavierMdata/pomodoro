@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import FullscreenPomodoro from './FullscreenPomodoro';
 import MiniPomodoro from './MiniPomodoro';
+import EditSubjectSchedules from './EditSubjectSchedules';
 import {
   GraduationCap, Plus, BookOpen, FolderKanban, PlayCircle,
   ChevronDown, ChevronRight, Clock, Target, Sparkles, Flame,
-  Edit2, Trash2
+  Edit2, Trash2, Calendar
 } from 'lucide-react';
 
 interface SubjectWithData {
@@ -35,6 +36,7 @@ const SubjectsManager: React.FC = () => {
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [showEditSubject, setShowEditSubject] = useState(false);
   const [editingSubject, setEditingSubject] = useState<any>(null);
+  const [editingSchedulesSubject, setEditingSchedulesSubject] = useState<any>(null);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectColor, setNewSubjectColor] = useState('#6366f1');
   const [pomodoroItem, setPomodoroItem] = useState<PomodoroItem | null>(null);
@@ -454,7 +456,7 @@ const SubjectsManager: React.FC = () => {
                       </div>
                     </button>
 
-                    {/* Edit and Delete Buttons */}
+                    {/* Edit, Schedules and Delete Buttons */}
                     <div className="flex gap-2 w-full md:w-auto">
                       <button
                         onClick={(e) => {
@@ -469,6 +471,20 @@ const SubjectsManager: React.FC = () => {
                         title="Editar materia"
                       >
                         <Edit2 className="w-4 h-4 md:w-5 md:h-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSchedulesSubject(subject);
+                        }}
+                        className={`flex-1 md:flex-none p-2.5 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 ${
+                          theme === 'dark'
+                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-purple-400'
+                            : 'bg-slate-100 text-slate-600 hover:bg-purple-100 hover:text-purple-600'
+                        }`}
+                        title="Editar horarios"
+                      >
+                        <Calendar className="w-4 h-4 md:w-5 md:h-5" />
                       </button>
                       <button
                         onClick={(e) => {
@@ -722,6 +738,17 @@ const SubjectsManager: React.FC = () => {
           duration={currentSettings?.work_duration || 25}
           onClose={() => setPomodoroItem(null)}
           onComplete={handlePomodoroComplete}
+        />
+      )}
+
+      {/* Edit Schedules Modal */}
+      {editingSchedulesSubject && (
+        <EditSubjectSchedules
+          subjectId={editingSchedulesSubject.id}
+          subjectName={editingSchedulesSubject.name}
+          subjectColor={editingSchedulesSubject.color}
+          onClose={() => setEditingSchedulesSubject(null)}
+          theme={theme}
         />
       )}
     </div>
