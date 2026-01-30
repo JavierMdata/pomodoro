@@ -1538,22 +1538,26 @@ export const useAppStore = create<AppState>()(
       addCategoryInstance: async (instance) => {
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
-        const newInstance: CategoryInstance = {
+
+        // Sanitizar fechas: convertir strings vacíos a null
+        const sanitizedInstance = {
           ...instance,
           id,
-          created_at: now
+          created_at: now,
+          start_date: instance.start_date && instance.start_date.trim() !== '' ? instance.start_date : null,
+          end_date: instance.end_date && instance.end_date.trim() !== '' ? instance.end_date : null,
         };
 
         // Primero actualizar estado local para respuesta inmediata
         set((state) => ({
-          categoryInstances: [...state.categoryInstances, newInstance]
+          categoryInstances: [...state.categoryInstances, sanitizedInstance]
         }));
 
         // Luego sincronizar con Supabase
         try {
           const { error } = await supabase
             .from('category_instances')
-            .insert([newInstance]);
+            .insert([sanitizedInstance]);
 
           if (error) {
             console.error('Error al guardar instancia de categoría en Supabase:', error);
@@ -1561,6 +1565,8 @@ export const useAppStore = create<AppState>()(
             set((state) => ({
               categoryInstances: state.categoryInstances.filter(ci => ci.id !== id)
             }));
+            // Lanzar error para que el componente lo maneje
+            throw new Error(error.message || 'Error al guardar en Supabase');
           } else {
             console.log('✅ Instancia de categoría guardada correctamente en Supabase:', id);
           }
@@ -1570,19 +1576,28 @@ export const useAppStore = create<AppState>()(
           set((state) => ({
             categoryInstances: state.categoryInstances.filter(ci => ci.id !== id)
           }));
+          // Re-lanzar el error
+          throw e;
         }
       },
 
       updateCategoryInstance: async (id, updates) => {
-        const updatedData = {
+        // Sanitizar fechas: convertir strings vacíos a null
+        const sanitizedUpdates = {
           ...updates,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          start_date: updates.start_date && updates.start_date.trim() !== '' ? updates.start_date : null,
+          end_date: updates.end_date && updates.end_date.trim() !== '' ? updates.end_date : null,
         };
+
+        // Guardar estado anterior para poder revertir
+        const state = get();
+        const previousInstance = state.categoryInstances.find(ci => ci.id === id);
 
         // Actualizar estado local primero
         set((state) => ({
           categoryInstances: state.categoryInstances.map(ci =>
-            ci.id === id ? { ...ci, ...updatedData } : ci
+            ci.id === id ? { ...ci, ...sanitizedUpdates } : ci
           )
         }));
 
@@ -1590,16 +1605,36 @@ export const useAppStore = create<AppState>()(
         try {
           const { error } = await supabase
             .from('category_instances')
-            .update(updatedData)
+            .update(sanitizedUpdates)
             .eq('id', id);
 
           if (error) {
             console.error('Error al actualizar instancia de categoría en Supabase:', error);
+            // Revertir cambio local si falla
+            if (previousInstance) {
+              set((state) => ({
+                categoryInstances: state.categoryInstances.map(ci =>
+                  ci.id === id ? previousInstance : ci
+                )
+              }));
+            }
+            // Lanzar error para que el componente lo maneje
+            throw new Error(error.message || 'Error al actualizar en Supabase');
           } else {
             console.log('✅ Instancia de categoría actualizada en Supabase');
           }
         } catch (e) {
           console.error('Error al actualizar instancia de categoría:', e);
+          // Revertir cambio local si falla
+          if (previousInstance) {
+            set((state) => ({
+              categoryInstances: state.categoryInstances.map(ci =>
+                ci.id === id ? previousInstance : ci
+              )
+            }));
+          }
+          // Re-lanzar el error
+          throw e;
         }
       },
 

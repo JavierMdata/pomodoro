@@ -232,13 +232,19 @@ const CategoryManager: React.FC = () => {
       updated_at: new Date().toISOString()
     };
 
-    if (editingInstance) {
-      await updateCategoryInstance(editingInstance.id, instanceData);
-    } else {
-      await addCategoryInstance(instanceData);
+    try {
+      if (editingInstance) {
+        await updateCategoryInstance(editingInstance.id, instanceData);
+        alert(`✅ Categoría "${formData.name}" actualizada correctamente`);
+      } else {
+        await addCategoryInstance(instanceData);
+        alert(`✅ Categoría "${formData.name}" creada correctamente`);
+      }
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error al guardar categoría:', error);
+      alert(`❌ Error al guardar la categoría. Revisa la consola para más detalles.`);
     }
-
-    setShowModal(false);
   };
 
   const handleDelete = async (id: string) => {
