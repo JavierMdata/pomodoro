@@ -22,6 +22,7 @@ import WorkScheduleManager from './components/WorkScheduleManager';
 import CategoryManager from './components/CategoryManager';
 import CommandCenterDashboard from './components/CommandCenterDashboard';
 import BooksManagerSafe from './components/BooksManagerSafe';
+import LandingPage from './components/LandingPage';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -188,8 +189,22 @@ const App: React.FC = () => {
     );
   }
 
-  // Profile Selector View
+  // Profile Selector View - Nueva Landing Page
   if (!activeProfileId) {
+    return (
+      <LandingPage
+        theme={theme}
+        toggleTheme={toggleTheme}
+        profiles={profiles}
+        onSelectProfile={handleSelectProfile}
+        onCreateProfile={() => setShowCreateProfile(true)}
+        onDeleteProfile={handleDeleteProfile}
+      />
+    );
+  }
+
+  // Create Profile Form (solo se muestra si showCreateProfile es true)
+  if (showCreateProfile) {
     return (
       <div className={`relative min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-500 overflow-hidden ${theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 text-slate-900'}`}>
         {/* Animated gradient border */}
