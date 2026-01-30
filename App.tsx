@@ -331,7 +331,7 @@ const App: React.FC = () => {
           {activeTab === 'dashboard' && <CommandCenterDashboard />}
           {activeTab === 'periods' && <PeriodManager />}
           {activeTab === 'schedule' && <WorkScheduleManager />}
-          {activeTab === 'categories' && <CategoryManager />}
+          {activeTab === 'categories' && <CategoryManager filterType="all-except-materia" />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'books' && <BooksManagerSafe />}
           {activeTab === 'exams' && <ExamManager />}
@@ -343,8 +343,8 @@ const App: React.FC = () => {
           {activeTab === 'graph' && <KnowledgeGraph />}
           {activeTab === 'journal' && <FocusJournal />}
           {activeTab === 'settings' && <ProfileSettings />}
-          {activeTab === 'projects' && <CategoryManager />}
-          {activeTab === 'gym' && <CategoryManager />}
+          {activeTab === 'projects' && <CategoryManager filterType="proyecto" />}
+          {activeTab === 'gym' && <CategoryManager filterType="gym" />}
         </div>
       </ModernLayout>
 

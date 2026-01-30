@@ -36,12 +36,16 @@ interface CommandCenterSidebarProps {
   theme: 'dark' | 'light';
   activeTab: string;
   onTabChange: (tab: string) => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
   theme,
   activeTab,
-  onTabChange
+  onTabChange,
+  isCollapsed,
+  onToggleCollapse
 }) => {
   const { subjects, categoryInstances, tasks, exams, activeProfileId, sessions } = useAppStore();
   const [expandedSections, setExpandedSections] = useState<string[]>(['learn', 'grow', 'organize']);

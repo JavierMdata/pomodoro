@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { format, isToday, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import WeeklyCalendar from './WeeklyCalendar';
 
 interface TodayBlock {
   instance: CategoryInstance;
@@ -132,67 +133,8 @@ const CommandCenterDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Vista de Hoy */}
-      <div className={`p-6 rounded-xl ${theme === 'dark' ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200'}`}>
-        <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
-          <Clock size={24} className="text-indigo-500" />
-          Tu Día de Hoy
-        </h2>
-
-        {todayBlocks.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar size={48} className="mx-auto text-slate-400 mb-3" />
-            <p className={`font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-              No tienes bloques programados para hoy
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              Crea categorías y configura sus horarios para verlos aquí
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {todayBlocks.map((block, index) => (
-              <div
-                key={index}
-                className={`p-4 rounded-lg border-l-4 transition-all ${
-                  block.isActive
-                    ? 'scale-105 shadow-lg'
-                    : block.isPast
-                    ? 'opacity-50'
-                    : ''
-                } ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-50'}`}
-                style={{ borderLeftColor: block.instance.color }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="p-2 rounded-lg text-white"
-                      style={{ backgroundColor: block.instance.color }}
-                    >
-                      {getCategoryIcon(block.instance.category_type)}
-                    </div>
-                    <div>
-                      <h3 className="font-black">{block.instance.name}</h3>
-                      <p className="text-xs text-slate-400">
-                        {block.instance.category_type.charAt(0).toUpperCase() + block.instance.category_type.slice(1)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">{block.startTime} - {block.endTime}</p>
-                    {block.isActive && (
-                      <span className="text-xs text-emerald-500 font-bold">● EN CURSO</span>
-                    )}
-                    {block.isPast && (
-                      <span className="text-xs text-slate-500 font-bold">✓ Completado</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Calendario Semanal */}
+      <WeeklyCalendar theme={theme} />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
