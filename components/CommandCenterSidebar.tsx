@@ -11,7 +11,7 @@ import {
   FolderKanban, Library, Target, AlertCircle, FileText,
   BarChart3, Network, BookText, Settings, Calendar,
   ChevronDown, ChevronRight, Sparkles, Flame, Zap,
-  Coffee
+  Coffee, Menu, X
 } from 'lucide-react';
 
 interface SidebarSection {
@@ -162,147 +162,208 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
 
   return (
     <div
-      className={`w-72 h-screen fixed left-0 top-0 z-40 flex flex-col border-r backdrop-blur-2xl transition-all ${
+      className={`${isCollapsed ? 'w-20' : 'w-72'} h-screen fixed left-0 top-0 z-40 flex flex-col border-r backdrop-blur-2xl transition-all duration-300 ${
         theme === 'dark'
           ? 'bg-slate-900/95 border-slate-800'
           : 'bg-white/95 border-slate-200'
       }`}
     >
-      {/* Header con logo */}
-      <div className="p-6 border-b border-slate-800/50">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg">
-            <Flame className="text-white" size={24} />
+      {/* Header con logo y botón de toggle */}
+      <div className={`p-6 border-b border-slate-800/50 ${isCollapsed ? 'px-3' : ''}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 shadow-lg flex-shrink-0">
+              <Flame className="text-white" size={isCollapsed ? 20 : 24} />
+            </div>
+            {!isCollapsed && (
+              <div className="overflow-hidden">
+                <h1 className="text-xl font-black bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent whitespace-nowrap">
+                  PomoSmart
+                </h1>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                  Command Center
+                </p>
+              </div>
+            )}
           </div>
-          <div>
-            <h1 className="text-xl font-black bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-              PomoSmart
-            </h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Command Center
-            </p>
-          </div>
+          <button
+            onClick={onToggleCollapse}
+            className={`p-2 rounded-lg transition-all hover:scale-110 ${
+              theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+            } ${isCollapsed ? 'absolute top-3 right-3' : ''}`}
+            title={isCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+          >
+            {isCollapsed ? <Menu size={18} /> : <X size={18} />}
+          </button>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-thin">
-        {sections.map((section) => {
-          const SectionIcon = section.icon;
-          const isExpanded = expandedSections.includes(section.id);
+      <nav className={`flex-1 overflow-y-auto p-3 space-y-${isCollapsed ? '2' : '6'} scrollbar-thin`}>
+        {isCollapsed ? (
+          // Vista colapsada: solo iconos
+          sections.map((section) =>
+            section.items.map((item) => {
+              const ItemIcon = item.icon;
+              const isActive = activeTab === item.tab;
 
-          return (
-            <div key={section.id} className="space-y-1">
-              {/* Section Header */}
-              <button
-                onClick={() => toggleSection(section.id)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group ${
-                  theme === 'dark'
-                    ? 'hover:bg-slate-800/50'
-                    : 'hover:bg-slate-100'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <SectionIcon size={14} className="text-slate-400" />
-                  <span className="text-[10px] font-black tracking-widest text-slate-400">
-                    {section.label}
-                  </span>
-                </div>
-                {isExpanded ? (
-                  <ChevronDown size={14} className="text-slate-400 transition-transform" />
-                ) : (
-                  <ChevronRight size={14} className="text-slate-400 transition-transform" />
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleItemClick(item.tab)}
+                  className={`w-full p-3 rounded-lg transition-all relative group ${
+                    isActive
+                      ? 'shadow-lg'
+                      : theme === 'dark'
+                      ? 'hover:bg-slate-800/80'
+                      : 'hover:bg-slate-50'
+                  }`}
+                  style={isActive ? {
+                    backgroundColor: `${item.color}20`,
+                  } : {}}
+                  title={item.label}
+                >
+                  <ItemIcon
+                    size={20}
+                    style={{ color: isActive ? item.color : undefined }}
+                    className={`${!isActive ? 'text-slate-400 group-hover:text-slate-300' : ''} mx-auto`}
+                  />
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <div
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center"
+                      style={{
+                        backgroundColor: item.color,
+                        color: 'white'
+                      }}
+                    >
+                      {item.badge}
+                    </div>
+                  )}
+                </button>
+              );
+            })
+          )
+        ) : (
+          // Vista expandida: secciones completas
+          sections.map((section) => {
+            const SectionIcon = section.icon;
+            const isExpanded = expandedSections.includes(section.id);
+
+            return (
+              <div key={section.id} className="space-y-1">
+                {/* Section Header */}
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group ${
+                    theme === 'dark'
+                      ? 'hover:bg-slate-800/50'
+                      : 'hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <SectionIcon size={14} className="text-slate-400" />
+                    <span className="text-[10px] font-black tracking-widest text-slate-400">
+                      {section.label}
+                    </span>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown size={14} className="text-slate-400 transition-transform" />
+                  ) : (
+                    <ChevronRight size={14} className="text-slate-400 transition-transform" />
+                  )}
+                </button>
+
+                {/* Section Items */}
+                {isExpanded && (
+                  <div className="space-y-0.5 ml-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                    {section.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      const isActive = activeTab === item.tab;
+
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleItemClick(item.tab)}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all group ${
+                            isActive
+                              ? 'shadow-lg scale-[1.02]'
+                              : theme === 'dark'
+                              ? 'hover:bg-slate-800/80 active:bg-slate-800'
+                              : 'hover:bg-slate-50 active:bg-slate-100'
+                          }`}
+                          style={isActive ? {
+                            background: `linear-gradient(135deg, ${item.color}20, ${item.color}10)`,
+                            borderLeft: `3px solid ${item.color}`
+                          } : {}}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isActive
+                                  ? 'scale-110'
+                                  : 'group-hover:scale-110'
+                              }`}
+                              style={{
+                                backgroundColor: isActive ? `${item.color}20` : 'transparent'
+                              }}
+                            >
+                              <ItemIcon
+                                size={16}
+                                style={{ color: isActive ? item.color : undefined }}
+                                className={!isActive ? 'text-slate-400 group-hover:text-slate-300' : ''}
+                              />
+                            </div>
+                            <span
+                              className={`text-sm font-bold transition-colors ${
+                                isActive
+                                  ? 'text-slate-100'
+                                  : 'text-slate-400 group-hover:text-slate-300'
+                              }`}
+                            >
+                              {item.label}
+                            </span>
+                          </div>
+
+                          {/* Badge */}
+                          {item.badge !== undefined && item.badge > 0 && (
+                            <div
+                              className="px-2 py-0.5 rounded-full text-[10px] font-black"
+                              style={{
+                                backgroundColor: `${item.color}30`,
+                                color: item.color
+                              }}
+                            >
+                              {item.badge}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
-
-              {/* Section Items */}
-              {isExpanded && (
-                <div className="space-y-0.5 ml-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                  {section.items.map((item) => {
-                    const ItemIcon = item.icon;
-                    const isActive = activeTab === item.tab;
-
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => handleItemClick(item.tab)}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all group ${
-                          isActive
-                            ? 'shadow-lg scale-[1.02]'
-                            : theme === 'dark'
-                            ? 'hover:bg-slate-800/80 active:bg-slate-800'
-                            : 'hover:bg-slate-50 active:bg-slate-100'
-                        }`}
-                        style={isActive ? {
-                          background: `linear-gradient(135deg, ${item.color}20, ${item.color}10)`,
-                          borderLeft: `3px solid ${item.color}`
-                        } : {}}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`p-1.5 rounded-lg transition-all ${
-                              isActive
-                                ? 'scale-110'
-                                : 'group-hover:scale-110'
-                            }`}
-                            style={{
-                              backgroundColor: isActive ? `${item.color}20` : 'transparent'
-                            }}
-                          >
-                            <ItemIcon
-                              size={16}
-                              style={{ color: isActive ? item.color : undefined }}
-                              className={!isActive ? 'text-slate-400 group-hover:text-slate-300' : ''}
-                            />
-                          </div>
-                          <span
-                            className={`text-sm font-bold transition-colors ${
-                              isActive
-                                ? 'text-slate-100'
-                                : 'text-slate-400 group-hover:text-slate-300'
-                            }`}
-                          >
-                            {item.label}
-                          </span>
-                        </div>
-
-                        {/* Badge */}
-                        {item.badge !== undefined && item.badge > 0 && (
-                          <div
-                            className="px-2 py-0.5 rounded-full text-[10px] font-black"
-                            style={{
-                              backgroundColor: `${item.color}30`,
-                              color: item.color
-                            }}
-                          >
-                            {item.badge}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })
+        )}
       </nav>
 
       {/* Footer con stats rápidas */}
-      <div className={`p-4 border-t ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <Coffee size={14} className="text-indigo-500" />
-            <span className="font-bold text-slate-400">Hoy</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="font-black text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-              {todayPomodoros}
-            </span>
-            <span className="text-[10px] font-bold text-slate-400">pomos</span>
+      {!isCollapsed && (
+        <div className={`p-4 border-t ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className="flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Coffee size={14} className="text-indigo-500" />
+              <span className="font-bold text-slate-400">Hoy</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-black text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
+                {todayPomodoros}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400">pomos</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
