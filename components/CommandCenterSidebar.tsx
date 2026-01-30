@@ -46,36 +46,28 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
   const { subjects, categoryInstances, tasks, exams, activeProfileId, sessions } = useAppStore();
   const [expandedSections, setExpandedSections] = useState<string[]>(['learn', 'grow', 'organize']);
 
-  // Calcular badges
-  const badges = useMemo(() => {
-    const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
-    const pendingTasks = tasks.filter(t => {
-      const subject = profileSubjects.find(s => s.id === t.subject_id);
-      return subject && t.status === 'pending';
-    }).length;
+  // Calcular badges y sections en un solo paso para evitar problemas de inicialización
+  const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
+  const pendingTasks = tasks.filter(t => {
+    const subject = profileSubjects.find(s => s.id === t.subject_id);
+    return subject && t.status === 'pending';
+  }).length;
 
-    const upcomingExams = exams.filter(e => {
-      const subject = profileSubjects.find(s => s.id === e.subject_id);
-      return subject && e.status === 'upcoming';
-    }).length;
+  const upcomingExams = exams.filter(e => {
+    const subject = profileSubjects.find(s => s.id === e.subject_id);
+    return subject && e.status === 'upcoming';
+  }).length;
 
-    const todayPomodoros = sessions.filter(s => {
-      const sessionDate = new Date(s.started_at);
-      const today = new Date();
-      return sessionDate.toDateString() === today.toDateString();
-    }).length;
+  const todayPomodoros = sessions.filter(s => {
+    const sessionDate = new Date(s.started_at);
+    const today = new Date();
+    return sessionDate.toDateString() === today.toDateString();
+  }).length;
 
-    return {
-      tasks: pendingTasks,
-      exams: upcomingExams,
-      pomodoros: todayPomodoros,
-      subjects: profileSubjects.length,
-      categories: categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active).length
-    };
-  }, [subjects, tasks, exams, sessions, categoryInstances, activeProfileId]);
+  const activeCategoriesCount = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active).length;
 
-  // Memoizar sections para evitar re-renders innecesarios y problemas de inicialización
-  const sections: SidebarSection[] = useMemo(() => [
+  // Declarar sections directamente sin useMemo para evitar problemas de minificación
+  const sections: SidebarSection[] = [
     {
       id: 'core',
       label: 'CENTRO DE MANDO',
@@ -83,7 +75,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       color: '#6366F1',
       gradient: 'from-indigo-500 to-purple-500',
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, tab: 'dashboard', badge: badges.pomodoros, color: '#6366F1' },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, tab: 'dashboard', badge: todayPomodoros, color: '#6366F1' },
         { id: 'pomodoro', label: 'Pomodoro', icon: Flame, tab: 'pomodoro', color: '#F59E0B' },
       ]
     },
@@ -94,7 +86,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       color: '#8B5CF6',
       gradient: 'from-purple-500 to-pink-500',
       items: [
-        { id: 'subjects', label: 'Materias', icon: BookOpen, tab: 'subjects', badge: badges.subjects, color: '#8B5CF6' },
+        { id: 'subjects', label: 'Materias', icon: BookOpen, tab: 'subjects', badge: profileSubjects.length, color: '#8B5CF6' },
         { id: 'books', label: 'Libros', icon: Library, tab: 'books', color: '#EC4899' },
         { id: 'materials', label: 'Materiales', icon: FileText, tab: 'materials', color: '#A855F7' },
       ]
@@ -106,7 +98,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       color: '#10B981',
       gradient: 'from-emerald-500 to-teal-500',
       items: [
-        { id: 'categories', label: 'Mis Categorías', icon: FolderKanban, tab: 'categories', badge: badges.categories, color: '#10B981' },
+        { id: 'categories', label: 'Mis Categorías', icon: FolderKanban, tab: 'categories', badge: activeCategoriesCount, color: '#10B981' },
         { id: 'projects', label: 'Proyectos', icon: Briefcase, tab: 'projects', color: '#14B8A6' },
         { id: 'gym', label: 'Gimnasio', icon: Dumbbell, tab: 'gym', color: '#059669' },
       ]
@@ -118,8 +110,8 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       color: '#F59E0B',
       gradient: 'from-amber-500 to-orange-500',
       items: [
-        { id: 'tasks', label: 'Tareas', icon: Target, tab: 'tasks', badge: badges.tasks, color: '#F59E0B' },
-        { id: 'exams', label: 'Exámenes', icon: AlertCircle, tab: 'exams', badge: badges.exams, color: '#EF4444' },
+        { id: 'tasks', label: 'Tareas', icon: Target, tab: 'tasks', badge: pendingTasks, color: '#F59E0B' },
+        { id: 'exams', label: 'Exámenes', icon: AlertCircle, tab: 'exams', badge: upcomingExams, color: '#EF4444' },
         { id: 'schedule', label: 'Horarios', icon: Calendar, tab: 'schedule', color: '#F97316' },
       ]
     },
@@ -146,7 +138,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
         { id: 'settings', label: 'Ajustes', icon: Settings, tab: 'settings', color: '#475569' },
       ]
     }
-  ], [badges]);
+  ];
 
   const toggleSection = (sectionId: string) => {
     soundService.playClick();
@@ -301,7 +293,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
           </div>
           <div className="flex items-center gap-1">
             <span className="font-black text-lg bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-              {badges.pomodoros}
+              {todayPomodoros}
             </span>
             <span className="text-[10px] font-bold text-slate-400">pomos</span>
           </div>
