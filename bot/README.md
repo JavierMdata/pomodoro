@@ -7,8 +7,7 @@ Bot inteligente de Telegram para tu asistente de productividad PomoSmart. Gestio
 ### 🔐 Autenticación Inteligente
 - **Multi-perfil**: Reconoce automáticamente quién le habla por ID de Telegram
 - Vinculación simple con código de perfil
-- Respuestas personalizadas según género del usuario
-
+- R
 ### 📝 Gestión Natural de Tareas
 - **Lenguaje natural**: "Agregar tarea de Física para mañana"
 - Detección automática de fechas relativas (hoy, mañana, viernes, etc.)
