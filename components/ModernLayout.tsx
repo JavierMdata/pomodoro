@@ -18,6 +18,7 @@ interface ModernLayoutProps {
 const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setActiveTab }) => {
   const { theme, toggleTheme, profiles, activeProfileId, setActiveProfile, setSelectedSectionForPomodoro } = useAppStore();
   const activeProfile = profiles.find(p => p.id === activeProfileId);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Manejar selección de sección desde el menú desplegable
   const handleSelectSection = (sectionId: string, sectionType: 'subject' | 'category') => {
@@ -40,10 +41,12 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
         theme={theme}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
       {/* Top Bar - Solo para Profile, Menu de Secciones y Tema */}
-      <div className={`fixed top-0 left-72 right-0 z-40 backdrop-blur-2xl border-b transition-all ${
+      <div className={`fixed top-0 ${isSidebarCollapsed ? 'left-20' : 'left-72'} right-0 z-40 backdrop-blur-2xl border-b transition-all duration-300 ${
         theme === 'dark'
           ? 'bg-slate-900/80 border-slate-800'
           : 'bg-white/80 border-slate-200/50'
@@ -103,7 +106,7 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
       </div>
 
       {/* Main Content */}
-      <main className="relative z-10 ml-72 pt-28 pb-12">
+      <main className={`relative z-10 ${isSidebarCollapsed ? 'ml-20' : 'ml-72'} pt-28 pb-12 transition-all duration-300`}>
         <div className="px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {children}
         </div>

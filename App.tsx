@@ -22,6 +22,7 @@ import WorkScheduleManager from './components/WorkScheduleManager';
 import CategoryManager from './components/CategoryManager';
 import CommandCenterDashboard from './components/CommandCenterDashboard';
 import BooksManagerSafe from './components/BooksManagerSafe';
+import LandingPage from './components/LandingPage';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
@@ -53,25 +54,26 @@ const App: React.FC = () => {
     syncWithSupabase();
   }, []);
 
-  // Verificar si el perfil activo necesita desbloqueo al cargar
+  // Verificar si el perfil activo necesita desbloqueo al cargar (SOLO UNA VEZ)
+  const [hasCheckedPIN, setHasCheckedPIN] = useState(false);
+
   useEffect(() => {
-    if (activeProfileId && profiles.length > 0) {
+    // Solo verificar una vez cuando hay perfiles cargados
+    if (!hasCheckedPIN && activeProfileId && profiles.length > 0) {
       const profile = profiles.find(p => p.id === activeProfileId);
       const needsUnlock = localStorage.getItem('profile_needs_unlock');
 
-      if (profile && profile.requires_pin && profile.pin_hash) {
-        // Siempre pedir PIN al cargar si el perfil lo requiere
+      // Solo pedir PIN si está marcado como "needs_unlock" en localStorage
+      if (profile && profile.requires_pin && profile.pin_hash && needsUnlock === activeProfileId) {
         setIsProfileLocked(true);
         setPendingProfileId(activeProfileId);
         setActiveProfile(null); // Desactivar hasta que se desbloquee
-
-        // Limpiar flag de localStorage
-        if (needsUnlock === activeProfileId) {
-          localStorage.removeItem('profile_needs_unlock');
-        }
+        localStorage.removeItem('profile_needs_unlock');
       }
+
+      setHasCheckedPIN(true);
     }
-  }, [profiles]);
+  }, [profiles, activeProfileId, hasCheckedPIN]);
 
   useEffect(() => {
     if (activeProfileId && settings[activeProfileId]) {
@@ -188,96 +190,57 @@ const App: React.FC = () => {
     );
   }
 
-  // Profile Selector View
-  if (!activeProfileId) {
+  // Profile Selector View - Nueva Landing Page
+  if (!activeProfileId || showCreateProfile) {
     return (
-      <div className={`relative min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-500 overflow-hidden ${theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 text-slate-900'}`}>
-        {/* Animated gradient border */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-indigo-500/50" />
+      <div className={theme === 'dark' ? 'dark' : ''}>
+        {!showCreateProfile ? (
+          // Mostrar landing page con listado de perfiles
+          <LandingPage
+            theme={theme}
+            toggleTheme={toggleTheme}
+            profiles={profiles}
+            onSelectProfile={handleSelectProfile}
+            onCreateProfile={() => setShowCreateProfile(true)}
+            onDeleteProfile={handleDeleteProfile}
+          />
+        ) : (
+          // Mostrar formulario de creación de perfil
+          <div className={`relative min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-500 overflow-hidden ${theme === 'dark' ? 'bg-slate-950 text-white' : 'bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 text-slate-900'}`}>
+            {/* Animated gradient border */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-indigo-500/50" />
 
-        {/* Animated background particles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '0s' }} />
-          <div className="absolute top-1/2 right-40 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '4s' }} />
-        </div>
-
-        <div className="absolute top-8 right-8">
-          <button
-            onClick={toggleTheme}
-            className={`relative p-5 rounded-full border-2 transition-all hover:scale-110 active:scale-95 group ${
-              theme === 'dark'
-                ? 'bg-slate-800/80 border-slate-700 text-amber-400 hover:bg-slate-700'
-                : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'
-            } backdrop-blur-xl shadow-lg`}
-          >
-            {theme === 'dark' ? <Sun size={24} className="group-hover:rotate-180 transition-transform duration-500" /> : <Moon size={24} className="group-hover:-rotate-12 transition-transform duration-300" />}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
-          </button>
-        </div>
-
-        <div className="relative text-center mb-20 max-w-3xl animate-in fade-in slide-in-from-bottom duration-700">
-          <div className="relative inline-block mb-8">
-            <h1 className="text-8xl md:text-9xl font-black tracking-tight bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              PomoSmart
-            </h1>
-            <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-2xl opacity-50" />
-          </div>
-          <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} text-2xl font-bold leading-relaxed`}>
-            Tu centro de comando académico definitivo. <br className="hidden md:block" />
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Organiza, enfoca y domina tu semestre.
-            </span>
-          </p>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-10 mb-12 max-w-6xl">
-          {profiles.map(p => (
-            <div key={p.id} className="relative group">
-                <ProfileCard profile={p} onClick={() => handleSelectProfile(p.id)} />
-                <button
-                    onClick={(e) => handleDeleteProfile(e, p.id)}
-                    className={`absolute -top-3 -right-3 p-2 border rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity ${theme === 'dark' ? 'bg-slate-800 border-slate-700 text-slate-500 hover:text-red-400' : 'bg-white border-slate-200 text-slate-400 hover:text-red-500'}`}
-                >
-                    <Trash2 size={16} />
-                </button>
+            {/* Animated background particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-20 left-20 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '0s' }} />
+              <div className="absolute top-1/2 right-40 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '2s' }} />
+              <div className="absolute bottom-20 left-1/3 w-80 h-80 bg-pink-500/10 rounded-full blur-3xl float-animation" style={{ animationDelay: '4s' }} />
             </div>
-          ))}
 
-          {!showCreateProfile && (
-            <button
-              onClick={() => setShowCreateProfile(true)}
-              className={`relative flex flex-col items-center justify-center p-10 border-4 border-dashed rounded-[2.5rem] transition-all w-full max-w-xs aspect-square group overflow-hidden ${
-                theme === 'dark'
-                  ? 'bg-slate-800/50 border-slate-700 hover:border-indigo-500 hover:bg-slate-700/70'
-                  : 'bg-white/50 border-slate-200 hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/50'
-              } backdrop-blur-sm`}
-            >
-              {/* Animated gradient background on hover */}
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-8 right-8">
+              <button
+                onClick={toggleTheme}
+                className={`relative p-5 rounded-full border-2 transition-all hover:scale-110 active:scale-95 group ${
+                  theme === 'dark'
+                    ? 'bg-slate-800/80 border-slate-700 text-amber-400 hover:bg-slate-700'
+                    : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'
+                } backdrop-blur-xl shadow-lg`}
+              >
+                {theme === 'dark' ? <Sun size={24} className="group-hover:rotate-180 transition-transform duration-500" /> : <Moon size={24} className="group-hover:-rotate-12 transition-transform duration-300" />}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
+              </button>
+            </div>
 
-              <div className={`relative w-24 h-24 rounded-full flex items-center justify-center mb-6 transition-all group-hover:scale-110 ${
-                theme === 'dark'
-                  ? 'bg-slate-700 text-slate-500 group-hover:bg-gradient-to-br group-hover:from-indigo-900 group-hover:to-purple-900 group-hover:text-indigo-400'
-                  : 'bg-slate-100 text-slate-300 group-hover:bg-gradient-to-br group-hover:from-indigo-100 group-hover:to-purple-100 group-hover:text-indigo-500'
-              }`}>
-                <Plus size={56} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
-                {/* Glow effect */}
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
+            <div className="relative text-center mb-12 max-w-3xl animate-in fade-in slide-in-from-bottom duration-700">
+              <div className="relative inline-block mb-6">
+                <h1 className="text-6xl md:text-7xl font-black tracking-tight bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Nuevo Perfil
+                </h1>
+                <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-2xl opacity-50" />
               </div>
-              <h3 className={`relative text-xl font-black transition-colors ${
-                theme === 'dark'
-                  ? 'text-slate-500 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-purple-400 group-hover:bg-clip-text'
-                  : 'text-slate-400 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-purple-600 group-hover:bg-clip-text'
-              }`}>
-                Nuevo Perfil
-              </h3>
-            </button>
-          )}
+            </div>
 
-          {showCreateProfile && (
             <div className={`p-10 rounded-[3rem] shadow-2xl border w-full max-w-lg animate-in zoom-in duration-300 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-              <h2 className="text-3xl font-black mb-8 tracking-tight">Crear Perfil</h2>
               <form onSubmit={handleCreateProfile} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -289,7 +252,7 @@ const App: React.FC = () => {
                     <input type="text" required value={userName} onChange={(e) => setUserName(e.target.value)} className={`w-full p-4 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 ${theme === 'dark' ? 'bg-slate-700 border-none' : 'bg-slate-50 border-none'}`} placeholder="Ej: María" />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-400'}`}>Tipo</label>
@@ -317,11 +280,21 @@ const App: React.FC = () => {
                 </div>
               </form>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   }
+
+  // Helper para extraer ID de categoría de tabs dinámicos
+  const getCategoryInstanceIdFromTab = (tab: string): string | null => {
+    if (tab.startsWith('category-instance-')) {
+      return tab.replace('category-instance-', '');
+    }
+    return null;
+  };
+
+  const categoryInstanceId = getCategoryInstanceIdFromTab(activeTab);
 
   // Active Profile Main View
   return (
@@ -345,6 +318,8 @@ const App: React.FC = () => {
           {activeTab === 'settings' && <ProfileSettings />}
           {activeTab === 'projects' && <CategoryManager filterType="proyecto" />}
           {activeTab === 'gym' && <CategoryManager filterType="gym" />}
+          {/* Tabs dinámicos para categorías individuales */}
+          {categoryInstanceId && <CategoryManager categoryInstanceId={categoryInstanceId} />}
         </div>
       </ModernLayout>
 
