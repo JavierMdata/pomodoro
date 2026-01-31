@@ -16,9 +16,10 @@ const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 interface CategoryManagerProps {
   filterType?: 'all' | 'all-except-materia' | WorkCategory;
+  categoryInstanceId?: string; // Si se proporciona, solo muestra esta categoría específica
 }
 
-const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all' }) => {
+const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', categoryInstanceId }) => {
   const {
     theme,
     activeProfileId,
@@ -50,10 +51,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all' })
     icon: '📚'
   });
 
-  // Filtrar category_instances según el filterType
+  // Filtrar category_instances según el filterType y categoryInstanceId
   let profileInstances = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
 
-  if (filterType === 'all-except-materia') {
+  // Si se especifica un ID de categoría específica, solo mostrar esa
+  if (categoryInstanceId) {
+    profileInstances = profileInstances.filter(ci => ci.id === categoryInstanceId);
+  } else if (filterType === 'all-except-materia') {
     // Excluir materias (para "Mis Categorías")
     profileInstances = profileInstances.filter(ci => ci.category_type !== 'materia');
   } else if (filterType !== 'all') {

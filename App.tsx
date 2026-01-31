@@ -286,6 +286,16 @@ const App: React.FC = () => {
     );
   }
 
+  // Helper para extraer ID de categoría de tabs dinámicos
+  const getCategoryInstanceIdFromTab = (tab: string): string | null => {
+    if (tab.startsWith('category-instance-')) {
+      return tab.replace('category-instance-', '');
+    }
+    return null;
+  };
+
+  const categoryInstanceId = getCategoryInstanceIdFromTab(activeTab);
+
   // Active Profile Main View
   return (
     <div className={theme === 'dark' ? 'dark' : ''}>
@@ -308,6 +318,8 @@ const App: React.FC = () => {
           {activeTab === 'settings' && <ProfileSettings />}
           {activeTab === 'projects' && <CategoryManager filterType="proyecto" />}
           {activeTab === 'gym' && <CategoryManager filterType="gym" />}
+          {/* Tabs dinámicos para categorías individuales */}
+          {categoryInstanceId && <CategoryManager categoryInstanceId={categoryInstanceId} />}
         </div>
       </ModernLayout>
 

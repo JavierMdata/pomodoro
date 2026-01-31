@@ -68,7 +68,22 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
     return sessionDate.toDateString() === today.toDateString();
   }).length;
 
-  const activeCategoriesCount = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active).length;
+  const profileCategories = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
+  const activeCategoriesCount = profileCategories.length;
+
+  // Helper para iconos de categoría
+  const getCategoryIcon = (type: string, size = 16) => {
+    const icons: Record<string, any> = {
+      'materia': BookOpen,
+      'idioma': Languages,
+      'trabajo': Briefcase,
+      'gym': Dumbbell,
+      'proyecto': FolderKanban,
+      'descanso': Coffee,
+      'otro': Coffee
+    };
+    return icons[type] || Coffee;
+  };
 
   // Declarar sections directamente sin useMemo para evitar problemas de minificación
   const sections: SidebarSection[] = [
@@ -102,9 +117,16 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       color: '#10B981',
       gradient: 'from-emerald-500 to-teal-500',
       items: [
+        // Vista general de todas las categorías
         { id: 'categories', label: 'Mis Categorías', icon: FolderKanban, tab: 'categories', badge: activeCategoriesCount, color: '#10B981' },
-        { id: 'projects', label: 'Proyectos', icon: Briefcase, tab: 'projects', color: '#14B8A6' },
-        { id: 'gym', label: 'Gimnasio', icon: Dumbbell, tab: 'gym', color: '#059669' },
+        // Categorías dinámicas - cada category_instance activa crea su propio item
+        ...profileCategories.map(cat => ({
+          id: `category-${cat.id}`,
+          label: cat.name,
+          icon: getCategoryIcon(cat.category_type),
+          tab: `category-instance-${cat.id}`,
+          color: cat.color,
+        }))
       ]
     },
     {
