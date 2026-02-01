@@ -34,7 +34,7 @@ interface CalendarEvent {
 }
 
 const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ theme = 'dark' }) => {
-  const { activeProfileId, categoryInstances, subjects, classSchedule } = useAppStore();
+  const { activeProfileId, categoryInstances, subjects, schedules } = useAppStore();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
   // Horas del día (6 AM a 10 PM = 17 horas)
@@ -49,19 +49,20 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ theme = 'dark' }) => {
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   const goToToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  // Obtener TODAS las actividades (materias + categorías)
-  const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
-  const profileCategories = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
+  // Obtener TODAS las actividades (materias + categorías) con valores por defecto
+  const profileSubjects = (subjects || []).filter(s => s.profile_id === activeProfileId);
+  const profileCategories = (categoryInstances || []).filter(ci => ci.profile_id === activeProfileId && ci.is_active);
+  const classSchedules = schedules || [];
 
   // Función para obtener eventos en una celda específica (día, hora)
   const getEventsForTimeSlot = (dayIndex: number, hour: number): CalendarEvent[] => {
     const events: CalendarEvent[] = [];
 
-    // 1. AGREGAR MATERIAS (desde class_schedule)
+    // 1. AGREGAR MATERIAS (desde schedules)
     profileSubjects.forEach(subject => {
-      const schedules = classSchedule.filter(cs => cs.subject_id === subject.id && cs.day_of_week === dayIndex);
+      const subjectSchedules = classSchedules.filter(cs => cs.subject_id === subject.id && cs.day_of_week === dayIndex);
 
-      schedules.forEach(schedule => {
+      subjectSchedules.forEach(schedule => {
         const [startHour, startMin] = schedule.start_time.split(':').map(Number);
         const [endHour, endMin] = schedule.end_time.split(':').map(Number);
         const startMinutes = startHour * 60 + startMin;
