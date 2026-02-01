@@ -3,7 +3,7 @@
  * Inspirado en Notion, Linear, y Arc Browser
  * Organiza toda la vida en categorías visuales
  */
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { soundService } from '../lib/soundService';
 import {
@@ -11,7 +11,7 @@ import {
   FolderKanban, Library, Target, AlertCircle, FileText,
   BarChart3, Network, BookText, Settings, Calendar,
   ChevronDown, ChevronRight, Sparkles, Flame, Zap,
-  Coffee, Menu, X
+  Coffee, Menu, X, Plus, Users, PlayCircle
 } from 'lucide-react';
 
 interface SidebarSection {
@@ -47,8 +47,27 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
   isCollapsed,
   onToggleCollapse
 }) => {
-  const { subjects, categoryInstances, tasks, exams, activeProfileId, sessions } = useAppStore();
+  const { subjects, categoryInstances, tasks, exams, activeProfileId, sessions, profiles, setActiveProfile } = useAppStore();
   const [expandedSections, setExpandedSections] = useState<string[]>(['learn', 'grow', 'organize']);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowQuickActions(false);
+      }
+    };
+
+    if (showQuickActions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showQuickActions]);
 
   // Calcular badges y sections en un solo paso para evitar problemas de inicialización
   const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
@@ -368,6 +387,115 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
           })
         )}
       </nav>
+
+      {/* Dropdown de acciones rápidas */}
+      {!isCollapsed && (
+        <div ref={dropdownRef} className="relative px-4 pb-4">
+          <button
+            onClick={() => {
+              soundService.playClick();
+              setShowQuickActions(!showQuickActions);
+            }}
+            className={`w-full p-3 rounded-xl font-bold text-sm transition-all flex items-center justify-between ${
+              theme === 'dark'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Zap size={16} />
+              <span>Acciones Rápidas</span>
+            </div>
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${showQuickActions ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showQuickActions && (
+            <div
+              className={`absolute bottom-full left-4 right-4 mb-2 rounded-xl shadow-2xl border backdrop-blur-xl overflow-hidden ${
+                theme === 'dark'
+                  ? 'bg-slate-800 border-slate-700'
+                  : 'bg-white border-slate-200'
+              }`}
+            >
+              {/* Iniciar Pomodoro */}
+              <button
+                onClick={() => {
+                  soundService.playSuccess();
+                  onTabChange('pomodoro');
+                  setShowQuickActions(false);
+                }}
+                className={`w-full p-3 text-left flex items-center gap-3 transition-all ${
+                  theme === 'dark'
+                    ? 'hover:bg-slate-700'
+                    : 'hover:bg-slate-50'
+                }`}
+              >
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <PlayCircle size={16} className="text-orange-500" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-sm">Iniciar Pomodoro</div>
+                  <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Comenzar sesión de trabajo
+                  </div>
+                </div>
+              </button>
+
+              {/* Crear Categoría */}
+              <button
+                onClick={() => {
+                  soundService.playSuccess();
+                  onTabChange('categories');
+                  setShowQuickActions(false);
+                }}
+                className={`w-full p-3 text-left flex items-center gap-3 transition-all ${
+                  theme === 'dark'
+                    ? 'hover:bg-slate-700'
+                    : 'hover:bg-slate-50'
+                }`}
+              >
+                <div className="p-2 rounded-lg bg-emerald-500/20">
+                  <Plus size={16} className="text-emerald-500" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-sm">Nueva Categoría</div>
+                  <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Gym, proyecto, trabajo, etc.
+                  </div>
+                </div>
+              </button>
+
+              {/* Cambiar Perfil */}
+              <button
+                onClick={() => {
+                  soundService.playWhoosh();
+                  setActiveProfile(null);
+                  setShowQuickActions(false);
+                }}
+                className={`w-full p-3 text-left flex items-center gap-3 transition-all border-t ${
+                  theme === 'dark'
+                    ? 'hover:bg-slate-700 border-slate-700'
+                    : 'hover:bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="p-2 rounded-lg bg-purple-500/20">
+                  <Users size={16} className="text-purple-500" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-sm">Cambiar Perfil</div>
+                  <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {profiles.length} perfiles disponibles
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer con stats rápidas */}
       {!isCollapsed && (
