@@ -1,13 +1,14 @@
 /**
  * GESTOR CENTRAL DE CATEGORÍAS - Life Command Center
- * Desde aquí el usuario crea TODAS las categorías que se convierten en secciones de la app
+ * Diseño moderno con cards visualmente atractivas y modal refinado
  */
 import React, { useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { WorkCategory, CategoryPeriodType, CategoryInstance } from '../types';
 import {
   Plus, BookOpen, Languages, Briefcase, Dumbbell, FolderKanban,
-  Clock, Calendar, Edit2, Trash2, CheckCircle, X, AlertCircle
+  Clock, Calendar, Edit2, Trash2, CheckCircle, X, AlertCircle,
+  Coffee, ArrowRight, Sparkles
 } from 'lucide-react';
 import CategoryView from './CategoryView';
 import ScheduleEditor, { ScheduleSlot } from './ScheduleEditor';
@@ -16,7 +17,7 @@ const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 interface CategoryManagerProps {
   filterType?: 'all' | 'all-except-materia' | WorkCategory;
-  categoryInstanceId?: string; // Si se proporciona, solo muestra esta categoría específica
+  categoryInstanceId?: string;
 }
 
 const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', categoryInstanceId }) => {
@@ -51,26 +52,24 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     icon: '📚'
   });
 
-  // Filtrar category_instances según el filterType y categoryInstanceId
+  const isDark = theme === 'dark';
+
+  // Filtrar category_instances
   let profileInstances = categoryInstances.filter(ci => ci.profile_id === activeProfileId && ci.is_active);
 
-  // Si se especifica un ID de categoría específica, solo mostrar esa
   if (categoryInstanceId) {
     profileInstances = profileInstances.filter(ci => ci.id === categoryInstanceId);
   } else if (filterType === 'all-except-materia') {
-    // Excluir materias (para "Mis Categorías")
     profileInstances = profileInstances.filter(ci => ci.category_type !== 'materia');
   } else if (filterType !== 'all') {
-    // Filtrar por tipo específico (para "Proyectos" o "Gym")
     profileInstances = profileInstances.filter(ci => ci.category_type === filterType);
   }
 
   const legacySubjects = subjects.filter(s => s.profile_id === activeProfileId);
   const profilePeriods = periods.filter(p => p.profile_id === activeProfileId);
 
-  // Combinar materias existentes y nuevas categorías en un solo array
+  // Combinar materias existentes y nuevas categorías
   const allCategories = [
-    // Materias existentes (subjects) - solo incluir si NO estamos filtrando para excluir materias
     ...(filterType !== 'all-except-materia' && filterType !== 'proyecto' && filterType !== 'gym' && filterType !== 'trabajo' && filterType !== 'idioma' && filterType !== 'descanso' && filterType !== 'otro'
       ? legacySubjects.map(subject => ({
           id: subject.id,
@@ -85,7 +84,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
           needsPeriod: !subject.school_period_id
         }))
       : []),
-    // Nuevas categorías (category_instances)
     ...profileInstances.map(instance => ({
       id: instance.id,
       isLegacy: false,
@@ -103,14 +101,14 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     }))
   ];
 
-  const getCategoryIcon = (type: WorkCategory, size = 24) => {
+  const getCategoryIcon = (type: WorkCategory, size = 20) => {
     const icons = {
       'materia': <BookOpen size={size} />,
       'idioma': <Languages size={size} />,
       'trabajo': <Briefcase size={size} />,
       'gym': <Dumbbell size={size} />,
       'proyecto': <FolderKanban size={size} />,
-      'descanso': <Clock size={size} />,
+      'descanso': <Coffee size={size} />,
       'otro': <Calendar size={size} />
     };
     return icons[type] || icons.otro;
@@ -142,10 +140,23 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     return labels[type];
   };
 
+  const getCategoryGradient = (type: WorkCategory) => {
+    const gradients: Record<string, string> = {
+      'materia': 'from-indigo-500 to-purple-500',
+      'idioma': 'from-purple-500 to-pink-500',
+      'trabajo': 'from-emerald-500 to-teal-500',
+      'gym': 'from-orange-500 to-red-500',
+      'proyecto': 'from-cyan-500 to-blue-500',
+      'descanso': 'from-amber-500 to-yellow-500',
+      'otro': 'from-slate-500 to-gray-500'
+    };
+    return gradients[type] || gradients.otro;
+  };
+
   const handleOpenModal = (instance?: CategoryInstance) => {
     if (instance) {
       setEditingInstance(instance);
-      setSchedules([]); // Reset schedules for editing
+      setSchedules([]);
       setFormData({
         name: instance.name,
         category_type: instance.category_type,
@@ -161,7 +172,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
       });
     } else {
       setEditingInstance(null);
-      setSchedules([]); // Reset schedules for new category
+      setSchedules([]);
       setFormData({
         name: '',
         category_type: 'materia',
@@ -182,19 +193,14 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
   const handleSave = async () => {
     if (!activeProfileId || !formData.name) return;
 
-    // SOLUCIÓN TEMPORAL: Usar la tabla subjects que SÍ funciona
-    // en lugar de category_instances que tiene problemas de permisos
     if (formData.category_type === 'materia' && !editingInstance) {
-      // Validar que haya al menos un horario para materias
       if (schedules.length === 0) {
-        alert('⚠️ Debes agregar al menos un horario de clase para esta materia');
+        alert('Debes agregar al menos un horario de clase para esta materia');
         return;
       }
 
-      // Crear como Subject en lugar de CategoryInstance
       const { supabase } = await import('../lib/supabase');
 
-      // 1. Crear la materia
       const { data: newSubject, error: subjectError } = await supabase
         .from('subjects')
         .insert({
@@ -213,11 +219,10 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
 
       if (subjectError || !newSubject) {
         console.error('Error creando materia:', subjectError);
-        alert('❌ Error al crear la materia');
+        alert('Error al crear la materia');
         return;
       }
 
-      // 2. Crear los horarios de clase
       const scheduleRecords = schedules.map(schedule => ({
         subject_id: newSubject.id,
         day_of_week: schedule.day_of_week,
@@ -231,20 +236,16 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
 
       if (scheduleError) {
         console.error('Error creando horarios:', scheduleError);
-        alert('⚠️ Materia creada pero hubo un error al guardar algunos horarios');
       }
 
-      // 3. Recargar datos en el store
       const { syncWithSupabase } = useAppStore.getState();
       await syncWithSupabase();
 
       setShowModal(false);
       setSchedules([]);
-      alert(`✅ Materia "${formData.name}" creada correctamente con ${schedules.length} horarios`);
       return;
     }
 
-    // Para otras categorías o edición, intentar con category_instances
     const instanceData = {
       ...formData,
       profile_id: activeProfileId,
@@ -255,15 +256,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     try {
       if (editingInstance) {
         await updateCategoryInstance(editingInstance.id, instanceData);
-        alert(`✅ Categoría "${formData.name}" actualizada correctamente`);
       } else {
         await addCategoryInstance(instanceData);
-        alert(`✅ Categoría "${formData.name}" creada correctamente`);
       }
       setShowModal(false);
     } catch (error) {
       console.error('Error al guardar categoría:', error);
-      alert(`❌ Error al guardar la categoría. Revisa la consola para más detalles.`);
+      alert('Error al guardar la categoría.');
     }
   };
 
@@ -281,242 +280,352 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
   };
 
   const handleMigrateSubject = async (subjectId: string, periodId: string) => {
-    if (!periodId) {
-      alert('Por favor selecciona un período primero');
-      return;
-    }
-
+    if (!periodId) return;
     await updateSubject(subjectId, { school_period_id: periodId });
-    alert('Materia actualizada correctamente');
   };
 
   const handleEditSubject = (item: any) => {
-    // Para materias legacy, mostrar mensaje temporal
     if (item.isLegacy) {
-      alert('Edición de materias legacy próximamente. Por ahora puedes asignar el período desde el selector.');
       return;
     }
-    // Para categorías nuevas, abrir el modal de edición
     handleOpenModal(item);
   };
 
-  // Si hay categoría seleccionada, mostrar su vista
   if (selectedCategory) {
     return <CategoryView category={selectedCategory} onBack={() => setSelectedCategory(null)} />;
   }
 
   return (
-    <div className={`max-w-7xl mx-auto space-y-6 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+    <div className={`max-w-7xl mx-auto space-y-8 ${isDark ? 'text-white' : 'text-slate-900'}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black">Life Command Center</h1>
-          <p className={`text-sm font-medium mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-            Crea y gestiona todas tus categorías de vida desde un solo lugar
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg">
+              <Sparkles size={22} />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight">Mis Categorías</h1>
+          </div>
+          <p className={`text-sm font-medium ml-14 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            Organiza todas las áreas de tu vida desde un solo lugar
           </p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98]"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Nueva Categoría
         </button>
       </div>
 
-      {/* Grid Unificado de Todas las Materias/Categorías */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allCategories.map(item => {
-          // Si es una materia legacy (de subjects)
-          if ('isLegacy' in item && item.isLegacy) {
-            const currentPeriod = item.school_period_id
-              ? profilePeriods.find(p => p.id === item.school_period_id)
-              : null;
+      {/* Resumen rápido de tipos */}
+      {allCategories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {(() => {
+            const typeCounts: Record<string, number> = {};
+            allCategories.forEach(c => {
+              typeCounts[c.category_type] = (typeCounts[c.category_type] || 0) + 1;
+            });
+            return Object.entries(typeCounts).map(([type, count]) => (
+              <div
+                key={type}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold ${
+                  isDark ? 'bg-slate-800/80 text-slate-300' : 'bg-white text-slate-600 border border-slate-200'
+                }`}
+              >
+                {getCategoryIcon(type as WorkCategory, 14)}
+                <span>{getCategoryLabel(type as WorkCategory)}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+                  isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {count}
+                </span>
+              </div>
+            ));
+          })()}
+        </div>
+      )}
+
+      {/* Grid de Categorías */}
+      {allCategories.length === 0 ? (
+        <div className={`p-12 rounded-2xl border-2 border-dashed text-center ${
+          isDark ? 'border-slate-700 bg-slate-900/30' : 'border-slate-300 bg-slate-50'
+        }`}>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 w-fit mx-auto mb-4">
+            <FolderKanban size={40} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+          </div>
+          <h3 className="text-xl font-black mb-2">Sin categorías aún</h3>
+          <p className={`text-sm max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            Crea tu primera categoría para organizar materias, trabajo, gym, proyectos y más.
+          </p>
+          <button
+            onClick={() => handleOpenModal()}
+            className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg"
+          >
+            <Plus size={18} />
+            Crear primera categoría
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {allCategories.map(item => {
+            // Materia legacy
+            if ('isLegacy' in item && item.isLegacy) {
+              const legacyItem = item as typeof allCategories[number] & { school_period_id?: string; professor_name?: string; classroom?: string };
+              const currentPeriod = legacyItem.school_period_id
+                ? profilePeriods.find(p => p.id === legacyItem.school_period_id)
+                : null;
+
+              return (
+                <div
+                  key={item.id}
+                  className={`group relative overflow-hidden rounded-2xl border transition-all hover:scale-[1.01] hover:shadow-xl ${
+                    isDark
+                      ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {/* Color accent bar */}
+                  <div
+                    className="h-1.5 w-full"
+                    style={{ background: `linear-gradient(90deg, ${item.color}, ${item.color}88)` }}
+                  />
+
+                  <div className="p-5">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="p-2.5 rounded-xl text-white shadow-lg"
+                          style={{ backgroundColor: item.color }}
+                        >
+                          {getCategoryIcon(item.category_type, 18)}
+                        </div>
+                        <div>
+                          <h3 className="font-black text-base leading-tight">{item.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                              isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              {getCategoryLabel(item.category_type)}
+                            </span>
+                            {item.needsPeriod ? (
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-500">
+                                <AlertCircle size={10} />
+                                Sin período
+                              </span>
+                            ) : currentPeriod && (
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500">
+                                <CheckCircle size={10} />
+                                {currentPeriod.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEditSubject(item); }}
+                        className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
+                          isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                        }`}
+                      >
+                        <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+                      </button>
+                    </div>
+
+                    {/* Info adicional */}
+                    {(legacyItem.professor_name || legacyItem.classroom) && (
+                      <div className={`space-y-1 mb-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {legacyItem.professor_name && (
+                          <p><span className="font-bold">Prof:</span> {legacyItem.professor_name}</p>
+                        )}
+                        {legacyItem.classroom && (
+                          <p><span className="font-bold">Aula:</span> {legacyItem.classroom}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Selector de período si falta */}
+                    {item.needsPeriod && (
+                      <select
+                        value={legacyItem.school_period_id || ''}
+                        onChange={(e) => handleMigrateSubject(item.id, e.target.value)}
+                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold ${
+                          isDark
+                            ? 'bg-slate-800 border border-slate-700 text-white'
+                            : 'bg-slate-50 border border-slate-200 text-slate-900'
+                        }`}
+                      >
+                        <option value="">Asignar período...</option>
+                        {profilePeriods.map(period => (
+                          <option key={period.id} value={period.id}>
+                            {period.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // Categoría nueva
+            const instance = profileInstances.find(ci => ci.id === item.id);
+            if (!instance) return null;
 
             return (
               <div
-                key={item.id}
-                className={`p-5 rounded-xl border transition-all hover:scale-105 ${
-                  theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+                key={instance.id}
+                onClick={() => setSelectedCategory(instance)}
+                className={`group relative overflow-hidden rounded-2xl border cursor-pointer transition-all hover:scale-[1.01] hover:shadow-xl ${
+                  isDark
+                    ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
                 }`}
-                style={{ borderLeftWidth: '4px', borderLeftColor: item.color }}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="p-2 rounded-lg text-white"
-                      style={{ backgroundColor: item.color }}
-                    >
-                      {getCategoryIcon(item.category_type, 20)}
+                {/* Color accent bar */}
+                <div
+                  className="h-1.5 w-full"
+                  style={{ background: `linear-gradient(90deg, ${instance.color}, ${instance.color}88)` }}
+                />
+
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="p-2.5 rounded-xl text-white shadow-lg"
+                        style={{ backgroundColor: instance.color }}
+                      >
+                        {getCategoryIcon(instance.category_type, 18)}
+                      </div>
+                      <div>
+                        <h3 className="font-black text-base leading-tight">{instance.name}</h3>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${
+                          isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {getCategoryLabel(instance.category_type)}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-black text-lg">{item.name}</h3>
-                      <p className="text-xs text-slate-400">{getCategoryLabel(item.category_type)}</p>
-                      {item.needsPeriod ? (
-                        <div className="flex items-center gap-1 text-xs mt-1">
-                          <AlertCircle size={10} className="text-yellow-500" />
-                          <span className="text-yellow-500 font-bold">Sin período</span>
-                        </div>
-                      ) : currentPeriod && (
-                        <div className="flex items-center gap-1 text-xs mt-1">
-                          <CheckCircle size={10} className="text-green-500" />
-                          <span className="text-green-500 font-bold">{currentPeriod.name}</span>
-                        </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleOpenModal(instance); }}
+                        className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
+                      >
+                        <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDelete(instance.id); }}
+                        className="p-2 rounded-lg hover:bg-red-500/10"
+                      >
+                        <Trash2 size={14} className="text-red-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Schedule info */}
+                  <div className={`space-y-2.5 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <div className="flex items-center gap-2.5">
+                      <Calendar size={14} className="flex-shrink-0" />
+                      <span className="font-medium capitalize">{instance.period_type}</span>
+                      {instance.start_date && instance.end_date && (
+                        <span className="text-xs opacity-70">
+                          {new Date(instance.start_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })} - {new Date(instance.end_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+                        </span>
                       )}
                     </div>
+                    <div className="flex items-center gap-2.5">
+                      <Clock size={14} className="flex-shrink-0" />
+                      <span className="font-bold">{instance.schedule_start_time} - {instance.schedule_end_time}</span>
+                    </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEditSubject(item); }}
-                    className="p-2 rounded-lg hover:bg-slate-800 transition-colors"
-                  >
-                    <Edit2 size={16} />
-                  </button>
+
+                  {/* Days pills */}
+                  <div className="flex items-center gap-1.5 mt-4">
+                    {DAYS.map((day, idx) => {
+                      const isSelected = instance.schedule_days.includes(idx);
+                      return (
+                        <span
+                          key={idx}
+                          className={`w-8 h-8 rounded-lg text-[10px] font-black flex items-center justify-center transition-all ${
+                            isSelected
+                              ? 'text-white shadow-sm'
+                              : isDark
+                              ? 'bg-slate-800/50 text-slate-600'
+                              : 'bg-slate-100 text-slate-300'
+                          }`}
+                          style={isSelected ? { backgroundColor: instance.color } : {}}
+                        >
+                          {day.charAt(0)}
+                        </span>
+                      );
+                    })}
+                    <span className={`ml-auto text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      {instance.times_per_week}x/sem
+                    </span>
+                  </div>
+
+                  {/* Arrow indicator */}
+                  <div className={`flex items-center justify-end mt-3 text-xs font-bold gap-1 opacity-0 group-hover:opacity-100 transition-all ${
+                    isDark ? 'text-indigo-400' : 'text-indigo-500'
+                  }`}>
+                    Ver detalles <ArrowRight size={12} />
+                  </div>
                 </div>
-
-                {/* Selector de período si falta */}
-                {item.needsPeriod && (
-                  <div className="mt-3">
-                    <select
-                      value={item.school_period_id || ''}
-                      onChange={(e) => handleMigrateSubject(item.id, e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg text-sm font-semibold ${
-                        theme === 'dark'
-                          ? 'bg-slate-800 border border-slate-700 text-white'
-                          : 'bg-slate-50 border border-slate-200 text-slate-900'
-                      }`}
-                    >
-                      <option value="">Asignar período...</option>
-                      {profilePeriods.map(period => (
-                        <option key={period.id} value={period.id}>
-                          {period.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Info adicional */}
-                {item.professor_name && (
-                  <div className="mt-2 text-xs text-slate-400">
-                    <strong>Profesor:</strong> {item.professor_name}
-                  </div>
-                )}
-                {item.classroom && (
-                  <div className="text-xs text-slate-400">
-                    <strong>Aula:</strong> {item.classroom}
-                  </div>
-                )}
               </div>
             );
-          }
-
-          // Si es una categoría nueva (category_instance)
-          const instance = profileInstances.find(ci => ci.id === item.id);
-          if (!instance) return null;
-
-          return (
-            <div
-              key={instance.id}
-              onClick={() => setSelectedCategory(instance)}
-              className={`p-5 rounded-xl border transition-all hover:scale-105 cursor-pointer ${
-                theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
-              }`}
-              style={{ borderLeftWidth: '4px', borderLeftColor: instance.color }}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="p-2 rounded-lg text-white"
-                    style={{ backgroundColor: instance.color }}
-                  >
-                    {getCategoryIcon(instance.category_type, 20)}
-                  </div>
-                  <div>
-                    <h3 className="font-black text-lg">{instance.name}</h3>
-                    <p className="text-xs text-slate-400">{getCategoryLabel(instance.category_type)}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleOpenModal(instance); }}
-                    className="p-2 rounded-lg hover:bg-slate-800 transition-colors"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(instance.id); }}
-                    className="p-2 rounded-lg hover:bg-red-500 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-slate-400" />
-                  <span className="font-medium">{instance.period_type}</span>
-                  {instance.start_date && instance.end_date && (
-                    <span className="text-xs text-slate-400">
-                      ({new Date(instance.start_date).toLocaleDateString()} - {new Date(instance.end_date).toLocaleDateString()})
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={14} className="text-slate-400" />
-                  <span>{instance.schedule_start_time} - {instance.schedule_end_time}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={14} className="text-slate-400" />
-                  <span>{instance.times_per_week}x por semana</span>
-                </div>
-                <div className="flex gap-1 mt-2">
-                  {instance.schedule_days.map(day => (
-                    <span
-                      key={day}
-                      className="px-2 py-1 rounded text-xs font-bold"
-                      style={{ backgroundColor: instance.color, color: 'white' }}
-                    >
-                      {DAYS[day]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className={`w-full max-w-2xl p-6 rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto ${
-            theme === 'dark' ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200'
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
+          <div className={`w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto ${
+            isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200'
           }`}>
-            <h3 className="text-2xl font-black mb-6">
-              {editingInstance ? 'Editar Categoría' : 'Nueva Categoría'}
-            </h3>
+            {/* Modal header */}
+            <div className={`sticky top-0 z-10 flex items-center justify-between p-6 pb-4 border-b ${
+              isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+            }`}>
+              <div>
+                <h3 className="text-xl font-black">
+                  {editingInstance ? 'Editar Categoría' : 'Nueva Categoría'}
+                </h3>
+                <p className={`text-xs font-medium mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {editingInstance ? 'Modifica los detalles de tu categoría' : 'Configura una nueva área de tu vida'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowModal(false)}
+                className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
+              >
+                <X size={20} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+              </button>
+            </div>
 
-            <div className="space-y-5">
+            <div className="p-6 space-y-6">
               {/* Tipo de Categoría */}
               <div>
-                <label className="block text-sm font-bold text-slate-400 mb-2">Tipo de Categoría</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className={`block text-xs font-black uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Tipo de Categoría
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {(['materia', 'trabajo', 'idioma', 'gym', 'proyecto', 'descanso'] as WorkCategory[]).map(type => (
                     <button
                       key={type}
                       onClick={() => setFormData({ ...formData, category_type: type, color: getCategoryColor(type) })}
-                      className={`p-3 rounded-lg font-bold flex flex-col items-center gap-2 transition-all ${
+                      className={`p-3 rounded-xl font-bold flex flex-col items-center gap-2 transition-all border-2 ${
                         formData.category_type === type
-                          ? 'text-white shadow-lg'
-                          : theme === 'dark'
-                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          ? 'text-white shadow-lg border-transparent scale-[1.05]'
+                          : isDark
+                          ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-transparent'
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border-transparent'
                       }`}
                       style={formData.category_type === type ? { backgroundColor: getCategoryColor(type) } : {}}
                     >
                       {getCategoryIcon(type, 20)}
-                      <span className="text-xs">{getCategoryLabel(type)}</span>
+                      <span className="text-[10px]">{getCategoryLabel(type)}</span>
                     </button>
                   ))}
                 </div>
@@ -524,34 +633,57 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
 
               {/* Nombre */}
               <div>
-                <label className="block text-sm font-bold text-slate-400 mb-2">Nombre</label>
+                <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Nombre
+                </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ej: Inglés B2, Matemáticas I, Freelance Dev"
-                  className={`w-full px-4 py-3 rounded-lg outline-none ${
-                    theme === 'dark'
-                      ? 'bg-slate-800 border border-slate-700 text-white'
-                      : 'bg-slate-50 border border-slate-200 text-slate-900'
+                  className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-medium transition-colors ${
+                    isDark
+                      ? 'bg-slate-800 border border-slate-700 text-white focus:border-indigo-500 placeholder:text-slate-600'
+                      : 'bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-500 placeholder:text-slate-400'
                   }`}
                 />
               </div>
 
+              {/* Color */}
+              <div>
+                <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-10 h-10 rounded-xl border-0 cursor-pointer"
+                  />
+                  <div
+                    className="flex-1 h-10 rounded-xl"
+                    style={{ background: `linear-gradient(90deg, ${formData.color}, ${formData.color}66)` }}
+                  />
+                </div>
+              </div>
+
               {/* Periodo */}
               <div>
-                <label className="block text-sm font-bold text-slate-400 mb-2">Periodo</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className={`block text-xs font-black uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Período
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {(['mensual', 'trimestral', 'semestral', 'anual', 'indefinido', 'custom'] as CategoryPeriodType[]).map(period => (
                     <button
                       key={period}
                       onClick={() => setFormData({ ...formData, period_type: period })}
-                      className={`p-2 rounded-lg text-sm font-bold transition-all ${
+                      className={`p-2.5 rounded-xl text-xs font-bold transition-all ${
                         formData.period_type === period
-                          ? 'bg-indigo-600 text-white'
-                          : theme === 'dark'
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                          : isDark
                           ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
                       {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -560,30 +692,34 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
                 </div>
               </div>
 
-              {/* Fechas (si no es indefinido) */}
+              {/* Fechas */}
               {formData.period_type !== 'indefinido' && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">Fecha Inicio</label>
+                    <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Fecha Inicio
+                    </label>
                     <input
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                      className={`w-full px-4 py-3 rounded-lg outline-none ${
-                        theme === 'dark'
+                      className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-medium ${
+                        isDark
                           ? 'bg-slate-800 border border-slate-700 text-white'
                           : 'bg-slate-50 border border-slate-200 text-slate-900'
                       }`}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">Fecha Fin</label>
+                    <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Fecha Fin
+                    </label>
                     <input
                       type="date"
                       value={formData.end_date}
                       onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                      className={`w-full px-4 py-3 rounded-lg outline-none ${
-                        theme === 'dark'
+                      className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-medium ${
+                        isDark
                           ? 'bg-slate-800 border border-slate-700 text-white'
                           : 'bg-slate-50 border border-slate-200 text-slate-900'
                       }`}
@@ -592,33 +728,31 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
                 </div>
               )}
 
-              {/* Horarios - Diferentes según tipo de categoría */}
+              {/* Horarios */}
               {formData.category_type === 'materia' ? (
-                // Editor de horarios múltiples para materias
                 <ScheduleEditor
                   schedules={schedules}
                   onChange={setSchedules}
                   theme={theme}
                 />
               ) : (
-                // Selector simple de días/horario para otras categorías
                 <>
                   {/* Días de la semana */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-400 mb-2">
-                      Días de la Semana ({formData.schedule_days.length} seleccionados)
+                    <label className={`block text-xs font-black uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Días ({formData.schedule_days.length} seleccionados)
                     </label>
                     <div className="flex gap-2">
                       {DAYS.map((day, index) => (
                         <button
                           key={index}
                           onClick={() => toggleDay(index)}
-                          className={`flex-1 py-3 rounded-lg font-bold transition-all ${
+                          className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${
                             formData.schedule_days.includes(index)
                               ? 'text-white shadow-lg'
-                              : theme === 'dark'
-                              ? 'bg-slate-800 text-slate-400'
-                              : 'bg-slate-100 text-slate-500'
+                              : isDark
+                              ? 'bg-slate-800 text-slate-500 hover:bg-slate-700'
+                              : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                           }`}
                           style={formData.schedule_days.includes(index) ? { backgroundColor: formData.color } : {}}
                         >
@@ -629,28 +763,32 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
                   </div>
 
                   {/* Horario */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-slate-400 mb-2">Hora Inicio</label>
+                      <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Hora Inicio
+                      </label>
                       <input
                         type="time"
                         value={formData.schedule_start_time}
                         onChange={(e) => setFormData({ ...formData, schedule_start_time: e.target.value })}
-                        className={`w-full px-4 py-3 rounded-lg outline-none ${
-                          theme === 'dark'
+                        className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-bold ${
+                          isDark
                             ? 'bg-slate-800 border border-slate-700 text-white'
                             : 'bg-slate-50 border border-slate-200 text-slate-900'
                         }`}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-400 mb-2">Hora Fin</label>
+                      <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        Hora Fin
+                      </label>
                       <input
                         type="time"
                         value={formData.schedule_end_time}
                         onChange={(e) => setFormData({ ...formData, schedule_end_time: e.target.value })}
-                        className={`w-full px-4 py-3 rounded-lg outline-none ${
-                          theme === 'dark'
+                        className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-bold ${
+                          isDark
                             ? 'bg-slate-800 border border-slate-700 text-white'
                             : 'bg-slate-50 border border-slate-200 text-slate-900'
                         }`}
@@ -661,19 +799,19 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
               )}
 
               {/* Botones */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleSave}
-                  className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all"
+                  className="flex-1 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/25"
                 >
-                  {editingInstance ? 'Actualizar' : 'Crear Categoría'}
+                  {editingInstance ? 'Guardar Cambios' : 'Crear Categoría'}
                 </button>
                 <button
                   onClick={() => setShowModal(false)}
-                  className={`px-6 py-3 font-bold rounded-lg transition-colors ${
-                    theme === 'dark'
-                      ? 'bg-slate-800 text-white hover:bg-slate-700'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  className={`px-6 py-3.5 font-bold rounded-xl transition-colors ${
+                    isDark
+                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   Cancelar

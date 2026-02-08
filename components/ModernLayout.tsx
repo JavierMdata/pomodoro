@@ -45,17 +45,17 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      {/* Top Bar - Solo para Profile, Menu de Secciones y Tema */}
+      {/* Top Bar */}
       <div className={`fixed top-0 ${isSidebarCollapsed ? 'left-20' : 'left-72'} right-0 z-40 backdrop-blur-2xl border-b transition-all duration-300 ${
         theme === 'dark'
           ? 'bg-slate-900/80 border-slate-800'
-          : 'bg-white/80 border-slate-200/50'
+          : 'bg-white/90 border-slate-200'
       }`}>
-        <div className="px-6 h-20 flex items-center justify-between">
+        <div className="px-6 h-16 flex items-center justify-between">
           {/* Profile Info */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-2xl transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
               style={{
                 background: `linear-gradient(135deg, ${activeProfile.color}, ${activeProfile.color}dd)`
               }}
@@ -68,46 +68,43 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children, activeTab, setAct
               {activeProfile.name.charAt(0)}
             </div>
             <div>
-              <h2 className={`font-black text-lg leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+              <h2 className={`font-black text-sm leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                 {activeProfile.name}
               </h2>
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-indigo-500">
+              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500">
                 {activeProfile.type}
               </p>
             </div>
           </div>
 
           {/* Sections Menu & Theme Toggle */}
-          <div className="flex items-center gap-3">
-            {/* Menú de secciones */}
+          <div className="flex items-center gap-2">
             <SectionsDropdownMenu
               theme={theme}
               onSelectSection={handleSelectSection}
             />
-
-            {/* Theme Toggle */}
             <button
               onClick={() => {
                 soundService.playToggle();
                 soundService.vibrate(15);
                 toggleTheme();
               }}
-              className={`p-3 rounded-xl transition-all hover:scale-110 active:scale-95 ${
+              className={`p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 ${
                 theme === 'dark'
                   ? 'bg-slate-800 text-amber-400 hover:bg-slate-700'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
               }`}
               aria-label="Cambiar tema"
             >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className={`relative z-10 ${isSidebarCollapsed ? 'ml-20' : 'ml-72'} pt-28 pb-12 transition-all duration-300`}>
-        <div className="px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <main className={`relative z-10 ${isSidebarCollapsed ? 'ml-20' : 'ml-72'} pt-24 pb-12 transition-all duration-300`}>
+        <div className="px-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           {children}
         </div>
       </main>
