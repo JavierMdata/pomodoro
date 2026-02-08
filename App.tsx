@@ -324,7 +324,7 @@ const App: React.FC = () => {
           {activeTab === 'dashboard' && <CommandCenterDashboard />}
           {activeTab === 'periods' && <PeriodManager />}
           {activeTab === 'schedule' && <WorkScheduleManager />}
-          {activeTab === 'categories' && <CategoryManager filterType="all-except-materia" />}
+          {activeTab === 'categories' && <CategoryManager filterType="all" />}
           {activeTab === 'subjects' && <SubjectsManager />}
           {activeTab === 'books' && <BooksTabWrapper />}
           {activeTab === 'exams' && <ExamManager />}

@@ -287,113 +287,131 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {allCategories.map(item => {
-            const instance = profileInstances.find(ci => ci.id === item.id);
-            if (!instance) return null;
+        <div className="space-y-8">
+          {/* Agrupar categorías por tipo */}
+          {(() => {
+            const grouped: Record<string, typeof profileInstances> = {};
+            profileInstances.forEach(inst => {
+              if (!grouped[inst.category_type]) grouped[inst.category_type] = [];
+              grouped[inst.category_type].push(inst);
+            });
 
-            return (
-              <div
-                key={instance.id}
-                onClick={() => setSelectedCategory(instance)}
-                className={`group relative overflow-hidden rounded-2xl border cursor-pointer transition-all hover:scale-[1.01] hover:shadow-xl ${
-                  isDark
-                    ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                {/* Color accent bar */}
-                <div
-                  className="h-1.5 w-full"
-                  style={{ background: `linear-gradient(90deg, ${instance.color}, ${instance.color}88)` }}
-                />
+            const typeOrder: string[] = ['materia', 'trabajo', 'idioma', 'gym', 'proyecto', 'descanso', 'otro'];
+            const orderedTypes = typeOrder.filter(t => grouped[t]);
 
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="p-2.5 rounded-xl text-white shadow-lg"
-                        style={{ backgroundColor: instance.color }}
-                      >
-                        {getCategoryIcon(instance.category_type, 18)}
-                      </div>
-                      <div>
-                        <h3 className="font-black text-base leading-tight">{instance.name}</h3>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-md mt-1 inline-block ${
-                          isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {getCategoryLabel(instance.category_type)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleOpenModal(instance); }}
-                        className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
-                      >
-                        <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDelete(instance.id); }}
-                        className="p-2 rounded-lg hover:bg-red-500/10"
-                      >
-                        <Trash2 size={14} className="text-red-400" />
-                      </button>
-                    </div>
-                  </div>
+            return orderedTypes.map(type => {
+              const instances = grouped[type];
+              const typeColor = getCategoryColor(type as WorkCategory);
 
-                  {/* Schedule info */}
-                  <div className={`space-y-2.5 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <div className="flex items-center gap-2.5">
-                      <Calendar size={14} className="flex-shrink-0" />
-                      <span className="font-medium capitalize">{instance.period_type}</span>
-                      {instance.start_date && instance.end_date && (
-                        <span className="text-xs opacity-70">
-                          {new Date(instance.start_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })} - {new Date(instance.end_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
-                        </span>
-                      )}
+              return (
+                <div key={type}>
+                  {/* Section header por tipo */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div
+                      className="p-2 rounded-lg text-white"
+                      style={{ backgroundColor: typeColor }}
+                    >
+                      {getCategoryIcon(type as WorkCategory, 16)}
                     </div>
-                    <div className="flex items-center gap-2.5">
-                      <Clock size={14} className="flex-shrink-0" />
-                      <span className="font-bold">{instance.schedule_start_time} - {instance.schedule_end_time}</span>
-                    </div>
-                  </div>
-
-                  {/* Days pills */}
-                  <div className="flex items-center gap-1.5 mt-4">
-                    {DAYS.map((day, idx) => {
-                      const isSelected = instance.schedule_days.includes(idx);
-                      return (
-                        <span
-                          key={idx}
-                          className={`w-8 h-8 rounded-lg text-[10px] font-black flex items-center justify-center transition-all ${
-                            isSelected
-                              ? 'text-white shadow-sm'
-                              : isDark
-                              ? 'bg-slate-800/50 text-slate-600'
-                              : 'bg-slate-100 text-slate-300'
-                          }`}
-                          style={isSelected ? { backgroundColor: instance.color } : {}}
-                        >
-                          {day.charAt(0)}
-                        </span>
-                      );
-                    })}
-                    <span className={`ml-auto text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                      {instance.times_per_week}x/sem
+                    <h2 className="text-lg font-black">{getCategoryLabel(type as WorkCategory)}s</h2>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
+                      isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {instances.length}
                     </span>
+                    <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
                   </div>
 
-                  {/* Arrow indicator */}
-                  <div className={`flex items-center justify-end mt-3 text-xs font-bold gap-1 opacity-0 group-hover:opacity-100 transition-all ${
-                    isDark ? 'text-indigo-400' : 'text-indigo-500'
-                  }`}>
-                    Ver detalles <ArrowRight size={12} />
+                  {/* Grid de categorías de este tipo */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {instances.map(instance => (
+                      <div
+                        key={instance.id}
+                        onClick={() => setSelectedCategory(instance)}
+                        className={`group relative overflow-hidden rounded-2xl border cursor-pointer transition-all hover:scale-[1.01] hover:shadow-xl ${
+                          isDark
+                            ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className="h-1.5 w-full"
+                          style={{ background: `linear-gradient(90deg, ${instance.color}, ${instance.color}88)` }}
+                        />
+
+                        <div className="p-5">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="p-2.5 rounded-xl text-white shadow-lg"
+                                style={{ backgroundColor: instance.color }}
+                              >
+                                {getCategoryIcon(instance.category_type, 18)}
+                              </div>
+                              <div>
+                                <h3 className="font-black text-base leading-tight">{instance.name}</h3>
+                                <span className={`text-xs font-medium capitalize ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  {instance.period_type}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleOpenModal(instance); }}
+                                className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
+                              >
+                                <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDelete(instance.id); }}
+                                className="p-2 rounded-lg hover:bg-red-500/10"
+                              >
+                                <Trash2 size={14} className="text-red-400" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Schedule compact */}
+                          <div className={`flex items-center gap-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            <div className="flex items-center gap-1.5">
+                              <Clock size={12} />
+                              <span className="font-bold">{instance.schedule_start_time} - {instance.schedule_end_time}</span>
+                            </div>
+                            <span className="font-bold">{instance.times_per_week}x/sem</span>
+                          </div>
+
+                          {/* Days pills compact */}
+                          <div className="flex items-center gap-1 mt-3">
+                            {DAYS.map((day, idx) => {
+                              const isSelected = instance.schedule_days.includes(idx);
+                              return (
+                                <span
+                                  key={idx}
+                                  className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center ${
+                                    isSelected
+                                      ? 'text-white shadow-sm'
+                                      : isDark
+                                      ? 'bg-slate-800/50 text-slate-600'
+                                      : 'bg-slate-100 text-slate-300'
+                                  }`}
+                                  style={isSelected ? { backgroundColor: instance.color } : {}}
+                                >
+                                  {day.charAt(0)}
+                                </span>
+                              );
+                            })}
+                            <ArrowRight size={14} className={`ml-auto opacity-0 group-hover:opacity-100 transition-all ${
+                              isDark ? 'text-indigo-400' : 'text-indigo-500'
+                            }`} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       )}
 

@@ -118,26 +118,26 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       ]
     },
     {
-      id: 'learn',
-      label: 'APRENDER',
+      id: 'academic',
+      label: 'ACADÉMICO',
       icon: BookOpen,
       color: '#8B5CF6',
       gradient: 'from-purple-500 to-pink-500',
       items: [
         { id: 'subjects', label: 'Materias', icon: BookOpen, tab: 'subjects', badge: profileSubjects.length, color: '#8B5CF6' },
+        { id: 'exams', label: 'Exámenes', icon: AlertCircle, tab: 'exams', badge: upcomingExams, color: '#EF4444' },
+        { id: 'tasks', label: 'Tareas', icon: Target, tab: 'tasks', badge: pendingTasks, color: '#F59E0B' },
         { id: 'books', label: 'Libros', icon: Library, tab: 'books', color: '#EC4899' },
       ]
     },
     {
-      id: 'grow',
-      label: 'CRECER',
+      id: 'life',
+      label: 'MI VIDA',
       icon: Sparkles,
       color: '#10B981',
       gradient: 'from-emerald-500 to-teal-500',
       items: [
-        // Vista general de todas las categorías
-        { id: 'categories', label: 'Mis Categorías', icon: FolderKanban, tab: 'categories', badge: activeCategoriesCount, color: '#10B981' },
-        // Categorías dinámicas - cada category_instance activa crea su propio item
+        { id: 'categories', label: 'Todas las Categorías', icon: FolderKanban, tab: 'categories', badge: activeCategoriesCount, color: '#10B981' },
         ...profileCategories.map(cat => ({
           id: `category-${cat.id}`,
           label: cat.name,
@@ -148,20 +148,8 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       ]
     },
     {
-      id: 'organize',
-      label: 'ORGANIZAR',
-      icon: Target,
-      color: '#F59E0B',
-      gradient: 'from-amber-500 to-orange-500',
-      items: [
-        { id: 'tasks', label: 'Tareas', icon: Target, tab: 'tasks', badge: pendingTasks, color: '#F59E0B' },
-        { id: 'exams', label: 'Exámenes', icon: AlertCircle, tab: 'exams', badge: upcomingExams, color: '#EF4444' },
-        { id: 'schedule', label: 'Horarios', icon: Calendar, tab: 'schedule', color: '#F97316' },
-      ]
-    },
-    {
       id: 'analyze',
-      label: 'ANALIZAR',
+      label: 'ANÁLISIS',
       icon: BarChart3,
       color: '#06B6D4',
       gradient: 'from-cyan-500 to-blue-500',
@@ -173,13 +161,14 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
     },
     {
       id: 'config',
-      label: 'CONFIGURAR',
+      label: 'AJUSTES',
       icon: Settings,
       color: '#64748B',
       gradient: 'from-slate-500 to-gray-500',
       items: [
         { id: 'periods', label: 'Períodos', icon: Calendar, tab: 'periods', color: '#64748B' },
-        { id: 'settings', label: 'Ajustes', icon: Settings, tab: 'settings', color: '#475569' },
+        { id: 'schedule', label: 'Horarios', icon: Calendar, tab: 'schedule', color: '#F97316' },
+        { id: 'settings', label: 'Configuración', icon: Settings, tab: 'settings', color: '#475569' },
       ]
     }
   ];
