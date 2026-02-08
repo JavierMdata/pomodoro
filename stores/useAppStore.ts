@@ -7,7 +7,8 @@ import {
   ExamTopic, Material, PomodoroSession, PomodoroSettings, Alert,
   ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
   EntityType, EntityRef, ClassSchedule, ActiveTimer,
-  WorkSchedule, SubjectTimeAllocation, CategoryInstance, WorkCategory
+  WorkSchedule, SubjectTimeAllocation, CategoryInstance, WorkCategory,
+  Book, BookReadingSession, BookQuote
 } from '../types';
 
 interface AppState {
@@ -32,6 +33,11 @@ interface AppState {
   workSchedules: WorkSchedule[];
   timeAllocations: SubjectTimeAllocation[];
   categoryInstances: CategoryInstance[];
+
+  // LIBROS
+  books: Book[];
+  bookReadingSessions: BookReadingSession[];
+  bookQuotes: BookQuote[];
 
   // SEGUNDO CEREBRO: Nuevos estados
   contentBlocks: ContentBlock[];
@@ -121,6 +127,13 @@ interface AppState {
   refreshKnowledgeGraph: () => Promise<void>;
   searchNodes: (term: string) => KnowledgeNode[];
 
+  // LIBROS
+  addBook: (book: Partial<Book>) => Promise<void>;
+  updateBook: (id: string, updates: Partial<Book>) => Promise<void>;
+  deleteBook: (id: string) => Promise<void>;
+  addBookReadingSession: (session: Partial<BookReadingSession>) => Promise<void>;
+  addBookQuote: (quote: Partial<BookQuote>) => Promise<void>;
+
   // SECCIÓN SELECCIONADA PARA POMODORO
   setSelectedSectionForPomodoro: (id: string, type: 'subject' | 'category') => void;
   clearSelectedSectionForPomodoro: () => void;
@@ -153,6 +166,11 @@ export const useAppStore = create<AppState>()(
       workSchedules: [],
       timeAllocations: [],
       categoryInstances: [],
+
+      // LIBROS
+      books: [],
+      bookReadingSessions: [],
+      bookQuotes: [],
 
       // SEGUNDO CEREBRO: Estados iniciales
       contentBlocks: [],
@@ -244,6 +262,21 @@ export const useAppStore = create<AppState>()(
               .from('category_instances')
               .select('*')
               .order('created_at', { ascending: false });
+
+            // Cargar libros (si la tabla existe)
+            let booksData: any[] | null = null;
+            let bookSessionsData: any[] | null = null;
+            let bookQuotesData: any[] | null = null;
+            try {
+              const booksResult = await supabase.from('books').select('*').order('created_at', { ascending: false });
+              booksData = booksResult.data;
+              const sessResult = await supabase.from('book_reading_sessions').select('*').order('session_date', { ascending: false });
+              bookSessionsData = sessResult.data;
+              const quotesResult = await supabase.from('book_quotes').select('*').order('created_at', { ascending: false });
+              bookQuotesData = quotesResult.data;
+            } catch (e) {
+              console.log('ℹ️ Tablas de libros no disponibles');
+            }
 
             // Cargar sesiones (últimas 100)
             const { data: sessionsData } = await supabase
@@ -342,6 +375,9 @@ export const useAppStore = create<AppState>()(
               workSchedules: workSchedulesData || [],
               timeAllocations: timeAllocationsData || [],
               categoryInstances: categoryInstancesData || [],
+              books: booksData || [],
+              bookReadingSessions: bookSessionsData || [],
+              bookQuotes: bookQuotesData || [],
               contentBlocks: blocksData || [],
               noteLinks: linksData || [],
               focusJournals: journalsData || [],
@@ -1682,6 +1718,91 @@ export const useAppStore = create<AppState>()(
         return state.categoryInstances
           .filter(ci => ci.category_type === type)
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      },
+
+      // LIBROS CRUD
+      addBook: async (book) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newBook = { ...book, id, created_at: now, updated_at: now } as Book;
+        set((state) => ({ books: [...state.books, newBook] }));
+        try {
+          const { error } = await supabase.from('books').insert([newBook]);
+          if (error) {
+            console.error('Error al guardar libro:', error);
+            set((state) => ({ books: state.books.filter(b => b.id !== id) }));
+          }
+        } catch (e) {
+          console.error('Error al guardar libro:', e);
+          set((state) => ({ books: state.books.filter(b => b.id !== id) }));
+        }
+      },
+
+      updateBook: async (id, updates) => {
+        const prev = get().books.find(b => b.id === id);
+        set((state) => ({ books: state.books.map(b => b.id === id ? { ...b, ...updates, updated_at: new Date().toISOString() } : b) }));
+        try {
+          const { error } = await supabase.from('books').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+          if (error && prev) {
+            set((state) => ({ books: state.books.map(b => b.id === id ? prev : b) }));
+          }
+        } catch (e) {
+          if (prev) set((state) => ({ books: state.books.map(b => b.id === id ? prev : b) }));
+        }
+      },
+
+      deleteBook: async (id) => {
+        const prev = get().books.find(b => b.id === id);
+        set((state) => ({
+          books: state.books.filter(b => b.id !== id),
+          bookReadingSessions: state.bookReadingSessions.filter(s => s.book_id !== id),
+          bookQuotes: state.bookQuotes.filter(q => q.book_id !== id)
+        }));
+        try {
+          await supabase.from('books').delete().eq('id', id);
+        } catch (e) {
+          if (prev) set((state) => ({ books: [...state.books, prev] }));
+        }
+      },
+
+      addBookReadingSession: async (session) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newSession = { ...session, id, created_at: now } as BookReadingSession;
+        set((state) => ({ bookReadingSessions: [...state.bookReadingSessions, newSession] }));
+        try {
+          const { error } = await supabase.from('book_reading_sessions').insert([newSession]);
+          if (error) {
+            console.error('Error al guardar sesión de lectura:', error);
+            set((state) => ({ bookReadingSessions: state.bookReadingSessions.filter(s => s.id !== id) }));
+          } else {
+            // Re-fetch the book to get trigger-updated stats
+            if (session.book_id) {
+              const { data } = await supabase.from('books').select('*').eq('id', session.book_id).single();
+              if (data) {
+                set((state) => ({ books: state.books.map(b => b.id === session.book_id ? data : b) }));
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error al guardar sesión de lectura:', e);
+        }
+      },
+
+      addBookQuote: async (quote) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newQuote = { ...quote, id, created_at: now, updated_at: now } as BookQuote;
+        set((state) => ({ bookQuotes: [...state.bookQuotes, newQuote] }));
+        try {
+          const { error } = await supabase.from('book_quotes').insert([newQuote]);
+          if (error) {
+            console.error('Error al guardar cita:', error);
+            set((state) => ({ bookQuotes: state.bookQuotes.filter(q => q.id !== id) }));
+          }
+        } catch (e) {
+          console.error('Error al guardar cita:', e);
+        }
       },
 
       // SECCIÓN SELECCIONADA PARA POMODORO

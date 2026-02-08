@@ -30,7 +30,8 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     addCategoryInstance,
     updateCategoryInstance,
     deleteCategoryInstance,
-    updateSubject
+    updateSubject,
+    deleteSubject
   } = useAppStore();
 
   const [showModal, setShowModal] = useState(false);
@@ -433,14 +434,25 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleEditSubject(item); }}
-                        className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${
-                          isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
-                        }`}
-                      >
-                        <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEditSubject(item); }}
+                          className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
+                        >
+                          <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`¿Eliminar "${item.name}"? Se eliminarán tareas, exámenes y materiales asociados.`)) {
+                              deleteSubject(item.id);
+                            }
+                          }}
+                          className="p-2 rounded-lg hover:bg-red-500/10"
+                        >
+                          <Trash2 size={14} className="text-red-400" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Info adicional */}

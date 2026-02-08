@@ -251,6 +251,21 @@ const WorkScheduleManager: React.FC = () => {
         </div>
       )}
 
+      {/* Empty state */}
+      {profileSchedules.length === 0 && (
+        <div className={`p-12 rounded-2xl border-2 border-dashed text-center ${
+          isDark ? 'border-slate-700 bg-slate-900/30' : 'border-slate-300 bg-slate-50'
+        }`}>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-indigo-500/10 w-fit mx-auto mb-4">
+            <Clock size={40} className={isDark ? 'text-purple-400' : 'text-purple-500'} />
+          </div>
+          <h3 className="text-xl font-black mb-2">Sin horarios definidos</h3>
+          <p className={`text-sm max-w-md mx-auto mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            Haz clic en cualquier celda del calendario para agregar bloques de tiempo y organizar tu semana.
+          </p>
+        </div>
+      )}
+
       {/* Week navigation */}
       <div className={`p-3 rounded-xl flex items-center justify-between ${
         isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200'
