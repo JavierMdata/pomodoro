@@ -1,12 +1,15 @@
 /**
- * WEEKLY CALENDAR - Vista de calendario semanal MEJORADA
- * Muestra TODAS las actividades: materias, trabajo, gym, proyectos
- * Días arriba (Lun-Dom), horas a la izquierda (6 AM - 10 PM)
+ * WEEKLY CALENDAR - Vista de calendario semanal mejorada
+ * Diseño limpio inspirado en Google Calendar y Fantastical
+ * Con indicador de hora actual y eventos bien estilizados
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { CategoryInstance, Subject, ClassSchedule } from '../types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon, BookOpen,
+  Briefcase, Dumbbell, Languages, FolderKanban, Coffee, Clock
+} from 'lucide-react';
 import {
   format,
   startOfWeek,
@@ -36,80 +39,109 @@ interface CalendarEvent {
 const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ theme = 'dark' }) => {
   const { activeProfileId, categoryInstances, subjects, schedules } = useAppStore();
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [currentMinutes, setCurrentMinutes] = useState(() => {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  });
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Horas del día (6 AM a 10 PM = 17 horas)
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setCurrentMinutes(now.getHours() * 60 + now.getMinutes());
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Scroll to current time on mount
+  useEffect(() => {
+    if (scrollRef.current) {
+      const currentHour = Math.floor(currentMinutes / 60);
+      const scrollTarget = Math.max(0, (currentHour - 7) * 64);
+      scrollRef.current.scrollTop = scrollTarget;
+    }
+  }, []);
+
+  // Hours and days
   const hours = Array.from({ length: 17 }, (_, i) => i + 6);
-
-  // Días de la semana (Lun a Dom)
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-  // Navegación
   const goToPreviousWeek = () => setCurrentWeekStart(subWeeks(currentWeekStart, 1));
   const goToNextWeek = () => setCurrentWeekStart(addWeeks(currentWeekStart, 1));
   const goToToday = () => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-  // Obtener TODAS las actividades (materias + categorías) con valores por defecto
   const profileSubjects = (subjects || []).filter(s => s.profile_id === activeProfileId);
   const profileCategories = (categoryInstances || []).filter(ci => ci.profile_id === activeProfileId && ci.is_active);
   const classSchedules = schedules || [];
 
-  // Función para obtener eventos en una celda específica (día, hora)
-  const getEventsForTimeSlot = (dayIndex: number, hour: number): CalendarEvent[] => {
-    const events: CalendarEvent[] = [];
+  const isCurrentWeek = isSameDay(currentWeekStart, startOfWeek(new Date(), { weekStartsOn: 1 }));
 
-    // 1. AGREGAR MATERIAS (desde schedules)
+  const getCategoryIcon = (type: string, size = 12) => {
+    const icons: Record<string, any> = {
+      'materia': <BookOpen size={size} />,
+      'idioma': <Languages size={size} />,
+      'trabajo': <Briefcase size={size} />,
+      'gym': <Dumbbell size={size} />,
+      'proyecto': <FolderKanban size={size} />,
+      'descanso': <Coffee size={size} />,
+      'otro': <Clock size={size} />
+    };
+    return icons[type] || icons.otro;
+  };
+
+  // Get events for a specific day (all at once, not per slot)
+  const getEventsForDay = (dayIndex: number): CalendarEvent[] => {
+    const events: CalendarEvent[] = [];
+    const seenIds = new Set<string>();
+
+    // Subjects
     profileSubjects.forEach(subject => {
       const subjectSchedules = classSchedules.filter(cs => cs.subject_id === subject.id && cs.day_of_week === dayIndex);
-
       subjectSchedules.forEach(schedule => {
+        const key = `${subject.id}-${schedule.start_time}`;
+        if (seenIds.has(key)) return;
+        seenIds.add(key);
+
         const [startHour, startMin] = schedule.start_time.split(':').map(Number);
         const [endHour, endMin] = schedule.end_time.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-        const slotStart = hour * 60;
-        const slotEnd = (hour + 1) * 60;
+        const durationHours = ((endHour * 60 + endMin) - (startHour * 60 + startMin)) / 60;
 
-        // Verificar si el evento cae en esta hora
-        if (startMinutes < slotEnd && endMinutes > slotStart) {
-          const durationHours = (endMinutes - startMinutes) / 60;
-          events.push({
-            id: subject.id,
-            name: subject.name,
-            color: subject.color,
-            startTime: schedule.start_time,
-            endTime: schedule.end_time,
-            duration: durationHours,
-            type: 'subject',
-            categoryType: 'materia'
-          });
-        }
+        events.push({
+          id: key,
+          name: subject.name,
+          color: subject.color,
+          startTime: schedule.start_time,
+          endTime: schedule.end_time,
+          duration: durationHours,
+          type: 'subject',
+          categoryType: 'materia'
+        });
       });
     });
 
-    // 2. AGREGAR CATEGORÍAS (trabajo, gym, proyectos, etc.)
+    // Categories
     profileCategories.forEach(category => {
       if (category.schedule_days.includes(dayIndex)) {
+        const key = `cat-${category.id}`;
+        if (seenIds.has(key)) return;
+        seenIds.add(key);
+
         const [startHour, startMin] = category.schedule_start_time.split(':').map(Number);
         const [endHour, endMin] = category.schedule_end_time.split(':').map(Number);
-        const startMinutes = startHour * 60 + startMin;
-        const endMinutes = endHour * 60 + endMin;
-        const slotStart = hour * 60;
-        const slotEnd = (hour + 1) * 60;
+        const durationHours = ((endHour * 60 + endMin) - (startHour * 60 + startMin)) / 60;
 
-        if (startMinutes < slotEnd && endMinutes > slotStart) {
-          const durationHours = (endMinutes - startMinutes) / 60;
-          events.push({
-            id: category.id,
-            name: category.name,
-            color: category.color,
-            startTime: category.schedule_start_time,
-            endTime: category.schedule_end_time,
-            duration: durationHours,
-            type: 'category',
-            categoryType: category.category_type
-          });
-        }
+        events.push({
+          id: key,
+          name: category.name,
+          color: category.color,
+          startTime: category.schedule_start_time,
+          endTime: category.schedule_end_time,
+          duration: durationHours,
+          type: 'category',
+          categoryType: category.category_type
+        });
       }
     });
 
@@ -117,14 +149,29 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ theme = 'dark' }) => {
   };
 
   const isDark = theme === 'dark';
+  const ROW_HEIGHT = 64; // px per hour
+  const FIRST_HOUR = 6;
+
+  // Calculate position for an event
+  const getEventPosition = (event: CalendarEvent) => {
+    const [startHour, startMin] = event.startTime.split(':').map(Number);
+    const top = (startHour - FIRST_HOUR) * ROW_HEIGHT + (startMin / 60) * ROW_HEIGHT;
+    const height = event.duration * ROW_HEIGHT;
+    return { top, height: Math.max(height, 24) };
+  };
+
+  // Current time indicator position
+  const currentTimeTop = ((currentMinutes / 60) - FIRST_HOUR) * ROW_HEIGHT;
+  const showCurrentTime = isCurrentWeek && currentMinutes >= FIRST_HOUR * 60 && currentMinutes <= 23 * 60;
+  const todayDayIndex = weekDays.findIndex(d => isSameDay(d, new Date()));
 
   return (
     <div className={`w-full ${isDark ? 'text-white' : 'text-slate-900'}`}>
-      {/* Header con navegación */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-2xl font-black">Mi Semana</h2>
-          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <h2 className="text-xl font-black">Mi Semana</h2>
+          <p className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             {format(currentWeekStart, 'd MMM', { locale: es })} - {format(endOfWeek(currentWeekStart, { weekStartsOn: 1 }), 'd MMM yyyy', { locale: es })}
           </p>
         </div>
@@ -132,146 +179,179 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({ theme = 'dark' }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={goToPreviousWeek}
-            className={`p-2 rounded-lg transition-all hover:scale-105 ${
-              isDark ? 'bg-slate-800 hover:bg-slate-700' : 'bg-white hover:bg-slate-50 border border-slate-200'
+            className={`p-2 rounded-xl transition-all hover:scale-105 ${
+              isDark ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'
             }`}
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={18} />
           </button>
-
           <button
             onClick={goToToday}
-            className="px-4 py-2 rounded-lg font-bold text-sm transition-all hover:scale-105 bg-indigo-600 hover:bg-indigo-500 text-white"
+            className={`px-4 py-2 rounded-xl font-bold text-xs transition-all hover:scale-105 ${
+              isCurrentWeek
+                ? 'bg-indigo-600 text-white'
+                : isDark
+                ? 'bg-slate-800 hover:bg-slate-700'
+                : 'bg-slate-100 hover:bg-slate-200'
+            }`}
           >
             Hoy
           </button>
-
           <button
             onClick={goToNextWeek}
-            className={`p-2 rounded-lg transition-all hover:scale-105 ${
-              isDark ? 'bg-slate-800 hover:bg-slate-700' : 'bg-white hover:bg-slate-50 border border-slate-200'
+            className={`p-2 rounded-xl transition-all hover:scale-105 ${
+              isDark ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'
             }`}
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={18} />
           </button>
         </div>
       </div>
 
-      {/* Calendario Grid */}
-      <div className={`overflow-auto rounded-2xl border ${isDark ? 'border-slate-800 bg-slate-900/50' : 'border-slate-200 bg-white'} shadow-2xl`}>
-        <div className="min-w-[1000px]">
-          {/* HEADER: Días de la semana ARRIBA */}
-          <div className={`sticky top-0 z-20 grid grid-cols-8 border-b ${isDark ? 'border-slate-800 bg-slate-900' : 'border-slate-200 bg-slate-50'}`}>
-            {/* Esquina superior izquierda (vacía) */}
-            <div className={`p-4 text-center font-black text-xs ${isDark ? 'bg-slate-800/50' : 'bg-slate-100'} border-r ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
-              <CalendarIcon size={16} className="mx-auto text-slate-400" />
-            </div>
-
-            {/* DÍAS ARRIBA: Lun, Mar, Mié, Jue, Vie, Sáb, Dom */}
-            {weekDays.map((day, index) => {
-              const isToday = isSameDay(day, new Date());
-              return (
-                <div
-                  key={index}
-                  className={`p-4 text-center transition-all ${
-                    isToday
-                      ? 'bg-indigo-600 text-white'
-                      : isDark
-                      ? 'bg-slate-800/30'
-                      : 'bg-slate-50'
-                  }`}
-                >
-                  <div className={`text-xs font-black uppercase tracking-wider ${isToday ? 'text-white' : 'text-slate-400'}`}>
-                    {dayNames[index]}
-                  </div>
-                  <div className={`text-3xl font-black mt-1 ${isToday ? 'text-white' : isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {format(day, 'd')}
-                  </div>
-                </div>
-              );
-            })}
+      {/* Calendar */}
+      <div className={`rounded-2xl border overflow-hidden ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+        {/* Day headers */}
+        <div className={`grid border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}
+          style={{ gridTemplateColumns: '60px repeat(7, 1fr)' }}
+        >
+          <div className={`p-3 flex items-center justify-center ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+            <CalendarIcon size={14} className={isDark ? 'text-slate-600' : 'text-slate-400'} />
           </div>
-
-          {/* GRID: HORAS A LA IZQUIERDA + CELDAS */}
-          {hours.map(hour => (
-            <div
-              key={hour}
-              className={`grid grid-cols-8 border-b ${isDark ? 'border-slate-800/30' : 'border-slate-200'}`}
-              style={{ minHeight: '100px' }}
-            >
-              {/* HORA A LA IZQUIERDA */}
-              <div className={`p-3 text-center font-black text-lg sticky left-0 z-10 ${
-                isDark ? 'bg-slate-800/50 text-slate-300 border-r border-slate-800' : 'bg-slate-100 text-slate-700 border-r border-slate-200'
-              }`}>
-                {hour.toString().padStart(2, '0')}:00
+          {weekDays.map((day, index) => {
+            const isToday = isSameDay(day, new Date());
+            return (
+              <div
+                key={index}
+                className={`p-3 text-center transition-all ${
+                  isToday
+                    ? 'bg-indigo-600'
+                    : isDark
+                    ? 'bg-slate-900'
+                    : 'bg-slate-50'
+                }`}
+              >
+                <div className={`text-[10px] font-black uppercase tracking-wider ${
+                  isToday ? 'text-indigo-200' : isDark ? 'text-slate-500' : 'text-slate-400'
+                }`}>
+                  {dayNames[index]}
+                </div>
+                <div className={`text-xl font-black mt-0.5 ${
+                  isToday ? 'text-white' : isDark ? 'text-white' : 'text-slate-900'
+                }`}>
+                  {format(day, 'd')}
+                </div>
               </div>
+            );
+          })}
+        </div>
 
-              {/* CELDAS DE DÍAS (7 columnas) */}
-              {weekDays.map((day, dayIndex) => {
-                const events = getEventsForTimeSlot(dayIndex, hour);
-
-                return (
-                  <div
-                    key={dayIndex}
-                    className={`relative p-1 border-r last:border-r-0 ${
-                      isDark ? 'bg-slate-900/20 hover:bg-slate-800/30 border-slate-800/30' : 'bg-white hover:bg-slate-50 border-slate-200'
-                    } transition-colors`}
-                  >
-                    {events.map((event) => {
-                      // Solo renderizar si esta es la primera celda del evento
-                      const [eventStartHour] = event.startTime.split(':').map(Number);
-                      if (eventStartHour !== hour) return null;
-
-                      return (
-                        <div
-                          key={event.id}
-                          className="absolute inset-x-1 rounded-xl p-3 text-xs font-bold shadow-xl overflow-hidden border-2 border-white/20 backdrop-blur-sm"
-                          style={{
-                            backgroundColor: event.color,
-                            height: `${event.duration * 100}px`,
-                            top: '4px',
-                            zIndex: 15
-                          }}
-                        >
-                          <div className="flex items-start justify-between gap-1">
-                            <div className="text-white font-black truncate flex-1">{event.name}</div>
-                            {event.type === 'subject' && <BookOpen size={12} className="text-white/80 flex-shrink-0" />}
-                          </div>
-                          <div className="text-white/90 text-[10px] font-bold mt-1">
-                            {event.startTime} - {event.endTime}
-                          </div>
-                          <div className="text-white/70 text-[9px] font-bold uppercase mt-1 tracking-wider">
-                            {event.categoryType}
-                          </div>
-                        </div>
-                      );
-                    })}
+        {/* Time grid */}
+        <div ref={scrollRef} className="overflow-auto max-h-[500px] scrollbar-thin relative"
+          style={{ scrollbarWidth: 'thin' }}
+        >
+          <div className="relative" style={{ minWidth: '700px' }}>
+            {/* Hour rows (just for grid lines) */}
+            <div className="relative">
+              {hours.map(hour => (
+                <div
+                  key={hour}
+                  className={`grid border-b ${isDark ? 'border-slate-800/40' : 'border-slate-100'}`}
+                  style={{ gridTemplateColumns: '60px repeat(7, 1fr)', height: `${ROW_HEIGHT}px` }}
+                >
+                  <div className={`flex items-start justify-center pt-1 text-[11px] font-bold sticky left-0 z-10 ${
+                    isDark ? 'bg-slate-900/90 text-slate-500' : 'bg-white/90 text-slate-400'
+                  }`}>
+                    {hour.toString().padStart(2, '0')}:00
                   </div>
-                );
-              })}
+                  {weekDays.map((_, dayIndex) => (
+                    <div
+                      key={dayIndex}
+                      className={`border-l ${isDark ? 'border-slate-800/30' : 'border-slate-100'}`}
+                    />
+                  ))}
+                </div>
+              ))}
             </div>
-          ))}
+
+            {/* Events overlay */}
+            <div className="absolute inset-0" style={{ marginLeft: '60px' }}>
+              <div className="grid h-full" style={{ gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                {weekDays.map((_, dayIndex) => {
+                  const events = getEventsForDay(dayIndex);
+                  return (
+                    <div key={dayIndex} className="relative">
+                      {events.map(event => {
+                        const { top, height } = getEventPosition(event);
+                        const isCompact = height < 48;
+                        return (
+                          <div
+                            key={event.id}
+                            className="absolute left-1 right-1 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-default group"
+                            style={{
+                              top: `${top}px`,
+                              height: `${height - 2}px`,
+                              backgroundColor: event.color,
+                              zIndex: 15
+                            }}
+                          >
+                            <div className={`h-full p-2 flex ${isCompact ? 'items-center gap-2' : 'flex-col justify-between'}`}>
+                              <div className={`flex items-center gap-1.5 ${isCompact ? '' : 'mb-auto'}`}>
+                                <span className="text-white/80 flex-shrink-0">
+                                  {getCategoryIcon(event.categoryType || 'otro', isCompact ? 10 : 12)}
+                                </span>
+                                <span className="text-white font-bold text-[11px] truncate leading-tight">
+                                  {event.name}
+                                </span>
+                              </div>
+                              {!isCompact && (
+                                <div className="text-white/80 text-[10px] font-medium">
+                                  {event.startTime.slice(0, 5)} - {event.endTime.slice(0, 5)}
+                                </div>
+                              )}
+                            </div>
+                            {/* Subtle gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Current time indicator */}
+            {showCurrentTime && (
+              <div
+                className="absolute left-0 right-0 z-20 pointer-events-none"
+                style={{ top: `${currentTimeTop}px` }}
+              >
+                <div className="flex items-center" style={{ marginLeft: '48px' }}>
+                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50 time-indicator-dot" />
+                  <div className="flex-1 h-[2px] bg-red-500/60" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Leyenda */}
-      <div className="mt-6 flex flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-purple-500"></div>
-          <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Materias</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-emerald-500"></div>
-          <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Trabajo</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-orange-500"></div>
-          <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Gym</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-blue-500"></div>
-          <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Proyectos</span>
-        </div>
+      {/* Legend */}
+      <div className="mt-4 flex flex-wrap gap-3">
+        {[
+          { color: 'bg-indigo-500', label: 'Materias' },
+          { color: 'bg-emerald-500', label: 'Trabajo' },
+          { color: 'bg-orange-500', label: 'Gym' },
+          { color: 'bg-cyan-500', label: 'Proyectos' },
+          { color: 'bg-purple-500', label: 'Idiomas' },
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-1.5">
+            <div className={`w-3 h-3 rounded ${item.color}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              {item.label}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

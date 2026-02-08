@@ -178,12 +178,6 @@ body {
     padding-right: 1rem !important;
   }
 
-  /* Navegación táctil más grande */
-  button, a, [role="button"] {
-    min-height: 44px; /* Recomendación de Apple para táctil */
-    min-width: 44px;
-  }
-
   /* Textos más legibles en móvil */
   h1 { font-size: 1.75rem !important; }
   h2 { font-size: 1.5rem !important; }
@@ -199,12 +193,6 @@ body {
   /* Cards más compactos */
   .card-hover-effect {
     padding: 1rem !important;
-  }
-
-  /* Grids a una columna en móvil */
-  .grid {
-    grid-template-columns: 1fr !important;
-    gap: 1rem !important;
   }
 
   /* Imágenes responsive */
@@ -226,15 +214,6 @@ body {
     width: 3.5rem !important;
     height: 3.5rem !important;
   }
-
-  /* Modales fullscreen en móvil */
-  [class*="modal"],
-  [class*="dialog"] {
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-  }
 }
 
 /* Tablets Portrait (768px - 1023px) */
@@ -247,12 +226,6 @@ body {
   .max-w-\[1800px\] {
     padding-left: 2rem !important;
     padding-right: 2rem !important;
-  }
-
-  /* Grids a 2 columnas en tablet */
-  .grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 1.5rem !important;
   }
 
   /* Textos apropiados para tablet */
@@ -292,12 +265,6 @@ body {
     margin-right: auto;
   }
 
-  /* Grids a 3-4 columnas en desktop */
-  .grid {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
-    gap: 2rem !important;
-  }
-
   /* Hover effects solo en desktop */
   .card-hover-effect:hover {
     transform: translateY(-8px) scale(1.02);
@@ -326,11 +293,6 @@ body {
 @media (min-width: 1920px) {
   body {
     font-size: 18px;
-  }
-
-  /* Grids hasta 4 columnas en ultra wide */
-  .grid {
-    grid-template-columns: repeat(4, 1fr) !important;
   }
 }
 
@@ -451,4 +413,34 @@ body {
   .fixed.bottom-8 {
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
   }
+}
+
+/* ============================================
+   CALENDAR & SCHEDULE - Prevent grid overrides
+   ============================================ */
+.calendar-grid,
+.schedule-grid {
+  /* Protect these grids from global responsive overrides */
+}
+
+/* Current time indicator */
+@keyframes time-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.time-indicator-dot {
+  animation: time-pulse 2s ease-in-out infinite;
+}
+
+/* Thin scrollbar for schedule containers */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
