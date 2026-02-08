@@ -99,6 +99,7 @@ const PomodoroTimer: React.FC = () => {
 
   const timerRef = useRef<any>(null);
   const startTimeRef = useRef<string | null>(activeTimer?.started_at || null);
+  const endTimeRef = useRef<number | null>(null);
 
   // Efecto para restaurar timer al cargar la página
   useEffect(() => {
@@ -267,14 +268,25 @@ const PomodoroTimer: React.FC = () => {
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
+      // Set the wall-clock end time if not already set
+      if (!endTimeRef.current) {
+        endTimeRef.current = Date.now() + timeLeft * 1000;
+      }
+      const targetEnd = endTimeRef.current;
+
       timerRef.current = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
+        const remaining = Math.max(0, Math.round((targetEnd - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining <= 0) {
+          clearInterval(timerRef.current);
+        }
+      }, 500); // Update every 500ms for smooth, accurate display
+    } else if (timeLeft === 0 && isActive) {
+      endTimeRef.current = null;
       handleComplete();
     }
     return () => clearInterval(timerRef.current);
-  }, [isActive, timeLeft]);
+  }, [isActive, timeLeft === 0]); // Only re-setup on start/stop or completion
 
   // Handler para cuando se selecciona un item del selector jerárquico
   const handleItemSelection = (selection: any) => {
@@ -307,6 +319,8 @@ const PomodoroTimer: React.FC = () => {
     // Si está pausado, reanudar
     if (isPaused && activeTimer) {
       await resumeActiveTimer();
+      // Set wall-clock end time from current timeLeft
+      endTimeRef.current = Date.now() + timeLeft * 1000;
       setIsPaused(false);
       setIsActive(true);
       return;
@@ -318,6 +332,9 @@ const PomodoroTimer: React.FC = () => {
       : mode === 'short_break'
         ? currentSettings?.short_break || 5
         : currentSettings?.long_break || 15;
+
+    // Set wall-clock end time for accurate countdown
+    endTimeRef.current = Date.now() + durationMins * 60 * 1000;
 
     await startActiveTimer({
       profile_id: activeProfileId!,
@@ -340,6 +357,7 @@ const PomodoroTimer: React.FC = () => {
   const handlePause = async () => {
     soundService.playPause();
     soundService.vibrate(25);
+    endTimeRef.current = null; // Clear wall-clock target
     await pauseActiveTimer();
     setIsActive(false);
     setIsPaused(true);
@@ -348,6 +366,7 @@ const PomodoroTimer: React.FC = () => {
   const handleReset = async () => {
     soundService.playWhoosh();
     soundService.vibrate(30);
+    endTimeRef.current = null; // Clear wall-clock target
     await stopActiveTimer();
     setIsActive(false);
     setIsPaused(false);
@@ -356,6 +375,7 @@ const PomodoroTimer: React.FC = () => {
   };
 
   const handleComplete = async () => {
+    endTimeRef.current = null; // Clear wall-clock target
     setIsActive(false);
     setIsPaused(false);
 
@@ -388,7 +408,8 @@ const PomodoroTimer: React.FC = () => {
     soundService.vibrate([100, 50, 100]);
 
     const plannedMins = mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? currentSettings?.short_break || 5 : 15;
-    const actualSecs = (plannedMins * 60) - timeLeft;
+    // Use exact planned duration for completed sessions (timeLeft === 0)
+    const actualSecs = timeLeft === 0 ? plannedMins * 60 : (plannedMins * 60) - timeLeft;
 
     addSession({
       profile_id: activeProfileId,
