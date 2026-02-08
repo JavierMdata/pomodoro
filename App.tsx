@@ -26,7 +26,7 @@ import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon,
 import { ProfileType, Gender, PomodoroSettings } from './types';
 
 const BooksTabWrapper: React.FC = () => {
-  const { books, subjects, activeProfileId, addBook, updateBook, deleteBook, addBookReadingSession, addBookQuote } = useAppStore();
+  const { books, subjects, activeProfileId, addBook, updateBook, deleteBook, addBookReadingSession, addBookQuote, theme } = useAppStore();
   const profileBooks = books.filter(b => b.profile_id === activeProfileId);
   const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
 
@@ -42,6 +42,7 @@ const BooksTabWrapper: React.FC = () => {
       onAddReadingSession={addBookReadingSession}
       onAddQuote={addBookQuote}
       profileId={activeProfileId}
+      theme={theme}
     />
   );
 };
