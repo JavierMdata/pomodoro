@@ -21,10 +21,31 @@ import PeriodManager from './components/PeriodManager';
 import WorkScheduleManager from './components/WorkScheduleManager';
 import CategoryManager from './components/CategoryManager';
 import CommandCenterDashboard from './components/CommandCenterDashboard';
-import BooksManagerSafe from './components/BooksManagerSafe';
+import BooksManager from './components/BooksManager';
 import LandingPage from './components/LandingPage';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
+
+const BooksTabWrapper: React.FC = () => {
+  const { books, subjects, activeProfileId, addBook, updateBook, deleteBook, addBookReadingSession, addBookQuote } = useAppStore();
+  const profileBooks = books.filter(b => b.profile_id === activeProfileId);
+  const profileSubjects = subjects.filter(s => s.profile_id === activeProfileId);
+
+  if (!activeProfileId) return null;
+
+  return (
+    <BooksManager
+      books={profileBooks}
+      subjects={profileSubjects}
+      onAddBook={addBook}
+      onUpdateBook={updateBook}
+      onDeleteBook={deleteBook}
+      onAddReadingSession={addBookReadingSession}
+      onAddQuote={addBookQuote}
+      profileId={activeProfileId}
+    />
+  );
+};
 
 const App: React.FC = () => {
   const { theme, toggleTheme, profiles, activeProfileId, setActiveProfile, addProfile, deleteProfile, settings, updateSettings, syncWithSupabase } = useAppStore();
@@ -306,7 +327,7 @@ const App: React.FC = () => {
           {activeTab === 'schedule' && <WorkScheduleManager />}
           {activeTab === 'categories' && <CategoryManager filterType="all-except-materia" />}
           {activeTab === 'subjects' && <SubjectsManager />}
-          {activeTab === 'books' && <BooksManagerSafe />}
+          {activeTab === 'books' && <BooksTabWrapper />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <EnhancedTaskProgress />}
           {activeTab === 'materials' && <MaterialManager />}
