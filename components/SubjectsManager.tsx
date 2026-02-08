@@ -43,13 +43,11 @@ const SubjectsManager: React.FC = () => {
 
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
 
-  // Filtrar materias del perfil activo
   const activeSubjects = useMemo(() => {
     if (!activeProfileId) return [];
     return subjects.filter(s => s.profile_id === activeProfileId);
   }, [subjects, activeProfileId]);
 
-  // Organizar datos por materia
   const subjectsWithData: SubjectWithData[] = useMemo(() => {
     return activeSubjects.map(subject => {
       const subjectExams = exams.filter(e => e.subject_id === subject.id);
@@ -71,34 +69,26 @@ const SubjectsManager: React.FC = () => {
 
   const toggleSubject = (id: string) => {
     const newSet = new Set(expandedSubjects);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
     setExpandedSubjects(newSet);
   };
 
   const toggleExam = (id: string) => {
     const newSet = new Set(expandedExams);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
     setExpandedExams(newSet);
   };
 
   const handleAddSubject = () => {
     if (!newSubjectName.trim() || !activeProfileId) return;
-
     addSubject({
       profile_id: activeProfileId,
-      school_period_id: null, // Permitir null para materias sin período
+      school_period_id: null,
       name: newSubjectName.trim(),
       color: newSubjectColor
     });
-
     setNewSubjectName('');
     setNewSubjectColor('#6366f1');
     setShowAddSubject(false);
@@ -113,12 +103,10 @@ const SubjectsManager: React.FC = () => {
 
   const handleSaveEditSubject = () => {
     if (!newSubjectName.trim() || !editingSubject) return;
-
     updateSubject(editingSubject.id, {
       name: newSubjectName.trim(),
       color: newSubjectColor
     });
-
     setNewSubjectName('');
     setNewSubjectColor('#6366f1');
     setEditingSubject(null);
@@ -143,9 +131,7 @@ const SubjectsManager: React.FC = () => {
 
   const handlePomodoroComplete = (rating: number) => {
     if (!pomodoroItem || !activeProfileId) return;
-
     const duration = currentSettings?.work_duration || 25;
-
     addSession({
       profile_id: activeProfileId,
       task_id: pomodoroItem.type === 'task' ? pomodoroItem.id : undefined,
@@ -159,7 +145,6 @@ const SubjectsManager: React.FC = () => {
       started_at: new Date().toISOString(),
       completed_at: new Date().toISOString()
     });
-
     setPomodoroItem(null);
   };
 
@@ -172,46 +157,36 @@ const SubjectsManager: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6 lg:p-8 relative">
-      {/* Header con glassmorphism */}
-      <div className="relative mb-6 md:mb-8 lg:mb-12">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 -z-10 overflow-hidden rounded-2xl md:rounded-3xl lg:rounded-[4rem]">
-          <div className="absolute -top-20 md:-top-40 -right-20 md:-right-40 w-48 h-48 md:w-96 md:h-96 bg-gradient-to-br from-indigo-500/30 via-purple-500/30 to-pink-500/30 rounded-full blur-2xl md:blur-3xl animate-pulse" />
-          <div className="absolute -bottom-20 md:-bottom-40 -left-20 md:-left-40 w-48 h-48 md:w-96 md:h-96 bg-gradient-to-tr from-blue-500/20 via-cyan-500/20 to-teal-500/20 rounded-full blur-2xl md:blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-
-        <div className={`relative p-6 md:p-8 lg:p-12 rounded-2xl md:rounded-3xl lg:rounded-[3.5rem] backdrop-blur-2xl border-2 shadow-2xl ${
+    <div className="min-h-screen p-3 sm:p-4 md:p-6 lg:p-8 relative">
+      {/* Header */}
+      <div className="relative mb-6 md:mb-8">
+        <div className={`relative p-4 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl backdrop-blur-xl border shadow-lg ${
           theme === 'dark'
-            ? 'bg-slate-900/40 border-white/10'
-            : 'bg-white/40 border-slate-200/50'
+            ? 'bg-slate-900/60 border-white/10'
+            : 'bg-white/60 border-slate-200/50'
         }`}>
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
-            <div className="flex-1 w-full md:w-auto">
-              <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
-                <div className="relative">
-                  <GraduationCap size={40} className="text-indigo-600 drop-shadow-lg md:w-12 md:h-12 lg:w-14 lg:h-14" />
-                  <Sparkles size={16} className="absolute -top-1 -right-1 md:-top-2 md:-right-2 text-yellow-400 animate-pulse md:w-6 md:h-6" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="relative flex-shrink-0">
+                  <GraduationCap size={28} className="text-indigo-600 md:w-8 md:h-8" />
+                  <Sparkles size={12} className="absolute -top-1 -right-1 text-yellow-400 animate-pulse" />
                 </div>
-                <h1 className="text-3xl md:text-4xl lg:text-6xl font-black tracking-tight bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-sm">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent truncate">
                   Mis Materias
                 </h1>
               </div>
-              <p className={`text-sm md:text-base lg:text-lg font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+              <p className={`text-xs sm:text-sm font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                 Organiza tus parciales, temas y proyectos
               </p>
             </div>
 
             <button
               onClick={() => setShowAddSubject(true)}
-              className="group relative w-full md:w-auto px-6 py-4 md:px-8 md:py-5 lg:py-6 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white rounded-xl md:rounded-2xl lg:rounded-[2rem] shadow-2xl shadow-indigo-500/50 hover:shadow-indigo-500/70 hover:scale-105 active:scale-95 transition-all duration-300 overflow-hidden"
+              className="w-full sm:w-auto px-5 py-3 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white rounded-xl shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center justify-center gap-2 md:gap-3">
-                <Plus size={20} className="drop-shadow-lg md:w-6 md:h-6" />
-                <span className="font-black text-base md:text-lg lg:text-xl tracking-wide">Nueva Materia</span>
-              </div>
-              <div className="absolute inset-0 shimmer opacity-30" />
+              <Plus size={18} />
+              <span className="font-bold text-sm">Nueva Materia</span>
             </button>
           </div>
         </div>
@@ -219,17 +194,17 @@ const SubjectsManager: React.FC = () => {
 
       {/* Modal Agregar Materia */}
       {showAddSubject && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
-          <div className={`w-full max-w-2xl p-6 md:p-8 lg:p-12 rounded-2xl md:rounded-3xl lg:rounded-[3.5rem] shadow-2xl animate-in zoom-in duration-300 ${
-            theme === 'dark' ? 'bg-slate-900 border-2 border-white/10' : 'bg-white'
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`w-full max-w-lg p-5 sm:p-6 md:p-8 rounded-2xl shadow-2xl ${
+            theme === 'dark' ? 'bg-slate-900 border border-white/10' : 'bg-white'
           }`}>
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-6 md:mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-xl sm:text-2xl font-black mb-5 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Nueva Materia
             </h2>
 
-            <div className="space-y-4 md:space-y-6">
+            <div className="space-y-4">
               <div>
-                <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 uppercase tracking-wider ${
+                <label className={`block text-xs font-bold mb-2 uppercase tracking-wider ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>
                   Nombre de la Materia
@@ -239,7 +214,7 @@ const SubjectsManager: React.FC = () => {
                   value={newSubjectName}
                   onChange={(e) => setNewSubjectName(e.target.value)}
                   placeholder="ej: Cálculo Integral"
-                  className={`w-full px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl border-2 font-semibold text-base md:text-lg transition-all focus:scale-[1.02] ${
+                  className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
                     theme === 'dark'
                       ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
                       : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500'
@@ -248,19 +223,19 @@ const SubjectsManager: React.FC = () => {
               </div>
 
               <div>
-                <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 uppercase tracking-wider ${
+                <label className={`block text-xs font-bold mb-2 uppercase tracking-wider ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>
                   Color
                 </label>
-                <div className="flex gap-3 md:gap-4 items-center">
+                <div className="flex gap-3 items-center">
                   <input
                     type="color"
                     value={newSubjectColor}
                     onChange={(e) => setNewSubjectColor(e.target.value)}
-                    className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-xl md:rounded-2xl cursor-pointer border-2 md:border-4 border-white shadow-xl"
+                    className="w-12 h-12 rounded-xl cursor-pointer border-2 border-white shadow-lg"
                   />
-                  <div className="flex-1 px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-mono font-bold text-center text-sm md:text-base" style={{
+                  <div className="flex-1 px-4 py-2.5 rounded-xl font-mono font-bold text-center text-sm" style={{
                     backgroundColor: newSubjectColor + '20',
                     color: newSubjectColor,
                     border: `2px solid ${newSubjectColor}50`
@@ -271,10 +246,10 @@ const SubjectsManager: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3 md:gap-4 mt-6 md:mt-10">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowAddSubject(false)}
-                className={`flex-1 px-6 py-4 md:px-8 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-all hover:scale-105 active:scale-95 ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
                   theme === 'dark'
                     ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -285,7 +260,7 @@ const SubjectsManager: React.FC = () => {
               <button
                 onClick={handleAddSubject}
                 disabled={!newSubjectName.trim()}
-                className="flex-1 px-6 py-4 md:px-8 md:py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Crear Materia
               </button>
@@ -296,17 +271,17 @@ const SubjectsManager: React.FC = () => {
 
       {/* Modal Editar Materia */}
       {showEditSubject && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
-          <div className={`w-full max-w-2xl p-6 md:p-8 lg:p-12 rounded-2xl md:rounded-3xl lg:rounded-[3.5rem] shadow-2xl animate-in zoom-in duration-300 ${
-            theme === 'dark' ? 'bg-slate-900 border-2 border-white/10' : 'bg-white'
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`w-full max-w-lg p-5 sm:p-6 md:p-8 rounded-2xl shadow-2xl ${
+            theme === 'dark' ? 'bg-slate-900 border border-white/10' : 'bg-white'
           }`}>
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-6 md:mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <h2 className="text-xl sm:text-2xl font-black mb-5 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Editar Materia
             </h2>
 
-            <div className="space-y-4 md:space-y-6">
+            <div className="space-y-4">
               <div>
-                <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 uppercase tracking-wider ${
+                <label className={`block text-xs font-bold mb-2 uppercase tracking-wider ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>
                   Nombre de la Materia
@@ -316,7 +291,7 @@ const SubjectsManager: React.FC = () => {
                   value={newSubjectName}
                   onChange={(e) => setNewSubjectName(e.target.value)}
                   placeholder="ej: Cálculo Integral"
-                  className={`w-full px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl border-2 font-semibold text-base md:text-lg transition-all focus:scale-[1.02] ${
+                  className={`w-full px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${
                     theme === 'dark'
                       ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500'
                       : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500'
@@ -325,19 +300,19 @@ const SubjectsManager: React.FC = () => {
               </div>
 
               <div>
-                <label className={`block text-xs md:text-sm font-bold mb-2 md:mb-3 uppercase tracking-wider ${
+                <label className={`block text-xs font-bold mb-2 uppercase tracking-wider ${
                   theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                 }`}>
                   Color
                 </label>
-                <div className="flex gap-3 md:gap-4 items-center">
+                <div className="flex gap-3 items-center">
                   <input
                     type="color"
                     value={newSubjectColor}
                     onChange={(e) => setNewSubjectColor(e.target.value)}
-                    className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-xl md:rounded-2xl cursor-pointer border-2 md:border-4 border-white shadow-xl"
+                    className="w-12 h-12 rounded-xl cursor-pointer border-2 border-white shadow-lg"
                   />
-                  <div className="flex-1 px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-mono font-bold text-center text-sm md:text-base" style={{
+                  <div className="flex-1 px-4 py-2.5 rounded-xl font-mono font-bold text-center text-sm" style={{
                     backgroundColor: newSubjectColor + '20',
                     color: newSubjectColor,
                     border: `2px solid ${newSubjectColor}50`
@@ -348,7 +323,7 @@ const SubjectsManager: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3 md:gap-4 mt-6 md:mt-10">
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => {
                   setShowEditSubject(false);
@@ -356,7 +331,7 @@ const SubjectsManager: React.FC = () => {
                   setNewSubjectName('');
                   setNewSubjectColor('#6366f1');
                 }}
-                className={`flex-1 px-6 py-4 md:px-8 md:py-5 rounded-xl md:rounded-2xl font-black text-base md:text-lg transition-all hover:scale-105 active:scale-95 ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
                   theme === 'dark'
                     ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -367,7 +342,7 @@ const SubjectsManager: React.FC = () => {
               <button
                 onClick={handleSaveEditSubject}
                 disabled={!newSubjectName.trim()}
-                className="flex-1 px-6 py-4 md:px-8 md:py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Guardar Cambios
               </button>
@@ -376,21 +351,21 @@ const SubjectsManager: React.FC = () => {
         </div>
       )}
 
-      {/* Grid de Materias con Glassmorphism */}
+      {/* Grid de Materias */}
       {subjectsWithData.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 md:py-24 lg:py-32">
-          <BookOpen size={80} className="text-slate-300 mb-6 md:w-24 md:h-24 lg:w-32 lg:h-32 md:mb-8" />
-          <h3 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-400 mb-3 md:mb-4 text-center px-4">No tienes materias aún</h3>
-          <p className="text-slate-500 text-sm md:text-base lg:text-lg mb-6 md:mb-8 text-center px-4">Comienza agregando tu primera materia</p>
+        <div className="flex flex-col items-center justify-center py-16 md:py-24">
+          <BookOpen size={64} className="text-slate-300 mb-4" />
+          <h3 className="text-lg md:text-xl font-black text-slate-400 mb-2 text-center">No tienes materias aún</h3>
+          <p className="text-slate-500 text-sm mb-6 text-center px-4">Comienza agregando tu primera materia</p>
           <button
             onClick={() => setShowAddSubject(true)}
-            className="px-8 py-4 md:px-10 md:py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl md:rounded-2xl lg:rounded-[2rem] font-black text-base md:text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+            className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
             Agregar Materia
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
           {subjectsWithData.map(({ subject, exams: subjectExams, topics, tasks: subjectTasks, materials: subjectMaterials }) => {
             const isExpanded = expandedSubjects.has(subject.id);
             const totalTasks = subjectTasks.length;
@@ -401,252 +376,204 @@ const SubjectsManager: React.FC = () => {
             return (
               <div
                 key={subject.id}
-                className="group relative animate-in fade-in slide-in-from-bottom duration-500"
-                style={{ animationDelay: `${subjectsWithData.indexOf({ subject, exams: subjectExams, topics, tasks: subjectTasks, materials: subjectMaterials }) * 100}ms` }}
+                className="relative overflow-hidden rounded-xl sm:rounded-2xl"
               >
-                {/* Animated glow background */}
-                <div
-                  className="absolute -inset-1 rounded-2xl md:rounded-3xl lg:rounded-[3rem] blur-lg md:blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-500"
-                  style={{ backgroundColor: subject.color }}
-                />
-
-                <div className={`relative p-4 md:p-6 lg:p-8 rounded-2xl md:rounded-3xl lg:rounded-[3rem] backdrop-blur-xl border-2 shadow-xl transition-all duration-500 ${
+                <div className={`relative p-4 sm:p-5 rounded-xl sm:rounded-2xl border shadow-md transition-all duration-300 ${
                   theme === 'dark'
-                    ? 'bg-slate-900/60 border-white/10 hover:bg-slate-900/80'
-                    : 'bg-white/60 border-slate-200/50 hover:bg-white/80'
-                }`}>
+                    ? 'bg-slate-900/80 border-white/10 hover:bg-slate-900/90'
+                    : 'bg-white/80 border-slate-200/60 hover:bg-white/95'
+                }`}
+                  style={{ borderLeft: `4px solid ${subject.color}` }}
+                >
                   {/* Subject Header */}
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleSubject(subject.id)}
-                      className="flex-1 w-full flex items-center justify-between group/header"
+                      className="flex-1 flex items-center gap-3 min-w-0"
                     >
-                      <div className="flex items-center gap-3 md:gap-4 flex-1">
-                        <div
-                          className="w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-xl md:rounded-2xl lg:rounded-[1.5rem] flex items-center justify-center shadow-lg transition-transform group-hover/header:scale-110 duration-300 flex-shrink-0"
-                          style={{
-                            backgroundColor: subject.color + '20',
-                            border: `2px md:border-3 lg:border-3 solid ${subject.color}`
-                          }}
-                        >
-                          <GraduationCap className="w-7 h-7 md:w-8 md:h-8 lg:w-9 lg:h-9" style={{ color: subject.color }} />
-                        </div>
-                        <div className="text-left flex-1 min-w-0">
-                          <h3 className="text-xl md:text-2xl lg:text-3xl font-black mb-1 truncate" style={{ color: subject.color }}>
-                            {subject.name}
-                          </h3>
-                          <div className="flex flex-wrap gap-2 md:gap-3 lg:gap-4 text-xs md:text-sm font-bold">
-                            <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                              {subjectExams.length} Parciales
-                            </span>
-                            <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                              {totalTasks} Tareas
-                            </span>
-                            <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>
-                              {totalTopics} Temas
-                            </span>
-                          </div>
+                      <div
+                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"
+                        style={{
+                          backgroundColor: subject.color + '20',
+                          border: `2px solid ${subject.color}`
+                        }}
+                      >
+                        <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: subject.color }} />
+                      </div>
+                      <div className="text-left flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-black truncate" style={{ color: subject.color }}>
+                          {subject.name}
+                        </h3>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] sm:text-xs font-bold">
+                          <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
+                            {subjectExams.length} Parciales
+                          </span>
+                          <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
+                            {totalTasks} Tareas
+                          </span>
+                          <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
+                            {totalTopics} Temas
+                          </span>
                         </div>
                       </div>
 
-                      <div className="transition-transform duration-300 flex-shrink-0 ml-2" style={{
-                        transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'
-                      }}>
-                        <ChevronDown size={24} className="text-slate-400 md:w-7 md:h-7 lg:w-8 lg:h-8" />
-                      </div>
+                      <ChevronDown
+                        size={18}
+                        className={`text-slate-400 flex-shrink-0 transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`}
+                      />
                     </button>
 
-                    {/* Edit, Schedules and Delete Buttons */}
-                    <div className="flex gap-2 w-full md:w-auto">
+                    {/* Action Buttons */}
+                    <div className="flex gap-1.5 flex-shrink-0">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditSubject(subject);
-                        }}
-                        className={`flex-1 md:flex-none p-2.5 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 ${
+                        onClick={(e) => { e.stopPropagation(); handleEditSubject(subject); }}
+                        className={`p-2 rounded-lg transition-all active:scale-90 ${
                           theme === 'dark'
-                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-indigo-400'
-                            : 'bg-slate-100 text-slate-600 hover:bg-indigo-100 hover:text-indigo-600'
+                            ? 'text-slate-400 hover:bg-slate-800 hover:text-indigo-400'
+                            : 'text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'
                         }`}
-                        title="Editar materia"
+                        title="Editar"
                       >
-                        <Edit2 className="w-4 h-4 md:w-5 md:h-5" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingSchedulesSubject(subject);
-                        }}
-                        className={`flex-1 md:flex-none p-2.5 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 ${
+                        onClick={(e) => { e.stopPropagation(); setEditingSchedulesSubject(subject); }}
+                        className={`p-2 rounded-lg transition-all active:scale-90 ${
                           theme === 'dark'
-                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-purple-400'
-                            : 'bg-slate-100 text-slate-600 hover:bg-purple-100 hover:text-purple-600'
+                            ? 'text-slate-400 hover:bg-slate-800 hover:text-purple-400'
+                            : 'text-slate-500 hover:bg-purple-50 hover:text-purple-600'
                         }`}
-                        title="Editar horarios"
+                        title="Horarios"
                       >
-                        <Calendar className="w-4 h-4 md:w-5 md:h-5" />
+                        <Calendar className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSubject(subject);
-                        }}
-                        className={`flex-1 md:flex-none p-2.5 md:p-3 rounded-lg md:rounded-xl transition-all hover:scale-110 active:scale-95 ${
+                        onClick={(e) => { e.stopPropagation(); handleDeleteSubject(subject); }}
+                        className={`p-2 rounded-lg transition-all active:scale-90 ${
                           theme === 'dark'
-                            ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-red-400'
-                            : 'bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600'
+                            ? 'text-slate-400 hover:bg-slate-800 hover:text-red-400'
+                            : 'text-slate-500 hover:bg-red-50 hover:text-red-600'
                         }`}
-                        title="Eliminar materia"
+                        title="Eliminar"
                       >
-                        <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
                   {/* Progress Bars */}
-                  <div className="mt-4 md:mt-5 lg:mt-6 space-y-2 md:space-y-3">
+                  <div className="mt-3 space-y-2">
                     <div>
-                      <div className="flex justify-between text-xs font-bold mb-1.5 md:mb-2">
-                        <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>TAREAS</span>
+                      <div className="flex justify-between text-[10px] font-bold mb-1">
+                        <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>TAREAS</span>
                         <span style={{ color: subject.color }}>{completedTasks}/{totalTasks}</span>
                       </div>
-                      <div className={`h-2 md:h-2.5 lg:h-3 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}>
                         <div
-                          className="h-full rounded-full transition-all duration-1000 shadow-lg"
+                          className="h-full rounded-full transition-all duration-1000"
                           style={{
                             width: `${totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0}%`,
-                            background: `linear-gradient(90deg, ${subject.color}, ${subject.color}dd)`
+                            backgroundColor: subject.color
                           }}
                         />
                       </div>
                     </div>
 
                     <div>
-                      <div className="flex justify-between text-xs font-bold mb-1.5 md:mb-2">
-                        <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}>TEMAS</span>
+                      <div className="flex justify-between text-[10px] font-bold mb-1">
+                        <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>TEMAS</span>
                         <span style={{ color: subject.color }}>{completedTopics}/{totalTopics}</span>
                       </div>
-                      <div className={`h-2 md:h-2.5 lg:h-3 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}>
+                      <div className={`h-1.5 rounded-full overflow-hidden ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}>
                         <div
-                          className="h-full rounded-full transition-all duration-1000 shadow-lg"
+                          className="h-full rounded-full transition-all duration-1000"
                           style={{
                             width: `${totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0}%`,
-                            background: `linear-gradient(90deg, ${subject.color}, ${subject.color}dd)`
+                            backgroundColor: subject.color
                           }}
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Expanded Content: Parciales (Exams) */}
+                  {/* Expanded Content: Exams */}
                   {isExpanded && (
-                    <div className="mt-6 md:mt-7 lg:mt-8 space-y-4 md:space-y-5 lg:space-y-6 animate-in fade-in slide-in-from-top duration-500">
+                    <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top duration-300">
                       {subjectExams.length === 0 ? (
-                        <p className="text-center py-6 md:py-8 text-sm md:text-base text-slate-400 font-medium">
+                        <p className="text-center py-4 text-xs text-slate-400 font-medium">
                           No hay parciales registrados
                         </p>
                       ) : (
                         subjectExams.map((exam) => {
                           const isExamExpanded = expandedExams.has(exam.id);
-                          const examTopics = topics.filter(t => t.exam_id === exam.id);
+                          const examTopicsList = topics.filter(t => t.exam_id === exam.id);
 
                           return (
-                            <div
-                              key={exam.id}
-                              className="group/examcard relative"
-                            >
-                              {/* Glow effect */}
-                              <div
-                                className="absolute -inset-0.5 rounded-xl md:rounded-2xl lg:rounded-[2rem] blur opacity-20 group-hover/examcard:opacity-40 transition-opacity duration-300"
-                                style={{ backgroundColor: subject.color }}
-                              />
-
-                              <div className={`relative p-4 md:p-5 lg:p-6 rounded-xl md:rounded-2xl lg:rounded-[2rem] border-2 transition-all group-hover/examcard:scale-[1.01] duration-300 ${
+                            <div key={exam.id} className="relative">
+                              <div className={`p-3 sm:p-4 rounded-xl border transition-all ${
                                 theme === 'dark'
-                                  ? 'bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-900/60 border-slate-700 hover:border-slate-600'
-                                  : 'bg-gradient-to-br from-white/80 via-white/60 to-slate-50/60 border-slate-200 hover:border-slate-300'
+                                  ? 'bg-slate-800/60 border-slate-700 hover:border-slate-600'
+                                  : 'bg-slate-50/80 border-slate-200 hover:border-slate-300'
                               }`}>
                                 <button
                                   onClick={() => toggleExam(exam.id)}
-                                  className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-0 group/exam"
+                                  className="w-full flex items-center justify-between gap-2"
                                 >
-                                  <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full md:w-auto">
-                                    {/* Icon with animated background */}
+                                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                     <div
-                                      className="relative p-2 md:p-2.5 rounded-lg md:rounded-xl group-hover/examcard:scale-110 transition-transform duration-300"
+                                      className="p-1.5 rounded-lg flex-shrink-0"
                                       style={{
                                         backgroundColor: subject.color + '15',
-                                        border: `2px solid ${subject.color}30`
+                                        border: `1.5px solid ${subject.color}30`
                                       }}
                                     >
-                                      <Target className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" style={{ color: subject.color }} />
+                                      <Target className="w-4 h-4" style={{ color: subject.color }} />
                                     </div>
-
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="text-base md:text-lg lg:text-xl font-black truncate" style={{ color: subject.color }}>
+                                    <div className="min-w-0 text-left">
+                                      <h4 className="text-sm sm:text-base font-black truncate" style={{ color: subject.color }}>
                                         {exam.name}
                                       </h4>
-                                      <p className={`text-xs md:text-sm font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                                        Parcial • {examTopics.length} {examTopics.length === 1 ? 'tema' : 'temas'}
+                                      <p className={`text-[11px] font-medium ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                                        {examTopicsList.length} {examTopicsList.length === 1 ? 'tema' : 'temas'}
                                       </p>
                                     </div>
-
-                                    <ChevronRight
-                                      className={`w-5 h-5 md:hidden transition-transform duration-300 flex-shrink-0 ${isExamExpanded ? 'rotate-90' : ''}`}
-                                      style={{ color: subject.color }}
-                                    />
                                   </div>
-                                  <div className="hidden md:flex items-center gap-3">
-                                    <div
-                                      className="px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5"
-                                      style={{
-                                        backgroundColor: subject.color + '20',
-                                        border: `1px solid ${subject.color}40`
-                                      }}
-                                    >
-                                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: subject.color }} />
-                                      <span style={{ color: subject.color }}>{examTopics.length} temas</span>
-                                    </div>
-                                    <ChevronRight
-                                      className={`w-6 h-6 transition-transform duration-300 ${isExamExpanded ? 'rotate-90' : ''}`}
-                                      style={{ color: subject.color }}
-                                    />
-                                  </div>
+                                  <ChevronRight
+                                    className={`w-4 h-4 flex-shrink-0 transition-transform duration-300 ${isExamExpanded ? 'rotate-90' : ''}`}
+                                    style={{ color: subject.color }}
+                                  />
                                 </button>
 
-                              {/* Exam Topics */}
-                              {isExamExpanded && (
-                                <div className="mt-4 md:mt-5 lg:mt-6 space-y-2 md:space-y-3 animate-in fade-in duration-300">
-                                  {examTopics.map((topic, idx) => {
-                                    const statusConfig = {
-                                      completed: { bg: 'bg-green-500', label: 'Completado', icon: '✓' },
-                                      in_progress: { bg: 'bg-yellow-500', label: 'En progreso', icon: '⟳' },
-                                      pending: { bg: 'bg-slate-400', label: 'Pendiente', icon: '○' }
-                                    };
-                                    const status = statusConfig[topic.status as keyof typeof statusConfig] || statusConfig.pending;
+                                {/* Exam Topics */}
+                                {isExamExpanded && (
+                                  <div className="mt-3 space-y-2 animate-in fade-in duration-300">
+                                    {examTopicsList.map((topic) => {
+                                      const statusConfig = {
+                                        completed: { bg: 'bg-green-500', label: 'Completado', icon: '✓' },
+                                        in_progress: { bg: 'bg-yellow-500', label: 'En progreso', icon: '⟳' },
+                                        pending: { bg: 'bg-slate-400', label: 'Pendiente', icon: '○' }
+                                      };
+                                      const status = statusConfig[topic.status as keyof typeof statusConfig] || statusConfig.pending;
 
-                                    return (
-                                      <div
-                                        key={topic.id}
-                                        className="group/topic relative"
-                                        style={{ animationDelay: `${idx * 50}ms` }}
-                                      >
-                                        <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all group-hover/topic:scale-[1.01] duration-200 ${
-                                          theme === 'dark'
-                                            ? 'bg-gradient-to-r from-slate-900/60 to-slate-800/60 border-slate-700/50 hover:border-slate-600'
-                                            : 'bg-gradient-to-r from-slate-50/60 to-white/60 border-slate-200/50 hover:border-slate-300'
-                                        }`}>
-                                          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0 w-full sm:w-auto">
-                                            {/* Status indicator with animation */}
+                                      return (
+                                        <div
+                                          key={topic.id}
+                                          className={`flex items-center justify-between gap-2 p-2.5 sm:p-3 rounded-lg border transition-all ${
+                                            theme === 'dark'
+                                              ? 'bg-slate-900/60 border-slate-700/50 hover:border-slate-600'
+                                              : 'bg-white/80 border-slate-200/50 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 flex-1 min-w-0">
                                             <div
-                                              className={`w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-white text-xs ${status.bg} shadow-md group-hover/topic:scale-110 transition-transform`}
+                                              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md flex items-center justify-center flex-shrink-0 font-bold text-white text-[10px] ${status.bg}`}
                                               title={status.label}
                                             >
                                               {status.icon}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                              <span className="font-bold text-sm md:text-base block truncate">{topic.title}</span>
-                                              <span className={`text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
+                                            <div className="min-w-0">
+                                              <span className="font-bold text-xs sm:text-sm block truncate">{topic.title}</span>
+                                              <span className={`text-[10px] ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}>
                                                 {status.label}
                                               </span>
                                             </div>
@@ -654,65 +581,45 @@ const SubjectsManager: React.FC = () => {
 
                                           <button
                                             onClick={() => startPomodoro(topic, 'topic', subject)}
-                                            className="group/btn relative w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center gap-1.5 md:gap-2 overflow-hidden"
+                                            className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg font-bold text-[11px] sm:text-xs shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 flex-shrink-0"
                                             style={{
                                               background: `linear-gradient(135deg, ${subject.color}, ${subject.color}dd)`,
                                               color: 'white'
                                             }}
                                           >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 opacity-0 group-hover/btn:opacity-100 group-hover/btn:animate-shimmer transition-opacity" />
-                                            <PlayCircle className="relative z-10 w-4 h-4 md:w-5 md:h-5" />
-                                            <span className="relative z-10">Estudiar</span>
-                                            <Flame className="relative z-10 animate-pulse w-3.5 h-3.5 md:w-4 md:h-4" />
+                                            <PlayCircle className="w-3.5 h-3.5" />
+                                            <span>Estudiar</span>
                                           </button>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
+                                      );
+                                    })}
 
-                                  {/* Proyecto del Parcial */}
-                                  <div className="relative group/project">
-                                    <div
-                                      className="absolute -inset-0.5 rounded-xl md:rounded-2xl blur opacity-10 group-hover/project:opacity-20 transition-opacity"
-                                      style={{ backgroundColor: subject.color }}
-                                    />
-                                    <div className={`relative p-4 md:p-5 lg:p-6 rounded-xl md:rounded-2xl border-2 border-dashed mt-4 md:mt-5 lg:mt-6 transition-all group-hover/project:border-solid ${
+                                    {/* Proyecto del Parcial */}
+                                    <div className={`p-3 rounded-lg border border-dashed ${
                                       theme === 'dark'
-                                        ? 'bg-slate-800/40 border-slate-600 hover:bg-slate-800/60'
-                                        : 'bg-slate-100/60 border-slate-300 hover:bg-slate-100/80'
+                                        ? 'bg-slate-800/40 border-slate-600'
+                                        : 'bg-slate-50/60 border-slate-300'
                                     }`}>
-                                      <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                        <div
-                                          className="p-2 rounded-lg"
-                                          style={{
-                                            backgroundColor: subject.color + '15',
-                                            border: `1px solid ${subject.color}30`
-                                          }}
-                                        >
-                                          <FolderKanban className="w-4 h-4 md:w-5 md:h-5" style={{ color: subject.color }} />
-                                        </div>
-                                        <h5 className="text-base md:text-lg font-black" style={{ color: subject.color }}>
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <FolderKanban className="w-4 h-4" style={{ color: subject.color }} />
+                                        <h5 className="text-sm font-black" style={{ color: subject.color }}>
                                           Proyecto del Parcial
                                         </h5>
                                       </div>
-                                      <p className={`text-xs md:text-sm font-medium mb-3 md:mb-4 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-                                        Agrega un proyecto específico para este parcial
-                                      </p>
                                       <button
-                                        className="w-full sm:w-auto px-4 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-sm transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                                        className="w-full sm:w-auto px-3 py-2 rounded-lg font-bold text-xs transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5"
                                         style={{
                                           backgroundColor: subject.color + '20',
                                           color: subject.color,
-                                          border: `2px solid ${subject.color}40`
+                                          border: `1.5px solid ${subject.color}40`
                                         }}
                                       >
-                                        <Plus className="w-4 h-4" />
+                                        <Plus className="w-3.5 h-3.5" />
                                         <span>Agregar Proyecto</span>
                                       </button>
                                     </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
                               </div>
                             </div>
                           );
