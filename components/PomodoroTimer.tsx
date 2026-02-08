@@ -21,7 +21,7 @@ const PomodoroTimer: React.FC = () => {
   const activeProfile = profiles.find(p => p.id === activeProfileId);
   const currentSettings = activeProfileId ? settings[activeProfileId] : null;
 
-  // Filtrar tareas, materiales y temas por perfil activo
+  // Filter tasks, materials and topics by active profile
   const filteredTasks = useMemo(() => {
     if (!activeProfileId) return [];
     return tasks.filter(t => {
@@ -48,7 +48,7 @@ const PomodoroTimer: React.FC = () => {
     });
   }, [examTopics, exams, subjects, activeProfileId]);
 
-  // Estados derivados del timer persistente
+  // Timer state derived from persistent timer
   const [mode, setMode] = useState<'work' | 'short_break' | 'long_break'>(() => {
     return activeTimer?.mode || 'work';
   });
@@ -77,7 +77,6 @@ const PomodoroTimer: React.FC = () => {
     meta?: any;
     displayTitle: string;
   } | null>(() => {
-    // Restaurar item seleccionado del timer activo
     if (activeTimer?.selected_item_type) {
       return {
         type: activeTimer.selected_item_type,
@@ -101,7 +100,7 @@ const PomodoroTimer: React.FC = () => {
   const startTimeRef = useRef<string | null>(activeTimer?.started_at || null);
   const endTimeRef = useRef<number | null>(null);
 
-  // Efecto para restaurar timer al cargar la página
+  // Restore timer on page load
   useEffect(() => {
     if (activeTimer && !timerRestored) {
       setTimerRestored(true);
@@ -111,13 +110,11 @@ const PomodoroTimer: React.FC = () => {
       if (!activeTimer.is_paused) {
         setIsActive(true);
         setIsPaused(false);
-        // Calcular tiempo restante
         const elapsed = Math.floor((Date.now() - new Date(activeTimer.started_at).getTime()) / 1000);
         const remaining = Math.max(0, activeTimer.duration_seconds - elapsed);
         setTimeLeft(remaining);
 
         if (remaining <= 0) {
-          // Timer expiró mientras la app estaba cerrada
           handleComplete();
         }
       } else {
@@ -127,7 +124,6 @@ const PomodoroTimer: React.FC = () => {
         setTimeLeft(Math.max(0, activeTimer.duration_seconds - elapsed));
       }
 
-      // Restaurar item seleccionado
       if (activeTimer.selected_item_type) {
         setSelectedItem({
           type: activeTimer.selected_item_type,
@@ -137,23 +133,17 @@ const PomodoroTimer: React.FC = () => {
           displayTitle: activeTimer.selected_display_title || ''
         });
       }
-
-      console.log('🔄 Timer restaurado:', {
-        mode: activeTimer.mode,
-        isPaused: activeTimer.is_paused,
-        timeLeft: activeTimer.duration_seconds - (activeTimer.elapsed_when_paused || 0)
-      });
     }
   }, [activeTimer]);
 
-  // Solicitar permiso para notificaciones al montar el componente
+  // Request notification permission
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
 
-  // Efecto para manejar sección seleccionada desde el menú desplegable
+  // Handle section selected from sidebar
   useEffect(() => {
     if (selectedSectionForPomodoro) {
       const { id, type } = selectedSectionForPomodoro;
@@ -180,12 +170,10 @@ const PomodoroTimer: React.FC = () => {
         }
       }
 
-      // Limpiar la selección del store después de procesarla
       clearSelectedSectionForPomodoro();
     }
   }, [selectedSectionForPomodoro, subjects, categoryInstances, clearSelectedSectionForPomodoro]);
 
-  // Función para mostrar notificación del sistema
   const showNotification = (title: string, body: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       const notification = new Notification(title, {
@@ -196,7 +184,6 @@ const PomodoroTimer: React.FC = () => {
         tag: 'pomodoro-timer',
         requireInteraction: true,
       });
-
       notification.onclick = () => {
         window.focus();
         notification.close();
@@ -228,7 +215,6 @@ const PomodoroTimer: React.FC = () => {
     try {
       const pendingTasks = filteredTasks.filter(t => t.status !== 'completed');
       const ai = new GoogleGenAI({ apiKey });
-      // Fix: Properly close the template literal interpolation after JSON.stringify.
       const prompt = `Tengo estas tareas: ${JSON.stringify(pendingTasks.map(t => ({ title: t.title, priority: t.priority })))}. Small tip (max 8 words) on what to focus on based on priority. Tone: Encouraging mentor. Language: Spanish.`;
 
       const response = await ai.models.generateContent({
@@ -251,15 +237,13 @@ const PomodoroTimer: React.FC = () => {
       const interval = setInterval(() => {
         setMotivation(getMotivationalPhrase());
         setTimeout(() => setMotivation(null), 5000);
-      }, 90000); 
+      }, 90000);
       return () => clearInterval(interval);
     }
   }, [isActive, mode]);
 
   useEffect(() => {
-    // No resetear si hay un timer activo (evita sobrescribir el tiempo restaurado)
     if (activeTimer) return;
-
     if (currentSettings && !isActive && !isPaused) {
       const mins = mode === 'work' ? currentSettings.work_duration : mode === 'short_break' ? currentSettings.short_break : currentSettings.long_break;
       setTimeLeft(mins * 60);
@@ -268,7 +252,6 @@ const PomodoroTimer: React.FC = () => {
 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
-      // Set the wall-clock end time if not already set
       if (!endTimeRef.current) {
         endTimeRef.current = Date.now() + timeLeft * 1000;
       }
@@ -280,15 +263,14 @@ const PomodoroTimer: React.FC = () => {
         if (remaining <= 0) {
           clearInterval(timerRef.current);
         }
-      }, 500); // Update every 500ms for smooth, accurate display
+      }, 500);
     } else if (timeLeft === 0 && isActive) {
       endTimeRef.current = null;
       handleComplete();
     }
     return () => clearInterval(timerRef.current);
-  }, [isActive, timeLeft === 0]); // Only re-setup on start/stop or completion
+  }, [isActive, timeLeft === 0]);
 
-  // Handler para cuando se selecciona un item del selector jerárquico
   const handleItemSelection = (selection: any) => {
     const displayTitle = selection.meta
       ? `${selection.meta.title} (${selection.item.name || selection.item.title})`
@@ -301,39 +283,27 @@ const PomodoroTimer: React.FC = () => {
   };
 
   const handleStart = async () => {
-    if (mode === 'work' && !selectedItem) {
-      soundService.playError();
-      soundService.vibrate([100, 50, 100]);
-      setAiTip("Elige un tema antes de arrancar.");
-      setTimeout(() => setAiTip(null), 3000);
-      return;
-    }
-
-    // Reproducir sonido de inicio
+    // Allow starting without a selected item - it will be "Estudio General"
     soundService.playStart();
     soundService.vibrate([50, 100, 50]);
 
     const now = new Date().toISOString();
     startTimeRef.current = now;
 
-    // Si está pausado, reanudar
     if (isPaused && activeTimer) {
       await resumeActiveTimer();
-      // Set wall-clock end time from current timeLeft
       endTimeRef.current = Date.now() + timeLeft * 1000;
       setIsPaused(false);
       setIsActive(true);
       return;
     }
 
-    // Iniciar nuevo timer
     const durationMins = mode === 'work'
       ? currentSettings?.work_duration || 25
       : mode === 'short_break'
         ? currentSettings?.short_break || 5
         : currentSettings?.long_break || 15;
 
-    // Set wall-clock end time for accurate countdown
     endTimeRef.current = Date.now() + durationMins * 60 * 1000;
 
     await startActiveTimer({
@@ -357,7 +327,7 @@ const PomodoroTimer: React.FC = () => {
   const handlePause = async () => {
     soundService.playPause();
     soundService.vibrate(25);
-    endTimeRef.current = null; // Clear wall-clock target
+    endTimeRef.current = null;
     await pauseActiveTimer();
     setIsActive(false);
     setIsPaused(true);
@@ -366,28 +336,26 @@ const PomodoroTimer: React.FC = () => {
   const handleReset = async () => {
     soundService.playWhoosh();
     soundService.vibrate(30);
-    endTimeRef.current = null; // Clear wall-clock target
+    endTimeRef.current = null;
     await stopActiveTimer();
     setIsActive(false);
     setIsPaused(false);
-    setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : 5) * 60);
+    setTimeLeft((mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? currentSettings?.short_break || 5 : currentSettings?.long_break || 15) * 60);
     startTimeRef.current = null;
   };
 
   const handleComplete = async () => {
-    endTimeRef.current = null; // Clear wall-clock target
+    endTimeRef.current = null;
     setIsActive(false);
     setIsPaused(false);
 
-    // Reproducir sonido de finalización
     soundService.playComplete();
     soundService.vibrate([200, 100, 200, 100, 200]);
 
-    // Mostrar notificación del sistema
     if (mode === 'work') {
       showNotification(
         '¡Pomodoro Completado! 🎉',
-        `Has terminado tu sesión de ${selectedItem?.displayTitle || 'trabajo'}. ¡Tiempo de descansar!`
+        `Has terminado tu sesión de ${selectedItem?.displayTitle || 'estudio'}. ¡Tiempo de descansar!`
       );
       setShowCompletionModal(true);
     } else {
@@ -395,7 +363,6 @@ const PomodoroTimer: React.FC = () => {
         '¡Descanso Terminado! ⚡',
         '¡Es hora de volver al trabajo con energía renovada!'
       );
-      // Limpiar timer activo antes de cambiar de modo
       await stopActiveTimer();
       setMode('work');
     }
@@ -407,8 +374,7 @@ const PomodoroTimer: React.FC = () => {
     soundService.playSuccess();
     soundService.vibrate([100, 50, 100]);
 
-    const plannedMins = mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? currentSettings?.short_break || 5 : 15;
-    // Use exact planned duration for completed sessions (timeLeft === 0)
+    const plannedMins = mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? currentSettings?.short_break || 5 : currentSettings?.long_break || 15;
     const actualSecs = timeLeft === 0 ? plannedMins * 60 : (plannedMins * 60) - timeLeft;
 
     addSession({
@@ -425,7 +391,6 @@ const PomodoroTimer: React.FC = () => {
       completed_at: new Date().toISOString(),
     });
 
-    // Limpiar timer activo
     await stopActiveTimer();
 
     setShowCompletionModal(false);
@@ -439,7 +404,6 @@ const PomodoroTimer: React.FC = () => {
       setMode(nextMode);
       setSessionCount(newSessionCount);
 
-      // Iniciar automáticamente el descanso
       const breakDuration = nextMode === 'long_break'
         ? currentSettings?.long_break || 15
         : currentSettings?.short_break || 5;
@@ -456,183 +420,202 @@ const PomodoroTimer: React.FC = () => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const totalDuration = (mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? currentSettings?.short_break || 5 : currentSettings?.long_break || 15) * 60;
+  const progress = totalDuration > 0 ? ((totalDuration - timeLeft) / totalDuration) : 0;
+
+  const modeConfig = {
+    work: { label: 'Productividad', color: 'indigo', gradient: 'from-indigo-600 via-purple-600 to-indigo-700' },
+    short_break: { label: 'Descanso Corto', color: 'emerald', gradient: 'from-emerald-600 via-teal-600 to-emerald-700' },
+    long_break: { label: 'Descanso Largo', color: 'amber', gradient: 'from-amber-600 via-orange-600 to-amber-700' }
+  };
+
+  const currentMode = modeConfig[mode];
+
   return (
-    <div className={`flex flex-col items-center py-10 transition-all duration-700 ${isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 justify-center p-12' : 'max-w-xl mx-auto'}`}>
-      
+    <div className={`flex flex-col items-center py-6 sm:py-8 md:py-10 transition-all duration-700 px-4 ${
+      isFullscreen ? 'fixed inset-0 z-[100] bg-slate-950 justify-center p-4 sm:p-8' : 'max-w-xl mx-auto'
+    }`}>
+
       {motivation && (
-        <div className="fixed top-24 animate-bounce bg-indigo-600 text-white px-10 py-5 rounded-[2.5rem] shadow-2xl z-[110] font-black border-4 border-white/20 text-xl">
-          <Sparkles className="inline mr-2" /> {motivation}
+        <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-auto animate-bounce bg-indigo-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-2xl shadow-2xl z-[110] font-black border-2 border-white/20 text-sm sm:text-base text-center">
+          <Sparkles className="inline mr-2 w-4 h-4" /> {motivation}
         </div>
       )}
 
       {aiTip && (
-        <div className={`fixed bottom-10 animate-in slide-in-from-bottom duration-500 px-8 py-4 rounded-3xl border shadow-2xl z-[120] font-black flex items-center gap-3 ${theme === 'dark' ? 'bg-indigo-900 border-indigo-500 text-white' : 'bg-white border-indigo-100 text-indigo-700'}`}>
-          <BrainCircuit className="text-indigo-500" />
-          {aiTip}
+        <div className={`fixed bottom-6 left-4 right-4 sm:left-auto sm:right-auto sm:max-w-md animate-in slide-in-from-bottom duration-500 px-5 py-3 rounded-2xl border shadow-2xl z-[120] font-bold text-sm flex items-center gap-2 ${
+          theme === 'dark' ? 'bg-indigo-900 border-indigo-500 text-white' : 'bg-white border-indigo-100 text-indigo-700'
+        }`}>
+          <BrainCircuit className="text-indigo-500 flex-shrink-0" size={18} />
+          <span className="line-clamp-2">{aiTip}</span>
         </div>
       )}
 
       {isFullscreen && (
-        <button onClick={() => setIsFullscreen(false)} className="absolute top-12 right-12 text-white/30 hover:text-white flex items-center gap-3 transition-colors">
-          <Minimize2 size={32} /> <span className="text-sm font-black uppercase tracking-[0.3em]">Cerrar Foco</span>
+        <button onClick={() => setIsFullscreen(false)} className="absolute top-4 right-4 sm:top-8 sm:right-8 text-white/30 hover:text-white flex items-center gap-2 transition-colors">
+          <Minimize2 size={24} /> <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Cerrar</span>
         </button>
       )}
 
+      {/* Mode Tabs */}
       {!isFullscreen && (
-        <div className={`flex gap-3 mb-16 p-2 rounded-[2rem] border-2 shadow-sm ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+        <div className={`flex gap-1 mb-8 sm:mb-12 p-1 rounded-xl border ${
+          theme === 'dark' ? 'bg-slate-800/80 border-slate-700' : 'bg-slate-100 border-slate-200'
+        }`}>
           {(['work', 'short_break', 'long_break'] as const).map(m => (
             <button
               key={m}
-              onClick={() => { setMode(m); setIsActive(false); }}
-              className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                mode === m ? 'bg-indigo-600 text-white shadow-xl scale-105' : theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-50'
-              }`}
+              onClick={() => { if (!isActive) { setMode(m); } }}
+              className={`px-3 sm:px-5 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all ${
+                mode === m
+                  ? `bg-gradient-to-r ${modeConfig[m].gradient} text-white shadow-md`
+                  : theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-white'
+              } ${isActive ? 'cursor-default' : ''}`}
             >
-              {m === 'work' ? 'Productividad' : m === 'short_break' ? 'D. Corto' : 'D. Largo'}
+              {modeConfig[m].label}
             </button>
           ))}
         </div>
       )}
 
-      <div className="relative mb-20 group">
-        {/* Enhanced glow effects */}
-        <div className={`absolute -inset-12 rounded-full blur-3xl transition-all duration-1000 ${
-          isActive
-            ? 'bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 opacity-100 animate-pulse'
-            : 'bg-indigo-500/10 opacity-0 group-hover:opacity-100'
-        }`} />
-
-        {/* Multiple layered glows */}
+      {/* Timer Circle */}
+      <div className="relative mb-10 sm:mb-14">
+        {/* Glow effects */}
         {isActive && (
-          <>
-            <div className="absolute -inset-8 bg-indigo-500/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
-            <div className="absolute -inset-4 bg-purple-500/20 rounded-full blur-xl animate-pulse" style={{ animationDelay: '1s' }} />
-          </>
+          <div className={`absolute -inset-6 sm:-inset-8 rounded-full blur-2xl opacity-30 animate-pulse bg-gradient-to-r ${currentMode.gradient}`} />
         )}
 
-        <svg className={`${isFullscreen ? 'w-[38rem] h-[38rem]' : 'w-96 h-96'} -rotate-90 transition-all duration-1000 relative z-10 drop-shadow-2xl`}>
-          {/* Background circle with gradient */}
+        <svg className={`${isFullscreen ? 'w-72 h-72 sm:w-96 sm:h-96 md:w-[28rem] md:h-[28rem]' : 'w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80'} -rotate-90 transition-all duration-500 relative z-10`}>
           <defs>
-            <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={theme === 'dark' || isFullscreen ? "#1e293b" : "#f1f5f9"} />
               <stop offset="100%" stopColor={theme === 'dark' || isFullscreen ? "#0f172a" : "#e2e8f0"} />
             </linearGradient>
-            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#818cf8" />
-              <stop offset="50%" stopColor="#a855f7" />
-              <stop offset="100%" stopColor="#ec4899" />
+            <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              {mode === 'work' ? (
+                <>
+                  <stop offset="0%" stopColor="#818cf8" />
+                  <stop offset="50%" stopColor="#a855f7" />
+                  <stop offset="100%" stopColor="#ec4899" />
+                </>
+              ) : mode === 'short_break' ? (
+                <>
+                  <stop offset="0%" stopColor="#34d399" />
+                  <stop offset="100%" stopColor="#2dd4bf" />
+                </>
+              ) : (
+                <>
+                  <stop offset="0%" stopColor="#fbbf24" />
+                  <stop offset="100%" stopColor="#f97316" />
+                </>
+              )}
             </linearGradient>
           </defs>
 
-          <circle cx="50%" cy="50%" r="45%" stroke="url(#bgGradient)" strokeWidth="6" fill="transparent" />
+          <circle cx="50%" cy="50%" r="45%" stroke="url(#bgGrad)" strokeWidth="6" fill="transparent" />
 
-          {/* Progress circle with gradient */}
           <circle
             cx="50%" cy="50%" r="45%"
-            stroke="url(#progressGradient)" strokeWidth="12" fill="transparent"
-            className="transition-all duration-300 drop-shadow-[0_0_20px_rgba(99,102,241,0.8)]"
+            stroke="url(#progressGrad)" strokeWidth="10" fill="transparent"
+            className="transition-all duration-300"
             strokeDasharray="283%"
-            strokeDashoffset={`${283 - (timeLeft / ((mode === 'work' ? currentSettings?.work_duration || 25 : mode === 'short_break' ? 5 : 15) * 60)) * 283}%`}
+            strokeDashoffset={`${283 - progress * 283}%`}
             strokeLinecap="round"
             style={{
-              filter: 'drop-shadow(0 0 15px rgba(168, 85, 247, 0.6))'
+              filter: isActive ? 'drop-shadow(0 0 12px rgba(168, 85, 247, 0.5))' : 'none'
             }}
           />
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-          <div className="relative">
-            <span className={`${isFullscreen ? 'text-[14rem]' : 'text-9xl'} font-black tracking-tighter leading-none bg-gradient-to-br from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white bg-clip-text text-transparent ${
-              isActive ? 'animate-pulse' : ''
-            }`} style={isFullscreen ? { WebkitTextStroke: '2px rgba(99, 102, 241, 0.1)' } : {}}>
-              {formatTime(timeLeft)}
-            </span>
-            {/* Time glow effect */}
-            {isActive && (
-              <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20" />
-            )}
-          </div>
+          <span className={`${isFullscreen ? 'text-6xl sm:text-8xl md:text-9xl' : 'text-5xl sm:text-7xl md:text-8xl'} font-black tracking-tighter leading-none ${
+            theme === 'dark' || isFullscreen ? 'text-white' : 'text-slate-900'
+          } ${isActive ? 'animate-pulse' : ''}`}>
+            {formatTime(timeLeft)}
+          </span>
 
           {selectedItem && (
-            <div className="mt-12 text-center px-10 animate-in fade-in duration-500 relative">
-              <div className="relative inline-block">
-                <p className="text-[12px] font-black uppercase tracking-[0.4em] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-3">
-                  Meta de Enfoque
-                </p>
-                <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500 to-transparent" />
-              </div>
-              <p className={`text-2xl font-black truncate max-w-[320px] mt-3 ${theme === 'dark' || isFullscreen ? 'text-slate-200' : 'text-slate-900'}`}>
+            <div className="mt-3 sm:mt-4 text-center px-4 max-w-[200px] sm:max-w-[280px]">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-1">
+                Enfoque
+              </p>
+              <p className={`text-xs sm:text-sm font-black truncate ${
+                theme === 'dark' || isFullscreen ? 'text-slate-200' : 'text-slate-800'
+              }`}>
                 {selectedItem.displayTitle}
+              </p>
+            </div>
+          )}
+
+          {!selectedItem && !isActive && mode === 'work' && (
+            <div className="mt-3 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Listo para empezar
               </p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-8 md:gap-16 relative z-30">
+      {/* Session counter */}
+      {!isFullscreen && (
+        <div className={`mb-6 text-center text-[10px] font-bold uppercase tracking-widest ${
+          theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
+        }`}>
+          Sesión #{sessionCount} {isPaused && '• En Pausa'}
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="flex items-center gap-4 sm:gap-6 md:gap-8 relative z-30">
         <button
           onClick={handleReset}
-          className={`relative p-6 md:p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 group touch-manipulation ${
+          className={`relative p-4 sm:p-5 rounded-full border-2 transition-all hover:scale-110 active:scale-90 touch-manipulation ${
             theme === 'dark' || isFullscreen
-              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700'
-              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:bg-indigo-50'
+              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
           }`}
         >
-          <RotateCcw size={32} className="group-hover:rotate-180 transition-transform duration-500" />
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
+          <RotateCcw size={22} className="sm:w-7 sm:h-7" />
         </button>
 
         <button
           onClick={isActive ? handlePause : handleStart}
-          className={`relative w-32 h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center text-white shadow-2xl transition-all hover:scale-110 active:scale-95 group overflow-hidden touch-manipulation ${
+          className={`relative w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center text-white shadow-2xl transition-all hover:scale-110 active:scale-95 touch-manipulation ${
             isActive
-              ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 shadow-amber-500/50'
-              : 'bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 shadow-indigo-500/50'
+              ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 shadow-amber-500/40'
+              : `bg-gradient-to-br ${currentMode.gradient} shadow-indigo-500/40`
           }`}
         >
-          {/* Animated background on hover */}
-          <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity ${
-            isActive
-              ? 'bg-gradient-to-tr from-orange-600 to-amber-500'
-              : 'bg-gradient-to-tr from-purple-700 to-indigo-600'
-          }`} />
-
-          {/* Glow effect */}
-          <div className={`absolute -inset-2 rounded-full blur-xl opacity-50 group-hover:opacity-75 transition-opacity ${
+          <div className={`absolute -inset-1 rounded-full blur-lg opacity-40 ${
             isActive ? 'bg-amber-500' : 'bg-indigo-500'
           }`} />
-
-          {/* Icon */}
           <div className="relative z-10">
             {isActive ? (
-              <Pause size={80} fill="currentColor" className="drop-shadow-2xl" />
+              <Pause size={36} fill="currentColor" className="sm:w-12 sm:h-12 md:w-14 md:h-14 drop-shadow-lg" />
             ) : (
-              <Play size={80} fill="currentColor" className="ml-4 drop-shadow-2xl" />
+              <Play size={36} fill="currentColor" className="ml-1 sm:ml-2 sm:w-12 sm:h-12 md:w-14 md:h-14 drop-shadow-lg" />
             )}
           </div>
-
-          {/* Shimmer effect */}
-          <div className="absolute inset-0 shimmer opacity-30" />
         </button>
 
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className={`relative p-8 rounded-full border-2 transition-all hover:scale-110 active:scale-90 group ${
+          className={`relative p-4 sm:p-5 rounded-full border-2 transition-all hover:scale-110 active:scale-90 touch-manipulation ${
             theme === 'dark' || isFullscreen
-              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-700'
-              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300 hover:bg-indigo-50'
+              ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+              : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
           }`}
         >
-          {isFullscreen ? <Minimize2 size={32} /> : <Maximize2 size={32} />}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity" />
+          {isFullscreen ? <Minimize2 size={22} className="sm:w-7 sm:h-7" /> : <Maximize2 size={22} className="sm:w-7 sm:h-7" />}
         </button>
       </div>
 
+      {/* Task Selector - only show when not active and not in fullscreen */}
       {!isActive && !isPaused && !isFullscreen && activeProfileId && (
-        <div className="mt-16 w-full max-w-4xl mx-auto">
-          {/* Header con botón IA */}
-          <div className="flex items-center justify-between mb-6 px-2">
-            <h3 className={`text-xs font-black uppercase tracking-[0.3em] ${
+        <div className="mt-8 sm:mt-12 w-full max-w-lg mx-auto">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className={`text-[11px] font-black uppercase tracking-widest ${
               theme === 'dark' ? 'text-slate-500' : 'text-slate-600'
             }`}>
               ¿Qué vamos a lograr hoy?
@@ -640,38 +623,55 @@ const PomodoroTimer: React.FC = () => {
             <button
               onClick={getAiSuggestion}
               disabled={isSuggesting}
-              className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-colors px-3 py-2 rounded-lg hover:bg-indigo-500/10"
+              className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-500 hover:text-indigo-600 disabled:opacity-50 transition-colors px-2 py-1.5 rounded-lg hover:bg-indigo-500/10"
             >
-              {isSuggesting ? <Loader2 className="animate-spin" size={16} /> : <BrainCircuit size={16} />}
-              Asesor IA
+              {isSuggesting ? <Loader2 className="animate-spin" size={14} /> : <BrainCircuit size={14} />}
+              <span className="hidden sm:inline">Asesor IA</span>
             </button>
           </div>
 
-          {/* Selector Desplegable */}
           <DropdownTaskSelector
             theme={theme}
             onSelect={handleItemSelection}
             activeProfileId={activeProfileId}
           />
+
+          {/* Quick start info */}
+          {!selectedItem && (
+            <p className={`text-center text-[11px] mt-3 font-medium ${
+              theme === 'dark' ? 'text-slate-500' : 'text-slate-400'
+            }`}>
+              Puedes iniciar sin seleccionar nada para estudio general
+            </p>
+          )}
         </div>
       )}
 
+      {/* Completion Modal */}
       {showCompletionModal && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-3xl flex items-center justify-center p-8 z-[300]">
-          <div className={`w-full max-w-xl rounded-[4rem] p-16 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] animate-in zoom-in duration-500 ${theme === 'dark' ? 'bg-slate-900 border border-white/5' : 'bg-white'}`}>
-            <div className="w-32 h-32 bg-indigo-600 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-10 shadow-2xl rotate-3">
-              <Trophy size={64} />
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 z-[300]">
+          <div className={`w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-2xl animate-in zoom-in duration-500 ${
+            theme === 'dark' ? 'bg-slate-900 border border-white/5' : 'bg-white'
+          }`}>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-indigo-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <Trophy size={40} className="sm:w-12 sm:h-12" />
             </div>
-            <h2 className={`text-5xl font-black text-center mb-4 tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>¡Misión Cumplida!</h2>
-            <p className="text-center text-slate-500 font-bold mb-12 text-lg">Tu cerebro te agradece el enfoque. ¿Cómo fue la calidad?</p>
-            <div className="flex justify-center gap-4 mb-16">
+            <h2 className={`text-2xl sm:text-3xl font-black text-center mb-2 tracking-tight ${
+              theme === 'dark' ? 'text-white' : 'text-slate-950'
+            }`}>
+              ¡Misión Cumplida!
+            </h2>
+            <p className="text-center text-slate-500 font-bold mb-8 text-sm">
+              Tu cerebro te agradece el enfoque. ¿Cómo fue la calidad?
+            </p>
+            <div className="flex justify-center gap-2 sm:gap-3 mb-8">
               {[1, 2, 3, 4, 5].map(s => (
-                <button key={s} onClick={() => setRating(s)} className={`transition-all hover:scale-125 ${rating >= s ? 'text-yellow-400' : 'text-slate-200'}`}>
-                  <Star size={54} fill={rating >= s ? "currentColor" : "none"} strokeWidth={3} />
+                <button key={s} onClick={() => setRating(s)} className={`transition-all hover:scale-125 active:scale-90 ${rating >= s ? 'text-yellow-400' : 'text-slate-300'}`}>
+                  <Star size={36} className="sm:w-10 sm:h-10" fill={rating >= s ? "currentColor" : "none"} strokeWidth={2.5} />
                 </button>
               ))}
             </div>
-            <button onClick={saveSession} className="w-full bg-indigo-600 text-white font-black py-8 rounded-[2.5rem] shadow-2xl hover:bg-indigo-700 transition-all uppercase tracking-[0.2em] text-lg active:scale-95">
+            <button onClick={saveSession} className={`w-full bg-gradient-to-r ${currentMode.gradient} text-white font-black py-4 sm:py-5 rounded-2xl shadow-xl hover:shadow-2xl transition-all uppercase tracking-wider text-sm active:scale-95`}>
               Registrar Esfuerzo
             </button>
           </div>
