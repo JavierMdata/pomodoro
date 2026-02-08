@@ -139,9 +139,10 @@ export default function BooksManager({
       .filter((b) => b.status === 'completed')
       .reduce((sum, b) => sum + b.total_pages, 0);
     const totalTime = books.reduce((sum, b) => sum + b.total_reading_time_minutes, 0);
-    const avgSpeed = books
-      .filter((b) => b.pages_per_hour)
-      .reduce((sum, b) => sum + (b.pages_per_hour || 0), 0) / books.filter((b) => b.pages_per_hour).length || 0;
+    const booksWithSpeed = books.filter((b) => b.pages_per_hour);
+    const avgSpeed = booksWithSpeed.length > 0
+      ? booksWithSpeed.reduce((sum, b) => sum + (b.pages_per_hour || 0), 0) / booksWithSpeed.length
+      : 0;
     const longestStreak = Math.max(...books.map((b) => b.reading_streak_days), 0);
 
     return {

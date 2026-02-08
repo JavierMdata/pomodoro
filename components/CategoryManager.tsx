@@ -68,7 +68,11 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
   const legacySubjects = subjects.filter(s => s.profile_id === activeProfileId);
   const profilePeriods = periods.filter(p => p.profile_id === activeProfileId);
 
-  // Combinar materias existentes y nuevas categorías
+  // Combinar materias existentes y nuevas categorías, agrupadas por tipo
+  const categoryTypeOrder: Record<string, number> = {
+    'materia': 0, 'trabajo': 1, 'idioma': 2, 'gym': 3, 'proyecto': 4, 'descanso': 5, 'otro': 6
+  };
+
   const allCategories = [
     ...(filterType !== 'all-except-materia' && filterType !== 'proyecto' && filterType !== 'gym' && filterType !== 'trabajo' && filterType !== 'idioma' && filterType !== 'descanso' && filterType !== 'otro'
       ? legacySubjects.map(subject => ({
@@ -99,7 +103,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
       end_date: instance.end_date,
       needsPeriod: false
     }))
-  ];
+  ].sort((a, b) => {
+    // Sort by category type first, then alphabetically by name
+    const typeA = categoryTypeOrder[a.category_type] ?? 99;
+    const typeB = categoryTypeOrder[b.category_type] ?? 99;
+    if (typeA !== typeB) return typeA - typeB;
+    return a.name.localeCompare(b.name);
+  });
 
   const getCategoryIcon = (type: WorkCategory, size = 20) => {
     const icons = {

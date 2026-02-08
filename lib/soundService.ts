@@ -1,18 +1,20 @@
 /**
  * Servicio de Sonidos para PomoSmart
  * Usa Web Audio API para generar sonidos sin necesidad de archivos externos
+ * AudioContext se inicializa de forma lazy en la primera interacción del usuario
  */
 
 export class SoundService {
   private audioContext: AudioContext | null = null;
   private enabled: boolean = true;
+  private initialized: boolean = false;
 
-  constructor() {
-    // Inicializar AudioContext de forma lazy
-    this.initAudioContext();
-  }
-
-  private initAudioContext() {
+  /**
+   * Inicializa AudioContext solo cuando se necesita (tras gesto del usuario)
+   */
+  private ensureAudioContext() {
+    if (this.initialized) return;
+    this.initialized = true;
     try {
       // @ts-ignore - webkit prefix para Safari
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -44,10 +46,13 @@ export class SoundService {
   /**
    * Toca una nota simple
    */
-  private playNote(frequency: number, duration: number, volume: number = 0.3, type: OscillatorType = 'sine') {
-    if (!this.enabled || !this.audioContext) return;
+  private async playNote(frequency: number, duration: number, volume: number = 0.3, type: OscillatorType = 'sine') {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+
+    await this.resumeAudioContext();
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -83,10 +88,12 @@ export class SoundService {
   /**
    * Sonido de éxito/completado
    */
-  public playSuccess() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playSuccess() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
 
@@ -100,10 +107,12 @@ export class SoundService {
   /**
    * Sonido de inicio de Pomodoro (energético)
    */
-  public playStart() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playStart() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     const notes = [
       { freq: 523.25, time: 0 },    // C5
@@ -121,10 +130,12 @@ export class SoundService {
   /**
    * Sonido de pausa
    */
-  public playPause() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playPause() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     this.playNote(659.25, 0.15, 0.25, 'sine'); // E5
     setTimeout(() => {
@@ -135,10 +146,12 @@ export class SoundService {
   /**
    * Sonido de notificación suave
    */
-  public playNotification() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playNotification() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     // Doble beep suave
     this.playNote(880, 0.15, 0.25, 'sine');
@@ -150,10 +163,12 @@ export class SoundService {
   /**
    * Sonido de alerta/advertencia
    */
-  public playAlert() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playAlert() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     // Triple beep urgente
     for (let i = 0; i < 3; i++) {
@@ -166,29 +181,32 @@ export class SoundService {
   /**
    * Campana de finalización de Pomodoro
    */
-  public playComplete() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playComplete() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     const frequencies = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
 
     frequencies.forEach((freq, index) => {
       setTimeout(() => {
-        const oscillator = this.audioContext!.createOscillator();
-        const gainNode = this.audioContext!.createGain();
+        if (!this.audioContext) return;
+        const oscillator = this.audioContext.createOscillator();
+        const gainNode = this.audioContext.createGain();
 
         oscillator.connect(gainNode);
-        gainNode.connect(this.audioContext!.destination);
+        gainNode.connect(this.audioContext.destination);
 
         oscillator.frequency.value = freq;
         oscillator.type = 'sine';
 
-        gainNode.gain.setValueAtTime(0.2, this.audioContext!.currentTime + index * 0.15);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext!.currentTime + index * 0.15 + 0.5);
+        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime + index * 0.15);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + index * 0.15 + 0.5);
 
-        oscillator.start(this.audioContext!.currentTime + index * 0.15);
-        oscillator.stop(this.audioContext!.currentTime + index * 0.15 + 0.5);
+        oscillator.start(this.audioContext.currentTime + index * 0.15);
+        oscillator.stop(this.audioContext.currentTime + index * 0.15 + 0.5);
       }, 0);
     });
   }
@@ -203,10 +221,12 @@ export class SoundService {
   /**
    * Whoosh (para transiciones)
    */
-  public playWhoosh() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playWhoosh() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
@@ -230,10 +250,12 @@ export class SoundService {
   /**
    * Error/rechazo
    */
-  public playError() {
-    if (!this.enabled || !this.audioContext) return;
+  public async playError() {
+    if (!this.enabled) return;
 
-    this.resumeAudioContext();
+    this.ensureAudioContext();
+    if (!this.audioContext) return;
+    await this.resumeAudioContext();
 
     // Dos tonos bajos
     this.playNote(200, 0.2, 0.3, 'square');
