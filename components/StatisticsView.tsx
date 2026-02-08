@@ -3,9 +3,9 @@ import React, { useMemo, useState } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area
+  PieChart, Pie, Cell
 } from 'recharts';
-import { format, startOfDay, eachDayOfInterval, subDays, isSameDay, differenceInDays } from 'date-fns';
+import { format, startOfDay, eachDayOfInterval, subDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Clock, Zap, Calendar, Star, TrendingUp, Sparkles, BrainCircuit, Loader2, ChevronDown, ChevronRight, Timer, Target, Flame } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
@@ -388,13 +388,7 @@ const StatisticsView: React.FC = () => {
           <h3 className="text-sm sm:text-base font-black mb-4 sm:mb-6">Horas de Estudio (7 días)</h3>
           <div className="h-[200px] sm:h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <AreaChart data={dailyData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
+              <BarChart data={dailyData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#f1f5f9'} />
                 <XAxis
                   dataKey="date"
@@ -408,7 +402,7 @@ const StatisticsView: React.FC = () => {
                   tick={{ fontSize: 11, fill: '#94a3b8', fontWeight: 600 }}
                 />
                 <Tooltip
-                  cursor={{ stroke: theme === 'dark' ? '#4f46e5' : '#c7d2fe', strokeWidth: 2 }}
+                  cursor={{ fill: theme === 'dark' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(99, 102, 241, 0.05)' }}
                   contentStyle={{
                     borderRadius: '12px',
                     border: 'none',
@@ -420,13 +414,13 @@ const StatisticsView: React.FC = () => {
                     padding: '8px 12px'
                   }}
                   formatter={(value: any, name: string) => {
-                    const labels: Record<string, string> = { hours: 'Horas', sessions: 'Sesiones', focus: 'Enfoque' };
+                    const labels: Record<string, string> = { hours: 'Horas', sessions: 'Sesiones' };
                     return [value, labels[name] || name];
                   }}
                 />
-                <Area type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorHours)" />
-                <Bar dataKey="sessions" fill="#a855f7" radius={[4, 4, 0, 0]} barSize={20} opacity={0.6} />
-              </AreaChart>
+                <Bar dataKey="hours" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={28} name="hours" />
+                <Bar dataKey="sessions" fill="#a855f7" radius={[6, 6, 0, 0]} barSize={28} name="sessions" opacity={0.7} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

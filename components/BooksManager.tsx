@@ -42,14 +42,15 @@ interface BooksManagerProps {
   onAddReadingSession: (session: Partial<BookReadingSession>) => void;
   onAddQuote: (quote: Partial<BookQuote>) => void;
   profileId: string;
+  theme?: 'dark' | 'light';
 }
 
-const statusColors = {
-  not_started: 'bg-gray-100 text-gray-700',
-  reading: 'bg-blue-100 text-blue-700',
-  paused: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-green-100 text-green-700',
-  abandoned: 'bg-red-100 text-red-700',
+const statusLabels: Record<BookStatus, string> = {
+  not_started: 'No iniciado',
+  reading: 'Leyendo',
+  paused: 'Pausado',
+  completed: 'Completado',
+  abandoned: 'Abandonado',
 };
 
 const statusIcons = {
@@ -60,29 +61,30 @@ const statusIcons = {
   abandoned: X,
 };
 
+const genreLabels: Record<BookGenre, string> = {
+  ficcion: 'Ficción',
+  no_ficcion: 'No Ficción',
+  academico: 'Académico',
+  tecnico: 'Técnico',
+  autoayuda: 'Autoayuda',
+  biografia: 'Biografía',
+  historia: 'Historia',
+  ciencia: 'Ciencia',
+  filosofia: 'Filosofía',
+  otro: 'Otro',
+};
+
 const genreOptions: BookGenre[] = [
-  'ficcion',
-  'no_ficcion',
-  'academico',
-  'tecnico',
-  'autoayuda',
-  'biografia',
-  'historia',
-  'ciencia',
-  'filosofia',
-  'otro',
+  'ficcion', 'no_ficcion', 'academico', 'tecnico', 'autoayuda',
+  'biografia', 'historia', 'ciencia', 'filosofia', 'otro',
 ];
 
 export default function BooksManager({
-  books,
-  subjects,
-  onAddBook,
-  onUpdateBook,
-  onDeleteBook,
-  onAddReadingSession,
-  onAddQuote,
-  profileId,
+  books, subjects, onAddBook, onUpdateBook, onDeleteBook,
+  onAddReadingSession, onAddQuote, profileId, theme = 'dark',
 }: BooksManagerProps) {
+  const isDark = theme === 'dark';
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingBook, setEditingBook] = useState<BookType | null>(null);
   const [selectedBook, setSelectedBook] = useState<BookType | null>(null);
@@ -91,72 +93,42 @@ export default function BooksManager({
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Formulario
   const [formData, setFormData] = useState<Partial<BookType>>({
-    title: '',
-    author: '',
-    total_pages: 100,
-    total_chapters: 0,
-    genre: 'ficcion',
-    status: 'not_started',
-    current_page: 0,
-    is_favorite: false,
+    title: '', author: '', total_pages: 100, total_chapters: 0,
+    genre: 'ficcion', status: 'not_started', current_page: 0, is_favorite: false,
   });
 
-  // Formulario de sesión de lectura
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [sessionData, setSessionData] = useState({
-    start_page: 0,
-    end_page: 0,
-    duration_minutes: 25,
-    chapter_number: undefined as number | undefined,
-    chapter_name: '',
-    focus_rating: 4,
-    enjoyment_rating: 4,
-    session_notes: '',
+    start_page: 0, end_page: 0, duration_minutes: 25,
+    chapter_number: undefined as number | undefined, chapter_name: '',
+    focus_rating: 4, enjoyment_rating: 4, session_notes: '',
   });
 
-  // Filtrar libros
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       const matchesStatus = filterStatus === 'all' || book.status === filterStatus;
       const matchesGenre = filterGenre === 'all' || book.genre === filterGenre;
-      const matchesSearch =
-        searchTerm === '' ||
+      const matchesSearch = searchTerm === '' ||
         book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         book.author?.toLowerCase().includes(searchTerm.toLowerCase());
-
       return matchesStatus && matchesGenre && matchesSearch;
     });
   }, [books, filterStatus, filterGenre, searchTerm]);
 
-  // Estadísticas
   const stats = useMemo(() => {
     const total = books.length;
     const completed = books.filter((b) => b.status === 'completed').length;
     const reading = books.filter((b) => b.status === 'reading').length;
-    const totalPages = books
-      .filter((b) => b.status === 'completed')
-      .reduce((sum, b) => sum + b.total_pages, 0);
+    const totalPages = books.filter((b) => b.status === 'completed').reduce((sum, b) => sum + b.total_pages, 0);
     const totalTime = books.reduce((sum, b) => sum + b.total_reading_time_minutes, 0);
     const booksWithSpeed = books.filter((b) => b.pages_per_hour);
     const avgSpeed = booksWithSpeed.length > 0
-      ? booksWithSpeed.reduce((sum, b) => sum + (b.pages_per_hour || 0), 0) / booksWithSpeed.length
-      : 0;
+      ? booksWithSpeed.reduce((sum, b) => sum + (b.pages_per_hour || 0), 0) / booksWithSpeed.length : 0;
     const longestStreak = Math.max(...books.map((b) => b.reading_streak_days), 0);
-
-    return {
-      total,
-      completed,
-      reading,
-      totalPages,
-      totalTime,
-      avgSpeed: Math.round(avgSpeed),
-      longestStreak,
-    };
+    return { total, completed, reading, totalPages, totalTime, avgSpeed: Math.round(avgSpeed), longestStreak };
   }, [books]);
 
-  // Handlers
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingBook) {
@@ -165,16 +137,7 @@ export default function BooksManager({
     } else {
       onAddBook({ ...formData, profile_id: profileId });
     }
-    setFormData({
-      title: '',
-      author: '',
-      total_pages: 100,
-      total_chapters: 0,
-      genre: 'ficcion',
-      status: 'not_started',
-      current_page: 0,
-      is_favorite: false,
-    });
+    setFormData({ title: '', author: '', total_pages: 100, total_chapters: 0, genre: 'ficcion', status: 'not_started', current_page: 0, is_favorite: false });
     setShowAddForm(false);
   };
 
@@ -187,158 +150,109 @@ export default function BooksManager({
   const handleLogSession = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBook) return;
-
     onAddReadingSession({
-      book_id: selectedBook.id,
-      profile_id: profileId,
-      ...sessionData,
-      session_date: new Date().toISOString().split('T')[0],
+      book_id: selectedBook.id, profile_id: profileId,
+      ...sessionData, session_date: new Date().toISOString().split('T')[0],
     });
-
-    setSessionData({
-      start_page: sessionData.end_page,
-      end_page: sessionData.end_page,
-      duration_minutes: 25,
-      chapter_number: undefined,
-      chapter_name: '',
-      focus_rating: 4,
-      enjoyment_rating: 4,
-      session_notes: '',
-    });
+    setSessionData({ start_page: sessionData.end_page, end_page: sessionData.end_page, duration_minutes: 25,
+      chapter_number: undefined, chapter_name: '', focus_rating: 4, enjoyment_rating: 4, session_notes: '' });
     setShowSessionForm(false);
     setSelectedBook(null);
   };
 
-  const calculateProgress = (book: BookType) => {
-    return Math.round((book.current_page / book.total_pages) * 100);
-  };
+  const calculateProgress = (book: BookType) => Math.round((book.current_page / book.total_pages) * 100);
 
   const estimatedTimeLeft = (book: BookType) => {
     if (!book.pages_per_hour || book.pages_per_hour === 0) return null;
     const pagesLeft = book.total_pages - book.current_page;
-    const hoursLeft = pagesLeft / book.pages_per_hour;
-    return Math.round(hoursLeft * 60); // minutos
+    return Math.round((pagesLeft / book.pages_per_hour) * 60);
   };
 
+  // Theme-aware class helpers
+  const cardBg = isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200';
+  const cardHover = isDark ? 'hover:border-slate-600' : 'hover:border-slate-300 hover:shadow-md';
+  const textPrimary = isDark ? 'text-white' : 'text-slate-900';
+  const textSecondary = isDark ? 'text-slate-400' : 'text-slate-500';
+  const textMuted = isDark ? 'text-slate-500' : 'text-slate-400';
+  const inputBg = isDark ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400';
+  const modalBg = isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white';
+
+  const getStatusStyle = (status: BookStatus) => {
+    const styles = {
+      not_started: isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700',
+      reading: isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700',
+      paused: isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700',
+      completed: isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700',
+      abandoned: isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700',
+    };
+    return styles[status];
+  };
+
+  const coverGradients = [
+    'from-indigo-500 to-purple-600',
+    'from-emerald-500 to-teal-600',
+    'from-amber-500 to-orange-600',
+    'from-rose-500 to-pink-600',
+    'from-cyan-500 to-blue-600',
+    'from-violet-500 to-fuchsia-600',
+  ];
+
+  const getCoverGradient = (index: number) => coverGradients[index % coverGradients.length];
+
   return (
-    <div className="space-y-6">
-      {/* Header con estadísticas */}
-      <div className="flex flex-col gap-4">
-        <div className="flex justify-between items-center">
+    <div className={`space-y-6 ${textPrimary}`}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl text-white shadow-lg">
+            <Book size={24} />
+          </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Book className="w-7 h-7 text-blue-600" />
-              Mis Libros
-            </h2>
-            <p className="text-gray-600">Rastrea tu progreso de lectura y evolución</p>
-          </div>
-          <button
-            onClick={() => {
-              setShowAddForm(true);
-              setEditingBook(null);
-              setFormData({
-                title: '',
-                author: '',
-                total_pages: 100,
-                total_chapters: 0,
-                genre: 'ficcion',
-                status: 'not_started',
-                current_page: 0,
-                is_favorite: false,
-              });
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Agregar Libro
-          </button>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">Total</p>
-                <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
-              </div>
-              <Book className="w-8 h-8 text-blue-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-medium">Completados</p>
-                <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
-              </div>
-              <CheckCircle2 className="w-8 h-8 text-green-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 font-medium">Leyendo</p>
-                <p className="text-2xl font-bold text-purple-900">{stats.reading}</p>
-              </div>
-              <BookOpen className="w-8 h-8 text-purple-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-amber-600 font-medium">Páginas</p>
-                <p className="text-2xl font-bold text-amber-900">{stats.totalPages.toLocaleString()}</p>
-              </div>
-              <BookMarked className="w-8 h-8 text-amber-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-4 rounded-lg border border-pink-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-pink-600 font-medium">Horas</p>
-                <p className="text-2xl font-bold text-pink-900">{Math.round(stats.totalTime / 60)}</p>
-              </div>
-              <Clock className="w-8 h-8 text-pink-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 rounded-lg border border-indigo-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-indigo-600 font-medium">Pág/Hora</p>
-                <p className="text-2xl font-bold text-indigo-900">{stats.avgSpeed}</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-indigo-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600 font-medium">Racha</p>
-                <p className="text-2xl font-bold text-orange-900">{stats.longestStreak} días</p>
-              </div>
-              <Flame className="w-8 h-8 text-orange-400" />
-            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">Mis Libros</h2>
+            <p className={`text-xs sm:text-sm font-medium ${textSecondary}`}>Rastrea tu progreso de lectura</p>
           </div>
         </div>
+        <button
+          onClick={() => { setShowAddForm(true); setEditingBook(null); setFormData({ title: '', author: '', total_pages: 100, total_chapters: 0, genre: 'ficcion', status: 'not_started', current_page: 0, is_favorite: false }); }}
+          className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 font-bold text-sm"
+        >
+          <Plus size={18} />
+          Agregar Libro
+        </button>
       </div>
 
-      {/* Filtros y búsqueda */}
-      <div className="flex flex-wrap gap-3 items-center bg-white p-4 rounded-lg border">
-        <div className="flex-1 min-w-[200px]">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        {[
+          { label: 'Total', value: stats.total, icon: Book, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+          { label: 'Completados', value: stats.completed, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: 'Leyendo', value: stats.reading, icon: BookOpen, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+          { label: 'Páginas', value: stats.totalPages.toLocaleString(), icon: BookMarked, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: 'Horas', value: Math.round(stats.totalTime / 60), icon: Clock, color: 'text-pink-500', bg: 'bg-pink-500/10' },
+          { label: 'Pág/Hora', value: stats.avgSpeed, icon: TrendingUp, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+          { label: 'Racha', value: `${stats.longestStreak}d`, icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+        ].map((stat, i) => (
+          <div key={i} className={`p-3 sm:p-4 rounded-xl border transition-all ${cardBg}`}>
+            <div className={`w-8 h-8 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-2`}>
+              <stat.icon size={16} strokeWidth={2.5} />
+            </div>
+            <p className="text-xl sm:text-2xl font-black">{stat.value}</p>
+            <p className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-widest ${textMuted}`}>{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className={`flex flex-wrap gap-3 items-center p-3 sm:p-4 rounded-xl border ${cardBg}`}>
+        <div className="flex-1 min-w-[180px]">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${textMuted}`} />
             <input
               type="text"
               placeholder="Buscar por título o autor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm font-medium outline-none transition-all focus:border-indigo-500 ${inputBg}`}
             />
           </div>
         </div>
@@ -346,76 +260,68 @@ export default function BooksManager({
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as BookStatus | 'all')}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`px-3 py-2.5 border rounded-xl text-sm font-bold outline-none ${inputBg}`}
         >
-          <option value="all">Todos los estados</option>
-          <option value="not_started">No iniciado</option>
-          <option value="reading">Leyendo</option>
-          <option value="paused">Pausado</option>
-          <option value="completed">Completado</option>
-          <option value="abandoned">Abandonado</option>
+          <option value="all">Todos</option>
+          {Object.entries(statusLabels).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
         </select>
 
         <select
           value={filterGenre}
           onChange={(e) => setFilterGenre(e.target.value as BookGenre | 'all')}
-          className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`px-3 py-2.5 border rounded-xl text-sm font-bold outline-none ${inputBg}`}
         >
-          <option value="all">Todos los géneros</option>
+          <option value="all">Géneros</option>
           {genreOptions.map((genre) => (
-            <option key={genre} value={genre}>
-              {genre.charAt(0).toUpperCase() + genre.slice(1)}
-            </option>
+            <option key={genre} value={genre}>{genreLabels[genre]}</option>
           ))}
         </select>
 
-        <div className="flex gap-2 border rounded-lg p-1">
+        <div className={`flex gap-1 border rounded-xl p-1 ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-indigo-500/20 text-indigo-500' : textMuted}`}
           >
-            <BarChart3 className="w-5 h-5" />
+            <BarChart3 size={16} />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-indigo-500/20 text-indigo-500' : textMuted}`}
           >
-            <ListOrdered className="w-5 h-5" />
+            <ListOrdered size={16} />
           </button>
         </div>
       </div>
 
-      {/* Lista de libros */}
+      {/* Book Grid */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredBooks.map((book) => {
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredBooks.map((book, idx) => {
             const progress = calculateProgress(book);
             const StatusIcon = statusIcons[book.status];
             const timeLeft = estimatedTimeLeft(book);
 
             return (
-              <div
-                key={book.id}
-                className="bg-white rounded-lg border shadow-sm hover:shadow-md transition-all cursor-pointer group"
-              >
-                {/* Cover/Header */}
-                <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 rounded-t-lg relative overflow-hidden">
+              <div key={book.id} className={`rounded-xl border overflow-hidden transition-all group ${cardBg} ${cardHover}`}>
+                {/* Cover */}
+                <div className={`h-40 sm:h-48 bg-gradient-to-br ${getCoverGradient(idx)} relative overflow-hidden`}>
                   {book.cover_url ? (
                     <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <Book className="w-20 h-20 text-white opacity-50" />
+                      <Book className="w-16 h-16 text-white/40" />
                     </div>
                   )}
                   {book.is_favorite && (
-                    <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-2">
-                      <Star className="w-4 h-4 text-white fill-white" />
+                    <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1.5 shadow-md">
+                      <Star className="w-3.5 h-3.5 text-white fill-white" />
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[book.status]}`}>
-                      <StatusIcon className="w-3 h-3 inline mr-1" />
-                      {book.status}
+                    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${getStatusStyle(book.status)}`}>
+                      {statusLabels[book.status]}
                     </span>
                   </div>
                 </div>
@@ -423,80 +329,50 @@ export default function BooksManager({
                 {/* Content */}
                 <div className="p-4 space-y-3">
                   <div>
-                    <h3 className="font-bold text-lg text-gray-900 line-clamp-2">{book.title}</h3>
-                    <p className="text-sm text-gray-600">{book.author || 'Autor desconocido'}</p>
+                    <h3 className="font-black text-sm sm:text-base line-clamp-2">{book.title}</h3>
+                    <p className={`text-xs font-medium ${textSecondary}`}>{book.author || 'Autor desconocido'}</p>
                   </div>
 
-                  {/* Progress Bar */}
                   {book.status !== 'not_started' && (
                     <div>
-                      <div className="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>
-                          {book.current_page} / {book.total_pages} páginas
-                        </span>
-                        <span className="font-medium">{progress}%</span>
+                      <div className={`flex justify-between text-[10px] font-bold mb-1 ${textMuted}`}>
+                        <span>{book.current_page} / {book.total_pages} pág</span>
+                        <span className="text-indigo-500">{progress}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className={`w-full rounded-full h-1.5 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                         <div
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                          className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full transition-all"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
                     </div>
                   )}
 
-                  {/* Stats */}
-                  <div className="flex gap-3 text-xs text-gray-600">
+                  <div className={`flex flex-wrap gap-2 text-[10px] font-bold ${textMuted}`}>
                     {book.pages_per_hour && (
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        {Math.round(book.pages_per_hour)} pág/h
-                      </div>
+                      <span className="flex items-center gap-1"><TrendingUp size={10} />{Math.round(book.pages_per_hour)} pág/h</span>
                     )}
                     {book.reading_streak_days > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Flame className="w-3 h-3 text-orange-500" />
-                        {book.reading_streak_days} días
-                      </div>
+                      <span className="flex items-center gap-1 text-orange-500"><Flame size={10} />{book.reading_streak_days}d</span>
                     )}
                     {timeLeft && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {timeLeft}min
-                      </div>
+                      <span className="flex items-center gap-1"><Clock size={10} />{timeLeft}min</span>
                     )}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2 border-t opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-2 pt-2 border-t border-transparent group-hover:border-current/5 opacity-0 group-hover:opacity-100 transition-all">
                     <button
-                      onClick={() => {
-                        setSelectedBook(book);
-                        setSessionData({
-                          ...sessionData,
-                          start_page: book.current_page,
-                          end_page: book.current_page,
-                        });
-                        setShowSessionForm(true);
-                      }}
-                      className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                      onClick={() => { setSelectedBook(book); setSessionData({ ...sessionData, start_page: book.current_page, end_page: book.current_page }); setShowSessionForm(true); }}
+                      className="flex-1 px-3 py-2 bg-indigo-500/10 text-indigo-500 rounded-lg hover:bg-indigo-500/20 text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
                     >
-                      <Play className="w-4 h-4" />
-                      Sesión
+                      <Play size={14} /> Sesión
                     </button>
-                    <button
-                      onClick={() => handleEdit(book)}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4" />
+                    <button onClick={() => handleEdit(book)} className={`p-2 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+                      <Edit3 size={14} />
                     </button>
-                    <button
-                      onClick={() => {
-                        if (confirm('¿Eliminar este libro?')) onDeleteBook(book.id);
-                      }}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                    <button onClick={() => { if (confirm('¿Eliminar este libro?')) onDeleteBook(book.id); }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -506,77 +382,50 @@ export default function BooksManager({
         </div>
       ) : (
         <div className="space-y-2">
-          {filteredBooks.map((book) => {
+          {filteredBooks.map((book, idx) => {
             const progress = calculateProgress(book);
-            const StatusIcon = statusIcons[book.status];
 
             return (
-              <div
-                key={book.id}
-                className="bg-white p-4 rounded-lg border hover:shadow-md transition-all flex items-center gap-4"
-              >
-                <div className="w-16 h-20 bg-gradient-to-br from-blue-400 to-purple-500 rounded flex items-center justify-center flex-shrink-0">
-                  <Book className="w-8 h-8 text-white" />
+              <div key={book.id} className={`p-3 sm:p-4 rounded-xl border flex items-center gap-3 sm:gap-4 transition-all ${cardBg} ${cardHover}`}>
+                <div className={`w-12 h-16 sm:w-14 sm:h-20 bg-gradient-to-br ${getCoverGradient(idx)} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                  <Book className="w-6 h-6 text-white/50" />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-900 truncate">{book.title}</h3>
-                      <p className="text-sm text-gray-600 truncate">{book.author || 'Autor desconocido'}</p>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="min-w-0">
+                      <h3 className="font-black text-sm truncate">{book.title}</h3>
+                      <p className={`text-xs truncate ${textSecondary}`}>{book.author || 'Autor desconocido'}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[book.status]} ml-2`}>
-                      <StatusIcon className="w-3 h-3 inline mr-1" />
-                      {book.status}
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black flex-shrink-0 ${getStatusStyle(book.status)}`}>
+                      {statusLabels[book.status]}
                     </span>
                   </div>
-
                   {book.status !== 'not_started' && (
-                    <div className="mb-2">
-                      <div className="flex justify-between text-xs text-gray-600 mb-1">
-                        <span>
-                          {book.current_page} / {book.total_pages} páginas ({progress}%)
-                        </span>
-                        {book.pages_per_hour && <span>{Math.round(book.pages_per_hour)} pág/hora</span>}
+                    <div>
+                      <div className={`flex justify-between text-[10px] font-bold mb-1 ${textMuted}`}>
+                        <span>{book.current_page}/{book.total_pages} pág ({progress}%)</span>
+                        {book.pages_per_hour && <span>{Math.round(book.pages_per_hour)} pág/h</span>}
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
-                          style={{ width: `${progress}%` }}
-                        />
+                      <div className={`w-full rounded-full h-1.5 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
+                        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full" style={{ width: `${progress}%` }} />
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-1.5 flex-shrink-0">
                   <button
-                    onClick={() => {
-                      setSelectedBook(book);
-                      setSessionData({
-                        ...sessionData,
-                        start_page: book.current_page,
-                        end_page: book.current_page,
-                      });
-                      setShowSessionForm(true);
-                    }}
-                    className="px-4 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 font-medium transition-colors"
+                    onClick={() => { setSelectedBook(book); setSessionData({ ...sessionData, start_page: book.current_page, end_page: book.current_page }); setShowSessionForm(true); }}
+                    className="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg hover:bg-indigo-500/20 transition-colors"
                   >
-                    <Play className="w-4 h-4" />
+                    <Play size={14} />
                   </button>
-                  <button
-                    onClick={() => handleEdit(book)}
-                    className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-                  >
-                    <Edit3 className="w-4 h-4" />
+                  <button onClick={() => handleEdit(book)} className={`p-2 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+                    <Edit3 size={14} />
                   </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('¿Eliminar este libro?')) onDeleteBook(book.id);
-                    }}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded"
-                  >
-                    <Trash2 className="w-4 h-4" />
+                  <button onClick={() => { if (confirm('¿Eliminar este libro?')) onDeleteBook(book.id); }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
@@ -585,201 +434,114 @@ export default function BooksManager({
         </div>
       )}
 
-      {/* No hay libros */}
+      {/* Empty State */}
       {filteredBooks.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-lg border">
-          <Book className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay libros</h3>
-          <p className="text-gray-600 mb-4">
+        <div className={`text-center py-12 sm:py-16 rounded-2xl border-2 border-dashed ${isDark ? 'border-slate-700 bg-slate-800/30' : 'border-slate-200 bg-slate-50'}`}>
+          <Book className={`w-14 h-14 mx-auto mb-4 ${textMuted}`} />
+          <h3 className="text-lg font-black mb-2">No hay libros</h3>
+          <p className={`text-sm mb-6 max-w-md mx-auto px-4 ${textSecondary}`}>
             {searchTerm || filterStatus !== 'all' || filterGenre !== 'all'
               ? 'No se encontraron libros con los filtros seleccionados'
-              : 'Comienza agregando tu primer libro para rastrear tu progreso de lectura'}
+              : 'Comienza agregando tu primer libro'}
           </p>
           {!searchTerm && filterStatus === 'all' && filterGenre === 'all' && (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Agregar Primer Libro
+            <button onClick={() => setShowAddForm(true)} className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all">
+              <Plus className="w-5 h-5 inline mr-2" /> Agregar Primer Libro
             </button>
           )}
         </div>
       )}
 
-      {/* Modal: Agregar/Editar Libro */}
+      {/* Modal: Add/Edit Book */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold">
-                {editingBook ? 'Editar Libro' : 'Agregar Nuevo Libro'}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setEditingBook(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${modalBg} rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl`}>
+            <div className={`sticky top-0 ${isDark ? 'bg-slate-900 border-b border-slate-800' : 'bg-white border-b border-slate-200'} px-5 sm:px-6 py-4 flex justify-between items-center rounded-t-2xl`}>
+              <h3 className="text-xl font-black">{editingBook ? 'Editar Libro' : 'Agregar Nuevo Libro'}</h3>
+              <button onClick={() => { setShowAddForm(false); setEditingBook(null); }} className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Título del libro *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: Atomic Habits"
-                  />
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Título *</label>
+                  <input type="text" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} placeholder="ej: Atomic Habits" />
                 </div>
 
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Autor</label>
-                  <input
-                    type="text"
-                    value={formData.author || ''}
-                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: James Clear"
-                  />
+                <div className="sm:col-span-2">
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Autor</label>
+                  <input type="text" value={formData.author || ''} onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} placeholder="ej: James Clear" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total de páginas *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={formData.total_pages}
-                    onChange={(e) => setFormData({ ...formData, total_pages: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Total Páginas *</label>
+                  <input type="number" required min="1" value={formData.total_pages} onChange={(e) => setFormData({ ...formData, total_pages: parseInt(e.target.value) })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total de capítulos</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.total_chapters || ''}
-                    onChange={(e) => setFormData({ ...formData, total_chapters: parseInt(e.target.value) || undefined })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Total Capítulos</label>
+                  <input type="number" min="0" value={formData.total_chapters || ''} onChange={(e) => setFormData({ ...formData, total_chapters: parseInt(e.target.value) || undefined })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
-                  <select
-                    value={formData.genre}
-                    onChange={(e) => setFormData({ ...formData, genre: e.target.value as BookGenre })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {genreOptions.map((genre) => (
-                      <option key={genre} value={genre}>
-                        {genre.charAt(0).toUpperCase() + genre.slice(1)}
-                      </option>
-                    ))}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Género</label>
+                  <select value={formData.genre} onChange={(e) => setFormData({ ...formData, genre: e.target.value as BookGenre })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none ${inputBg}`}>
+                    {genreOptions.map((genre) => (<option key={genre} value={genre}>{genreLabels[genre]}</option>))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as BookStatus })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="not_started">No iniciado</option>
-                    <option value="reading">Leyendo</option>
-                    <option value="paused">Pausado</option>
-                    <option value="completed">Completado</option>
-                    <option value="abandoned">Abandonado</option>
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Estado</label>
+                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as BookStatus })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none ${inputBg}`}>
+                    {Object.entries(statusLabels).map(([key, label]) => (<option key={key} value={key}>{label}</option>))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ISBN (opcional)</label>
-                  <input
-                    type="text"
-                    value={formData.isbn || ''}
-                    onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="978-0735211292"
-                  />
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>ISBN (opcional)</label>
+                  <input type="text" value={formData.isbn || ''} onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} placeholder="978-0735211292" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Meta diaria (páginas)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.daily_pages_goal || ''}
-                    onChange={(e) => setFormData({ ...formData, daily_pages_goal: parseInt(e.target.value) || undefined })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: 30"
-                  />
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Meta diaria (pág)</label>
+                  <input type="number" min="0" value={formData.daily_pages_goal || ''} onChange={(e) => setFormData({ ...formData, daily_pages_goal: parseInt(e.target.value) || undefined })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} placeholder="30" />
                 </div>
 
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Materia relacionada (opcional)
-                  </label>
-                  <select
-                    value={formData.subject_id || ''}
-                    onChange={(e) => setFormData({ ...formData, subject_id: e.target.value || undefined })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
+                <div className="sm:col-span-2">
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Materia relacionada</label>
+                  <select value={formData.subject_id || ''} onChange={(e) => setFormData({ ...formData, subject_id: e.target.value || undefined })}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none ${inputBg}`}>
                     <option value="">Sin materia</option>
-                    {subjects.map((subject) => (
-                      <option key={subject.id} value={subject.id}>
-                        {subject.name}
-                      </option>
-                    ))}
+                    {subjects.map((subject) => (<option key={subject.id} value={subject.id}>{subject.name}</option>))}
                   </select>
                 </div>
 
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_favorite || false}
-                      onChange={(e) => setFormData({ ...formData, is_favorite: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Marcar como favorito</span>
+                    <input type="checkbox" checked={formData.is_favorite || false} onChange={(e) => setFormData({ ...formData, is_favorite: e.target.checked })}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500" />
+                    <span className="text-sm font-bold">Favorito</span>
                     <Star className="w-4 h-4 text-yellow-500" />
                   </label>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingBook(null);
-                  }}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => { setShowAddForm(false); setEditingBook(null); }}
+                  className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
+                <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all">
                   {editingBook ? 'Guardar Cambios' : 'Agregar Libro'}
                 </button>
               </div>
@@ -788,165 +550,98 @@ export default function BooksManager({
         </div>
       )}
 
-      {/* Modal: Registrar Sesión de Lectura */}
+      {/* Modal: Reading Session */}
       {showSessionForm && selectedBook && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full">
-            <div className="border-b px-6 py-4 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${modalBg} rounded-2xl max-w-lg w-full shadow-2xl`}>
+            <div className={`${isDark ? 'border-b border-slate-800' : 'border-b border-slate-200'} px-5 sm:px-6 py-4 flex justify-between items-center`}>
               <div>
-                <h3 className="text-xl font-bold">Registrar Sesión de Lectura</h3>
-                <p className="text-sm text-gray-600">{selectedBook.title}</p>
+                <h3 className="text-lg font-black">Registrar Sesión</h3>
+                <p className={`text-xs font-medium ${textSecondary}`}>{selectedBook.title}</p>
               </div>
-              <button
-                onClick={() => {
-                  setShowSessionForm(false);
-                  setSelectedBook(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5" />
+              <button onClick={() => { setShowSessionForm(false); setSelectedBook(null); }} className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleLogSession} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleLogSession} className="p-5 sm:p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Página inicial *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    max={selectedBook.total_pages}
-                    value={sessionData.start_page}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Pág. Inicial *</label>
+                  <input type="number" required min="0" max={selectedBook.total_pages} value={sessionData.start_page}
                     onChange={(e) => setSessionData({ ...sessionData, start_page: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none focus:border-indigo-500 ${inputBg}`} />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Página final *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={sessionData.start_page}
-                    max={selectedBook.total_pages}
-                    value={sessionData.end_page}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Pág. Final *</label>
+                  <input type="number" required min={sessionData.start_page} max={selectedBook.total_pages} value={sessionData.end_page}
                     onChange={(e) => setSessionData({ ...sessionData, end_page: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none focus:border-indigo-500 ${inputBg}`} />
                 </div>
 
                 <div className="col-span-2">
-                  <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
-                    Páginas leídas: <span className="font-bold text-blue-600">{Math.max(0, sessionData.end_page - sessionData.start_page)}</span>
-                  </p>
+                  <div className={`p-3 rounded-xl text-sm font-bold text-center ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                    Páginas leídas: {Math.max(0, sessionData.end_page - sessionData.start_page)}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duración (minutos) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={sessionData.duration_minutes}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Duración (min) *</label>
+                  <input type="number" required min="1" value={sessionData.duration_minutes}
                     onChange={(e) => setSessionData({ ...sessionData, duration_minutes: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none focus:border-indigo-500 ${inputBg}`} />
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Capítulo #</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={sessionData.chapter_number || ''}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Capítulo #</label>
+                  <input type="number" min="0" value={sessionData.chapter_number || ''}
                     onChange={(e) => setSessionData({ ...sessionData, chapter_number: parseInt(e.target.value) || undefined })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-bold outline-none focus:border-indigo-500 ${inputBg}`} />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre del capítulo
-                  </label>
-                  <input
-                    type="text"
-                    value={sessionData.chapter_name}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Nombre capítulo</label>
+                  <input type="text" value={sessionData.chapter_name}
                     onChange={(e) => setSessionData({ ...sessionData, chapter_name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Ej: Introducción"
-                  />
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-semibold outline-none focus:border-indigo-500 ${inputBg}`} placeholder="ej: Introducción" />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Enfoque (1-5)
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={sessionData.focus_rating}
-                    onChange={(e) => setSessionData({ ...sessionData, focus_rating: parseInt(e.target.value) })}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm font-medium text-blue-600">
-                    {sessionData.focus_rating}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Enfoque</label>
+                  <div className="flex justify-center gap-1">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} type="button" onClick={() => setSessionData({ ...sessionData, focus_rating: n })}
+                        className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${sessionData.focus_rating >= n ? 'bg-indigo-500 text-white' : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
+                        {n}
+                      </button>
+                    ))}
                   </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Disfrute (1-5)
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={sessionData.enjoyment_rating}
-                    onChange={(e) => setSessionData({ ...sessionData, enjoyment_rating: parseInt(e.target.value) })}
-                    className="w-full"
-                  />
-                  <div className="text-center text-sm font-medium text-blue-600">
-                    {sessionData.enjoyment_rating}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Disfrute</label>
+                  <div className="flex justify-center gap-1">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} type="button" onClick={() => setSessionData({ ...sessionData, enjoyment_rating: n })}
+                        className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${sessionData.enjoyment_rating >= n ? 'bg-purple-500 text-white' : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
+                        {n}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notas de la sesión
-                  </label>
-                  <textarea
-                    value={sessionData.session_notes}
+                  <label className={`block text-[10px] font-black uppercase tracking-wider mb-1.5 ${textSecondary}`}>Notas</label>
+                  <textarea value={sessionData.session_notes} rows={2}
                     onChange={(e) => setSessionData({ ...sessionData, session_notes: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="¿Qué aprendiste? ¿Qué te pareció interesante?"
-                  />
+                    className={`w-full px-4 py-3 border rounded-xl text-sm font-medium outline-none focus:border-indigo-500 resize-none ${inputBg}`} placeholder="¿Qué aprendiste?" />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSessionForm(false);
-                    setSelectedBook(null);
-                  }}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => { setShowSessionForm(false); setSelectedBook(null); }}
+                  className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
+                <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-sm shadow-lg hover:shadow-xl transition-all">
                   Guardar Sesión
                 </button>
               </div>
