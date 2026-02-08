@@ -7,11 +7,10 @@ import { useAppStore } from '../stores/useAppStore';
 import { WorkCategory, CategoryPeriodType, CategoryInstance } from '../types';
 import {
   Plus, BookOpen, Languages, Briefcase, Dumbbell, FolderKanban,
-  Clock, Calendar, Edit2, Trash2, CheckCircle, X, AlertCircle,
+  Clock, Calendar, Edit2, Trash2, X,
   Coffee, ArrowRight, Sparkles
 } from 'lucide-react';
 import CategoryView from './CategoryView';
-import ScheduleEditor, { ScheduleSlot } from './ScheduleEditor';
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
@@ -25,20 +24,14 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     theme,
     activeProfileId,
     categoryInstances,
-    subjects,
-    periods,
     addCategoryInstance,
     updateCategoryInstance,
-    deleteCategoryInstance,
-    updateSubject,
-    deleteSubject
+    deleteCategoryInstance
   } = useAppStore();
 
   const [showModal, setShowModal] = useState(false);
   const [editingInstance, setEditingInstance] = useState<CategoryInstance | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryInstance | null>(null);
-  const [showLegacySubjects, setShowLegacySubjects] = useState(true);
-  const [schedules, setSchedules] = useState<ScheduleSlot[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     category_type: 'materia' as WorkCategory,
@@ -66,30 +59,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
     profileInstances = profileInstances.filter(ci => ci.category_type === filterType);
   }
 
-  const legacySubjects = subjects.filter(s => s.profile_id === activeProfileId);
-  const profilePeriods = periods.filter(p => p.profile_id === activeProfileId);
-
-  // Combinar materias existentes y nuevas categorías, agrupadas por tipo
+  // Agrupar por tipo y ordenar
   const categoryTypeOrder: Record<string, number> = {
     'materia': 0, 'trabajo': 1, 'idioma': 2, 'gym': 3, 'proyecto': 4, 'descanso': 5, 'otro': 6
   };
 
-  const allCategories = [
-    ...(filterType !== 'all-except-materia' && filterType !== 'proyecto' && filterType !== 'gym' && filterType !== 'trabajo' && filterType !== 'idioma' && filterType !== 'descanso' && filterType !== 'otro'
-      ? legacySubjects.map(subject => ({
-          id: subject.id,
-          isLegacy: true,
-          name: subject.name,
-          color: subject.color,
-          category_type: 'materia' as WorkCategory,
-          period_type: 'semestral' as CategoryPeriodType,
-          school_period_id: subject.school_period_id,
-          professor_name: subject.professor_name,
-          classroom: subject.classroom,
-          needsPeriod: !subject.school_period_id
-        }))
-      : []),
-    ...profileInstances.map(instance => ({
+  const allCategories = profileInstances
+    .map(instance => ({
       id: instance.id,
       isLegacy: false,
       name: instance.name,
@@ -104,13 +80,12 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
       end_date: instance.end_date,
       needsPeriod: false
     }))
-  ].sort((a, b) => {
-    // Sort by category type first, then alphabetically by name
-    const typeA = categoryTypeOrder[a.category_type] ?? 99;
-    const typeB = categoryTypeOrder[b.category_type] ?? 99;
-    if (typeA !== typeB) return typeA - typeB;
-    return a.name.localeCompare(b.name);
-  });
+    .sort((a, b) => {
+      const typeA = categoryTypeOrder[a.category_type] ?? 99;
+      const typeB = categoryTypeOrder[b.category_type] ?? 99;
+      if (typeA !== typeB) return typeA - typeB;
+      return a.name.localeCompare(b.name);
+    });
 
   const getCategoryIcon = (type: WorkCategory, size = 20) => {
     const icons = {
@@ -167,7 +142,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
   const handleOpenModal = (instance?: CategoryInstance) => {
     if (instance) {
       setEditingInstance(instance);
-      setSchedules([]);
       setFormData({
         name: instance.name,
         category_type: instance.category_type,
@@ -183,7 +157,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
       });
     } else {
       setEditingInstance(null);
-      setSchedules([]);
       setFormData({
         name: '',
         category_type: 'materia',
@@ -203,59 +176,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
 
   const handleSave = async () => {
     if (!activeProfileId || !formData.name) return;
-
-    if (formData.category_type === 'materia' && !editingInstance) {
-      if (schedules.length === 0) {
-        alert('Debes agregar al menos un horario de clase para esta materia');
-        return;
-      }
-
-      const { supabase } = await import('../lib/supabase');
-
-      const { data: newSubject, error: subjectError } = await supabase
-        .from('subjects')
-        .insert({
-          profile_id: activeProfileId,
-          school_period_id: null,
-          name: formData.name,
-          code: '',
-          color: formData.color,
-          professor_name: '',
-          classroom: '',
-          start_date: formData.start_date || null,
-          end_date: formData.end_date || null
-        })
-        .select()
-        .single();
-
-      if (subjectError || !newSubject) {
-        console.error('Error creando materia:', subjectError);
-        alert('Error al crear la materia');
-        return;
-      }
-
-      const scheduleRecords = schedules.map(schedule => ({
-        subject_id: newSubject.id,
-        day_of_week: schedule.day_of_week,
-        start_time: schedule.start_time,
-        end_time: schedule.end_time
-      }));
-
-      const { error: scheduleError } = await supabase
-        .from('class_schedule')
-        .insert(scheduleRecords);
-
-      if (scheduleError) {
-        console.error('Error creando horarios:', scheduleError);
-      }
-
-      const { syncWithSupabase } = useAppStore.getState();
-      await syncWithSupabase();
-
-      setShowModal(false);
-      setSchedules([]);
-      return;
-    }
 
     const instanceData = {
       ...formData,
@@ -288,18 +208,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
       ? formData.schedule_days.filter(d => d !== day)
       : [...formData.schedule_days, day].sort();
     setFormData({ ...formData, schedule_days: newDays, times_per_week: newDays.length });
-  };
-
-  const handleMigrateSubject = async (subjectId: string, periodId: string) => {
-    if (!periodId) return;
-    await updateSubject(subjectId, { school_period_id: periodId });
-  };
-
-  const handleEditSubject = (item: any) => {
-    if (item.isLegacy) {
-      return;
-    }
-    handleOpenModal(item);
   };
 
   if (selectedCategory) {
@@ -381,117 +289,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {allCategories.map(item => {
-            // Materia legacy
-            if ('isLegacy' in item && item.isLegacy) {
-              const legacyItem = item as typeof allCategories[number] & { school_period_id?: string; professor_name?: string; classroom?: string };
-              const currentPeriod = legacyItem.school_period_id
-                ? profilePeriods.find(p => p.id === legacyItem.school_period_id)
-                : null;
-
-              return (
-                <div
-                  key={item.id}
-                  className={`group relative overflow-hidden rounded-2xl border transition-all hover:scale-[1.01] hover:shadow-xl ${
-                    isDark
-                      ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  {/* Color accent bar */}
-                  <div
-                    className="h-1.5 w-full"
-                    style={{ background: `linear-gradient(90deg, ${item.color}, ${item.color}88)` }}
-                  />
-
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="p-2.5 rounded-xl text-white shadow-lg"
-                          style={{ backgroundColor: item.color }}
-                        >
-                          {getCategoryIcon(item.category_type, 18)}
-                        </div>
-                        <div>
-                          <h3 className="font-black text-base leading-tight">{item.name}</h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${
-                              isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
-                            }`}>
-                              {getCategoryLabel(item.category_type)}
-                            </span>
-                            {item.needsPeriod ? (
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-500">
-                                <AlertCircle size={10} />
-                                Sin período
-                              </span>
-                            ) : currentPeriod && (
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500">
-                                <CheckCircle size={10} />
-                                {currentPeriod.name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEditSubject(item); }}
-                          className={`p-2 rounded-lg ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}
-                        >
-                          <Edit2 size={14} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm(`¿Eliminar "${item.name}"? Se eliminarán tareas, exámenes y materiales asociados.`)) {
-                              deleteSubject(item.id);
-                            }
-                          }}
-                          className="p-2 rounded-lg hover:bg-red-500/10"
-                        >
-                          <Trash2 size={14} className="text-red-400" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Info adicional */}
-                    {(legacyItem.professor_name || legacyItem.classroom) && (
-                      <div className={`space-y-1 mb-3 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {legacyItem.professor_name && (
-                          <p><span className="font-bold">Prof:</span> {legacyItem.professor_name}</p>
-                        )}
-                        {legacyItem.classroom && (
-                          <p><span className="font-bold">Aula:</span> {legacyItem.classroom}</p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Selector de período si falta */}
-                    {item.needsPeriod && (
-                      <select
-                        value={legacyItem.school_period_id || ''}
-                        onChange={(e) => handleMigrateSubject(item.id, e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg text-xs font-bold ${
-                          isDark
-                            ? 'bg-slate-800 border border-slate-700 text-white'
-                            : 'bg-slate-50 border border-slate-200 text-slate-900'
-                        }`}
-                      >
-                        <option value="">Asignar período...</option>
-                        {profilePeriods.map(period => (
-                          <option key={period.id} value={period.id}>
-                            {period.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-              );
-            }
-
-            // Categoría nueva
             const instance = profileInstances.find(ci => ci.id === item.id);
             if (!instance) return null;
 
@@ -750,75 +547,64 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ filterType = 'all', c
                 </div>
               )}
 
-              {/* Horarios */}
-              {formData.category_type === 'materia' ? (
-                <ScheduleEditor
-                  schedules={schedules}
-                  onChange={setSchedules}
-                  theme={theme}
-                />
-              ) : (
-                <>
-                  {/* Días de la semana */}
-                  <div>
-                    <label className={`block text-xs font-black uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      Días ({formData.schedule_days.length} seleccionados)
-                    </label>
-                    <div className="flex gap-2">
-                      {DAYS.map((day, index) => (
-                        <button
-                          key={index}
-                          onClick={() => toggleDay(index)}
-                          className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${
-                            formData.schedule_days.includes(index)
-                              ? 'text-white shadow-lg'
-                              : isDark
-                              ? 'bg-slate-800 text-slate-500 hover:bg-slate-700'
-                              : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                          }`}
-                          style={formData.schedule_days.includes(index) ? { backgroundColor: formData.color } : {}}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              {/* Días de la semana */}
+              <div>
+                <label className={`block text-xs font-black uppercase tracking-wider mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Días ({formData.schedule_days.length} seleccionados)
+                </label>
+                <div className="flex gap-2">
+                  {DAYS.map((day, index) => (
+                    <button
+                      key={index}
+                      onClick={() => toggleDay(index)}
+                      className={`flex-1 py-3 rounded-xl font-bold text-sm transition-all ${
+                        formData.schedule_days.includes(index)
+                          ? 'text-white shadow-lg'
+                          : isDark
+                          ? 'bg-slate-800 text-slate-500 hover:bg-slate-700'
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                      }`}
+                      style={formData.schedule_days.includes(index) ? { backgroundColor: formData.color } : {}}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                  {/* Horario */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Hora Inicio
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.schedule_start_time}
-                        onChange={(e) => setFormData({ ...formData, schedule_start_time: e.target.value })}
-                        className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-bold ${
-                          isDark
-                            ? 'bg-slate-800 border border-slate-700 text-white'
-                            : 'bg-slate-50 border border-slate-200 text-slate-900'
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        Hora Fin
-                      </label>
-                      <input
-                        type="time"
-                        value={formData.schedule_end_time}
-                        onChange={(e) => setFormData({ ...formData, schedule_end_time: e.target.value })}
-                        className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-bold ${
-                          isDark
-                            ? 'bg-slate-800 border border-slate-700 text-white'
-                            : 'bg-slate-50 border border-slate-200 text-slate-900'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* Horario */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Hora Inicio
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.schedule_start_time}
+                    onChange={(e) => setFormData({ ...formData, schedule_start_time: e.target.value })}
+                    className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-bold ${
+                      isDark
+                        ? 'bg-slate-800 border border-slate-700 text-white'
+                        : 'bg-slate-50 border border-slate-200 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-black uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Hora Fin
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.schedule_end_time}
+                    onChange={(e) => setFormData({ ...formData, schedule_end_time: e.target.value })}
+                    className={`w-full px-4 py-3 rounded-xl outline-none text-sm font-bold ${
+                      isDark
+                        ? 'bg-slate-800 border border-slate-700 text-white'
+                        : 'bg-slate-50 border border-slate-200 text-slate-900'
+                    }`}
+                  />
+                </div>
+              </div>
 
               {/* Botones */}
               <div className="flex gap-3 pt-2">

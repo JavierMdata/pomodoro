@@ -13,7 +13,6 @@ import {
 
 import ExamManager from './ExamManager';
 import EnhancedTaskProgress from './EnhancedTaskProgress';
-import MaterialManager from './MaterialManager';
 import PomodoroTimer from './PomodoroTimer';
 
 interface CategoryViewProps {
@@ -50,7 +49,6 @@ const CategoryView: React.FC<CategoryViewProps> = ({ category, onBack }) => {
           { id: 'overview', label: 'General', icon: Target },
           { id: 'exams', label: 'Exámenes', icon: FileText },
           { id: 'tasks', label: 'Tareas', icon: ClipboardList },
-          { id: 'materials', label: 'Materiales', icon: BookOpen },
           { id: 'stats', label: 'Stats', icon: BarChart3 },
         ];
       case 'gym':
@@ -97,7 +95,6 @@ const CategoryView: React.FC<CategoryViewProps> = ({ category, onBack }) => {
       switch (activeSection) {
         case 'exams': return <ExamManager />;
         case 'tasks': return <EnhancedTaskProgress />;
-        case 'materials': return <MaterialManager />;
         case 'stats':
           return (
             <div className={`p-12 rounded-2xl text-center ${isDark ? 'bg-slate-800/30' : 'bg-slate-50'}`}>

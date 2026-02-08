@@ -5,7 +5,6 @@ import ModernLayout from './components/ModernLayout';
 import ProfileCard from './components/ProfileCard';
 import Dashboard from './components/Dashboard';
 import TaskBoard from './components/TaskBoard';
-import MaterialManager from './components/MaterialManager';
 import PomodoroTimer from './components/PomodoroTimer';
 import StatisticsView from './components/StatisticsView';
 import SubjectsManager from './components/SubjectsManager';
@@ -330,7 +329,6 @@ const App: React.FC = () => {
           {activeTab === 'books' && <BooksTabWrapper />}
           {activeTab === 'exams' && <ExamManager />}
           {activeTab === 'tasks' && <EnhancedTaskProgress />}
-          {activeTab === 'materials' && <MaterialManager />}
           {activeTab === 'pomodoro' && <PomodoroTimer />}
           {activeTab === 'statistics' && <StatisticsView />}
           {activeTab === 'notes' && <BlockEditor />}

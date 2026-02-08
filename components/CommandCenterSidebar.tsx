@@ -126,7 +126,6 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
       items: [
         { id: 'subjects', label: 'Materias', icon: BookOpen, tab: 'subjects', badge: profileSubjects.length, color: '#8B5CF6' },
         { id: 'books', label: 'Libros', icon: Library, tab: 'books', color: '#EC4899' },
-        { id: 'materials', label: 'Materiales', icon: FileText, tab: 'materials', color: '#A855F7' },
       ]
     },
     {
