@@ -128,6 +128,7 @@ const CommandCenterSidebar: React.FC<CommandCenterSidebarProps> = ({
         { id: 'exams', label: 'Exámenes', icon: AlertCircle, tab: 'exams', badge: upcomingExams, color: '#EF4444' },
         { id: 'tasks', label: 'Tareas', icon: Target, tab: 'tasks', badge: pendingTasks, color: '#F59E0B' },
         { id: 'books', label: 'Libros', icon: Library, tab: 'books', color: '#EC4899' },
+        { id: 'english', label: 'Inglés', icon: Languages, tab: 'english', color: '#0EA5E9' },
       ]
     },
     {

@@ -8,7 +8,7 @@ import {
   ContentBlock, NoteLink, FocusJournal, KnowledgeNode,
   EntityType, EntityRef, ClassSchedule, ActiveTimer,
   WorkSchedule, SubjectTimeAllocation, CategoryInstance, WorkCategory,
-  Book, BookReadingSession, BookQuote
+  Book, BookReadingSession, BookQuote, EnglishSession
 } from '../types';
 
 interface AppState {
@@ -38,6 +38,9 @@ interface AppState {
   books: Book[];
   bookReadingSessions: BookReadingSession[];
   bookQuotes: BookQuote[];
+
+  // INGLÉS
+  englishSessions: EnglishSession[];
 
   // SEGUNDO CEREBRO: Nuevos estados
   contentBlocks: ContentBlock[];
@@ -134,6 +137,11 @@ interface AppState {
   addBookReadingSession: (session: Partial<BookReadingSession>) => Promise<void>;
   addBookQuote: (quote: Partial<BookQuote>) => Promise<void>;
 
+  // INGLÉS
+  addEnglishSession: (session: Omit<EnglishSession, 'id' | 'created_at'>) => void;
+  updateEnglishSession: (id: string, updates: Partial<EnglishSession>) => void;
+  deleteEnglishSession: (id: string) => void;
+
   // SECCIÓN SELECCIONADA PARA POMODORO
   setSelectedSectionForPomodoro: (id: string, type: 'subject' | 'category') => void;
   clearSelectedSectionForPomodoro: () => void;
@@ -171,6 +179,9 @@ export const useAppStore = create<AppState>()(
       books: [],
       bookReadingSessions: [],
       bookQuotes: [],
+
+      // INGLÉS
+      englishSessions: [],
 
       // SEGUNDO CEREBRO: Estados iniciales
       contentBlocks: [],
@@ -1812,7 +1823,29 @@ export const useAppStore = create<AppState>()(
 
       clearSelectedSectionForPomodoro: () => {
         set({ selectedSectionForPomodoro: null });
-      }
+      },
+
+      // INGLÉS CRUD
+      addEnglishSession: (session) => {
+        const id = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const newSession: EnglishSession = { ...session, id, created_at: now };
+        set((state) => ({ englishSessions: [...state.englishSessions, newSession] }));
+      },
+
+      updateEnglishSession: (id, updates) => {
+        set((state) => ({
+          englishSessions: state.englishSessions.map(s =>
+            s.id === id ? { ...s, ...updates } : s
+          )
+        }));
+      },
+
+      deleteEnglishSession: (id) => {
+        set((state) => ({
+          englishSessions: state.englishSessions.filter(s => s.id !== id)
+        }));
+      },
     }),
     { name: 'pomosmart-cloud-v1' }
   )
