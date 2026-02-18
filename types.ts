@@ -165,6 +165,7 @@ export interface Material {
   total_units: number;
   completed_units: number;
   status: 'not_started' | 'in_progress' | 'completed' | 'paused';
+  max_purchase_date?: string; // Fecha Máxima de Compra (libros / proyectos empresariales)
 }
 
 export interface PomodoroSettings {
@@ -606,4 +607,37 @@ export interface ReadingActivityByMonth {
   total_minutes_read: number;
   avg_focus_rating: number;
   avg_enjoyment_rating: number;
+}
+
+// ================================================================
+// MÓDULO DE INGLÉS
+// ================================================================
+
+export type EnglishSessionType = 'assimil' | 'busuu' | 'pronunciacion';
+export type AssimilPhase = 'pasiva' | 'activa';
+
+export interface EnglishSession {
+  id: string;
+  profile_id: string;
+  session_type: EnglishSessionType;
+  session_date: string;          // YYYY-MM-DD
+  duration_minutes: number;
+
+  // --- Assimil ---
+  assimil_lesson?: string;       // "Lección 15 - La Familia"
+  assimil_phase?: AssimilPhase;  // 'pasiva' | 'activa'
+  assimil_notes?: string;        // frases clave, vocabulario, gramática
+
+  // --- Busuu ---
+  busuu_unit?: string;           // unidad/lección completada
+  busuu_score?: number;          // puntuación 0-100
+  busuu_link?: string;           // URL al ejercicio específico
+
+  // --- Pronunciación ---
+  pronunciation_type?: string;   // "Minimal Pairs", "Lectura en Voz Alta"
+  pronunciation_focus?: string;  // "Sonido /th/", "Entonación de preguntas"
+  pronunciation_material?: string; // "Video YouTube /r/ y /l/"
+  pronunciation_self_eval?: string; // autoevaluación / notas
+
+  created_at: string;
 }

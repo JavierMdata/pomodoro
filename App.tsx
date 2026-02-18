@@ -21,6 +21,7 @@ import WorkScheduleManager from './components/WorkScheduleManager';
 import CategoryManager from './components/CategoryManager';
 import CommandCenterDashboard from './components/CommandCenterDashboard';
 import BooksManager from './components/BooksManager';
+import EnglishModule from './components/EnglishModule';
 import LandingPage from './components/LandingPage';
 import { Plus, GraduationCap, Briefcase, Trash2, ArrowRight, CheckCircle2, Moon, Sun, Save } from 'lucide-react';
 import { ProfileType, Gender, PomodoroSettings } from './types';
@@ -336,6 +337,7 @@ const App: React.FC = () => {
           {activeTab === 'graph' && <KnowledgeGraph />}
           {activeTab === 'journal' && <FocusJournal />}
           {activeTab === 'settings' && <ProfileSettings />}
+          {activeTab === 'english' && <EnglishModule />}
           {activeTab === 'projects' && <CategoryManager filterType="proyecto" />}
           {activeTab === 'gym' && <CategoryManager filterType="gym" />}
           {/* Tabs dinámicos para categorías individuales */}
